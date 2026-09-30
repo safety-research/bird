@@ -154,22 +154,14 @@ export BIRD_ZOO_PATH=~/assistax-zoo/zoo
 
 The zoo's contents are checked against a recorded digest before training.
 
-### Differences from the code that produced the paper's numbers
+### Reproducibility
 
-The paper's runs were made at several commits of our development repository. This release
-includes bug fixes made since then, and its prompts differ in three ways:
-
-- the environment description given to the generator now ends with an index of the
-  observation fields; the Meta-World, Gym MuJoCo and HumanoidBench runs predate it;
-- for HumanoidBench and Assistax the environment description includes source code from
-  this repository's adapters, whose comments were edited for this release;
-- the CARD and REvolve configurations gained fidelity fixes after the paper's runs.
-  `scripts/paper_cell.py --protocol paper` (the default) restores the settings CARD's runs
-  used; REvolve's environment description (a Pythonic class abstraction in the
-  Meta-World, Gym MuJoCo and HumanoidBench runs) is now natural-language only and cannot
-  be restored by an override. `--protocol current` uses the configurations as they are
-  (CARD still trains with PPO's default hyperparameters on Meta-World and Gym MuJoCo,
-  since its SAC block does not apply to PPO).
+This is a cleaned-up release of the code used for the paper. Numbers will not reproduce
+exactly, since the LLM calls are sampled, and a few prompt details differ from the paper's
+runs. For example, the environment description now ends with an index of the observation
+fields, and REvolve's environment description is natural-language rather than the Pythonic
+class abstraction used in the paper's Meta-World, Gym MuJoCo and HumanoidBench runs.
+`scripts/paper_cell.py` restores the other settings those runs used.
 
 ## Reward hacking on HumanoidBench
 
