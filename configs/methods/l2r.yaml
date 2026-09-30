@@ -1,0 +1,113 @@
+# L2R (Language to Rewards) -- Yu et al., "Language to Rewards for Robotic Skill
+# Synthesis", CoRL 2023, arXiv 2306.08647.
+# Code: https://github.com/google-deepmind/language_to_reward_2023
+#
+# A user types a command; a Motion Descriptor LLM expands it into a filled-in
+# motion template, and a Reward Coder LLM turns that into a short program that
+# calls a fixed reward API. A human confirms the program before it runs, and
+# MuJoCo MPC optimizes the resulting cost weights online, so no policy is trained.
+# There is no automated outer loop: the next command is the user's.
+# Simplified: BIRD supplies neither L2R's reward API nor its motion template, so
+# both calls use BIRD's generic prompts; not validated with a real LLM.
+#
+# Values follow the paper; ‡ = paper silent, code supplies the value.
+# Included in the paper only in simplified form; scripts/paper_cell.py has no cell for it.
+
+extends: zeroshot.yaml
+name: l2r
+
+# --- models and loop ----------------------------------------------------------
+
+problem:
+  # The paper's running example (Fig. 1, Fig. 2), with "the" added. ‡ Not sent: the
+  # release's suffix " Make sure to ignore irrelevant options." (conversation.py:77).
+  task_description: "Make the robot dog stand up on two feet."
+
+  reward_representation: template_dsl # §3.1 Eq. 1: fixed residual terms; the LLM sets only w, psi
+  fitness_access: none                # no ground truth in-loop; §4.4's success rate is post hoc
+
+llm:
+  generator:
+    model: gpt-4                      # §4.1; user_interaction.py:38 MODEL = "gpt-4"
+    temperature: 0.3                  # ‡ conversation.py:39, hardcoded
+    # One model serves both calls (conversation.py:60-69); there is no evaluator LLM.
+
+loop:
+  n_iterations: 1                     # one command, one program; the next command is the user's
+  n_restarts: 10                      # §4.4: "10 responses from Reward Translator", pass@N (Fig. 4)
+  carry: [dialogue]                   # the Thinker's history (conversation.py:84-88)
+
+# --- generate -----------------------------------------------------------------
+# Two LLM calls, one program, no parent, no reflection; n_candidates stays at 1.
+
+generate:
+  context:
+    env_spec: natural_language_only   # prose robot description (prompt_thinker_coder.py:62)
+
+  history_mode: full_dialogue         # the Thinker's setting; per-call list below
+  stage_history_modes: [full_dialogue, none]
+                                      # ‡ [Thinker, Coder]: keep_message_history = [True, False]
+                                      # (prompt_thinker_coder.py:160)
+
+  output:
+    format: template_params           # the Coder calls a fixed reward API, never writes a reward
+    two_stage_nl_then_code: true      # §3.2; the §4.2 Coder-only ablation is prompt_coder_only.py
+    forbid_helper_functions: true     # prompt_thinker_coder.py:132 "Do not invent new functions"
+
+  parse:
+    patterns:                         # process_code.py:39-46; the release joins all blocks
+      - '```python(.*?)```'
+      - '```(.*?)```'
+      - '(?s).*'                      # no fence: the whole reply is the program
+    max_retries: 0                    # no parse retry (user_interaction.py:77-85); ‡ the release
+                                      # re-sends if a reply holds "CHOICE"/"NUM" (conversation.py:42)
+
+# --- verify -------------------------------------------------------------------
+# An execution gate with a person in it: safe to run, not good.
+
+verify:
+  enabled: true                       # confirmation_safe_executor.py compiles and runs first
+  static_checks: [ast_syntax]         # py_compile (L80-86); API calls have no signature to parse
+  dynamic_checks: [execution_smoke]   # subprocess run; a non-zero exit fails (L103-112)
+  human_confirm_before_execute: true  # prints the code, blocks on input() "yes" (L54-70)
+  on_failure: discard                 # no ranking scalar; the user gives a new command
+  quality_screen: none                # the person watching the robot is the only judge
+
+# --- train --------------------------------------------------------------------
+# No policy is learned. BIRD runs a random-shooting planner (capped at 6,000 steps)
+# in place of MuJoCo MPC and books each run as one policy training.
+
+train:
+  algorithm: none                     # §3.3: MuJoCo MPC replans every step; nothing is learned
+  backend: none                       # what BIRD executes (the planner above)
+
+# --- evaluate -----------------------------------------------------------------
+
+evaluate:
+  rollouts_per_candidate: 50          # §4.4: each response "evaluated in MJPC for 50 times"
+  artifacts: [scalar_metrics, videos] # the user judges the motion they watch (§4.5)
+
+  fitness:
+    source: none                      # no scalar: the user accepts or re-instructs (§4.5)
+  feedback:
+    trajectory_examples: none         # BIRD default, kept
+
+  human:
+    mode: feedback_text               # §4.5, App. A.9; here a scripted oracle, recorded only
+    queries_per_iteration: 1          # BIRD default: one utterance per turn
+    applies_to: selected_only         # BIRD default: there is only one program
+
+# --- select -------------------------------------------------------------------
+
+select:
+  rule: none                          # one program, no fitness: nothing to compare
+  final_artifact: chain_end           # the program just executed
+
+# --- update -------------------------------------------------------------------
+
+update:
+  operator: none                      # BIRD default: no reflection or mutation
+  prompt:
+    mode: append                      # conversation.py:84-88; a typed "reset" (L73-75) has no value
+  winner:
+    action: become_parent             # BIRD default; vacuous with operator none

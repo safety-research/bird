@@ -1,0 +1,29 @@
+# Hill-climb configuration 23 (v4_tree): v4 plus RF-Agent's search tree and action
+# diversity, i.e. v3_actions (tree + four mutation actions) with v4's design thought added
+# and the verifier removed. In v3 the tree gave the best GT-free push but collapsed seeds
+# on peg-insert and drawer; action diversity was the tree variant without collapses.
+# `--diff v4 v4_tree` is the tree unit plus the actions.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_actions.yaml
+name: v4_tree
+
+problem:
+  fitness_access: none
+
+generate:
+  output:
+    design_thought: inline_brace
+  context:
+    include_parent_thought: true
+
+verify:
+  quality_screen: none
+
+evaluate:
+  thought_alignment:
+    enabled: true
+  artifacts: [scalar_metrics, videos, state_trajectories]
+
+budget:
+  max_policy_trainings: 30            # 5 candidates x 6 rounds

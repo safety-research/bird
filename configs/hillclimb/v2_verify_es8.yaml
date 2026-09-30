@@ -1,0 +1,15 @@
+# Hill-climb configuration 8 (v2_verify_es8): v2_verify with gentler early stopping.
+#
+# The default plateau rule (patience 4, min_checkpoints 5) can stop a training early while
+# the policy parks in a reach attractor where its own reward plateaus. Here nothing can stop
+# before 60% of the budget, and only after eight flat checkpoints. Control: v2_noverify_es8.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify.yaml
+name: v2_verify_es8
+
+train:
+  pruning_cfg:
+    patience: 8
+    min_delta: 0.01
+    min_checkpoints: 12

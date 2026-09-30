@@ -1,0 +1,65 @@
+# LIMEN / Reward-Only -- the Reward-Only baseline of Jaswal, Baghel & Chopra,
+# "Discovering Reinforcement Learning Interfaces with Large Language Models",
+# RLC 2026, arXiv 2605.03408, §5.4 "Baselines" (p. 8).
+# Code: https://github.com/Lossfunk/LIMEN (its "reward_only" evolution mode).
+#
+# LIMEN evolving only the reward, observations fixed to raw simulator state, under
+# "identical evolution budgets and RL training configurations" (§5.4; results in
+# Fig. 4 and Table 15), so only the search space moves. ‡ The paper does not say what
+# this arm did with the archive; with the observation axis constant, the MAP-Elites
+# grid collapses to one column, as expected. ‡ = paper silent, code supplies the value.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+extends: limen.yaml
+name: limen_reward_only
+
+problem:
+  search_space: [reward]              # §5.4: "keeping observations fixed to raw simulator state"
+
+generate:
+  context:
+    # ‡ The release's "reward_only" system prompt (prompts.py:90-136, slots :46-50,
+    # :69-73; the paper prints only the "full" one), adapted as in limen.yaml plus
+    # "scalar jnp.float32" -> "scalar float32". The observation bullets stay, as upstream.
+    system_prompt: |-
+      You are an expert reinforcement learning engineer. You design MDP interfaces for RL agents in reinforcement learning environments.
+
+      Your task is to write one Python function:
+      - `compute_reward(state, action, next_state)` — computes a scalar float32 reward signal
+
+      The observation function is fixed (provided by the system). You only design the reward.
+
+      The RL agent sees ONLY what get_observation returns and is trained ONLY on what compute_reward provides. Your design of these functions determines whether the agent can learn the task.
+
+      ## Design Philosophy
+
+      **The goal is to help a neural network LEARN, not to solve the task yourself.**
+
+      Observation design:
+      - The observation must give the agent ALL the information it needs to learn the task. Think carefully about what the agent needs to perceive from the environment state.
+      - Include any relational or structural information that is relevant to the task.
+      - Normalize features to similar ranges (e.g., [0, 1] or [-1, 1]).
+      - The observation can be anywhere from a handful of features to hundreds — use whatever the task requires. The max is 512 elements.
+      - Compute everything from the current state. Do NOT hardcode any environment-specific constants — the environment is randomized across episodes.
+
+      Reward design:
+      - The reward should provide a learning signal that guides the agent toward completing the task. The agent is evaluated on task success rate (% of episodes where the goal is reached), NOT on reward magnitude.
+      - Consider what sub-objectives or milestones exist in the task, and whether rewarding progress toward them would help learning.
+      - The reward can use any structure — dense shaping, sparse bonuses, milestone rewards, or combinations. Use what fits the task.
+
+      Generalization:
+      - The environment is evaluated across RANDOMIZED initial conditions. Your interface must generalize across all of them, not just one specific setup.
+      - Do NOT hardcode environment-specific constants. Compute everything from the current state.
+      - The reward must reflect ACTUAL task progress, not a proxy that happens to correlate in some configurations. If the reward can be maximized without completing the task, the agent will learn to exploit that shortcut.
+      - Test your reasoning: would this observation and reward still make sense if the initial conditions were completely different?
+
+      ## Output Format
+
+      Return your code inside a single Python markdown fence (```python ... ```).
+      The code must define `compute_reward(state, action, next_state)` returning a scalar float32.
+      You may define helper constants or functions above it.
+
+  co_design:
+    observation_fn: false             # the LLM writes compute_reward only
+update:
+  co_evolve:
+    observation_fn: false             # required with co_design off: nothing to carry over

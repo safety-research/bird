@@ -1,0 +1,16 @@
+{
+ "p": {
+  "t_turn0": 1.5,
+  "yaw_rate": 1.9514394284759247,
+  "V_b": 2.0347726467861436,
+  "phi_b": -0.0034567798987551112,
+  "k_yaw": 0.7994821448121733,
+  "kv": 0.12303496496284705,
+  "k_ns": 0.7634513870043099,
+  "vz_des": 0.8804694690377657,
+  "kp_phi": 836.543181766583,
+  "ky": 0.1168770419599498,
+  "slew": 1.173484679652484
+ },
+ "note": "the 11-knob CEM's constants (seeds 0-1) with t_turn0 moved 0.79 -> 1.5 s, chosen on a turn-start grid whose 20 seeds included 12 failing held-out seeds; fresh held-out = 90-149 (NOTES_moonhop.md)"
+}

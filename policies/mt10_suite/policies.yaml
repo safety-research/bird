@@ -1,0 +1,494 @@
+campaign: mt10_suite
+family: metaworld
+pattern: closure
+code:
+- mtsuite.py
+source:
+  archive: 'not distributed: only the policy code and its evaluation records are included'
+  date: '2026-09-01'
+  log: null
+policies:
+- id: mt10_suite/reach
+  task: reach
+  env_id: mt10_reach-v3
+  gym_id: reach-v3
+  entry:
+    file: mtsuite.py
+    symbol: pol_reach
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 14.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.9466
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.936
+    - 0.954
+    - 0.954
+    - 0.93
+    - 0.958
+    - 0.932
+    - 0.95
+    - 0.938
+    - 0.944
+    - 0.95
+    - 0.946
+    - 0.954
+    - 0.958
+    - 0.942
+    - 0.946
+    - 0.944
+    - 0.936
+    - 0.948
+    - 0.942
+    - 0.95
+    - 0.942
+    - 0.96
+    - 0.946
+    - 0.948
+    - 0.958
+    aggregate: mean
+    secondary:
+      min: 0.93
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_reach.json
+  notes: 'goto goal+(0,0,0.045) (the tcp offset the adapter''s own check documents), freeze. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/pick_place
+  task: pick_place
+  env_id: mt10_pick-place-v3
+  gym_id: pick-place-v3
+  entry:
+    file: mtsuite.py
+    symbol: pol_pick_place
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 16.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.8958
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.886
+    - 0.904
+    - 0.906
+    - 0.888
+    - 0.902
+    - 0.882
+    - 0.894
+    - 0.884
+    - 0.888
+    - 0.904
+    - 0.896
+    - 0.908
+    - 0.898
+    - 0.898
+    - 0.902
+    - 0.894
+    - 0.896
+    - 0.896
+    - 0.898
+    - 0.89
+    - 0.898
+    - 0.896
+    - 0.896
+    - 0.9
+    - 0.89
+    aggregate: mean
+    secondary:
+      min: 0.882
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_pick_place.json
+  notes: 'approach/descend/close/carry(3D)/hold. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/door_open
+  task: door_open
+  env_id: mt10_door-open-v3
+  gym_id: door-open-v3
+  entry:
+    file: mtsuite.py
+    symbol: pol_door_open
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 14.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.7196
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.738
+    - 0.74
+    - 0.746
+    - 0.746
+    - 0.742
+    - 0.766
+    - 0.746
+    - 0.746
+    - 0.752
+    - 0.742
+    - 0.742
+    - 0.748
+    - 0.748
+    - 0.754
+    - 0.752
+    - 0.54
+    - 0.748
+    - 0.482
+    - 0.754
+    - 0.506
+    - 0.754
+    - 0.768
+    - 0.742
+    - 0.748
+    - 0.74
+    aggregate: mean
+    secondary:
+      min: 0.482
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_door_open.json
+  notes: 'hook the handle from the away side and drag with a live hand-offset (target = goal + (hand-obj)); the
+    door constrains the arc, mocap follows. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/drawer_open
+  task: drawer_open
+  env_id: mt10_drawer-open-v3
+  gym_id: drawer-open-v3
+  entry:
+    file: mtsuite.py
+    symbol: pol_drawer_open
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 14.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.8791
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.878
+    - 0.88
+    - 0.88
+    - 0.878
+    - 0.878
+    - 0.88
+    - 0.88
+    - 0.878
+    - 0.88
+    - 0.88
+    - 0.878
+    - 0.88
+    - 0.878
+    - 0.88
+    - 0.88
+    - 0.878
+    - 0.878
+    - 0.878
+    - 0.88
+    - 0.878
+    - 0.88
+    - 0.88
+    - 0.878
+    - 0.88
+    - 0.88
+    aggregate: mean
+    secondary:
+      min: 0.878
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_drawer_open.json
+  notes: 'hover/descend onto the handle bar, close, PULL with a live hand-offset (target = goal + (hand-obj)),
+    hold at 0.025. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/drawer_close
+  task: drawer_close
+  env_id: mt10_drawer-close-v3
+  gym_id: drawer-close-v3
+  entry:
+    file: mtsuite.py
+    symbol: _push_through
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 14.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.9343
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.932
+    - 0.962
+    - 0.93
+    - 0.932
+    - 0.93
+    - 0.932
+    - 0.93
+    - 0.932
+    - 0.932
+    - 0.932
+    - 0.932
+    - 0.932
+    - 0.932
+    - 0.93
+    - 0.94
+    - 0.93
+    - 0.93
+    - 0.928
+    - 0.93
+    - 0.93
+    - 0.93
+    - 0.932
+    - 0.932
+    - 0.96
+    - 0.946
+    aggregate: mean
+    secondary:
+      min: 0.928
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_drawer_close.json
+  notes: 'stand-off on the far side from the goal, push through, hold. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/button_press_topdown
+  task: button_press_topdown
+  env_id: mt10_button-press-topdown-v3
+  gym_id: button-press-topdown-v3
+  entry:
+    file: mtsuite.py
+    symbol: pol_button
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 20.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.035
+  status: solved
+  score:
+    value: 0.8767
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.876
+    - 0.878
+    - 0.882
+    - 0.868
+    - 0.872
+    - 0.88
+    - 0.876
+    - 0.86
+    - 0.892
+    - 0.874
+    - 0.876
+    - 0.882
+    - 0.862
+    - 0.89
+    - 0.886
+    - 0.882
+    - 0.87
+    - 0.87
+    - 0.89
+    - 0.87
+    - 0.89
+    - 0.884
+    - 0.876
+    - 0.868
+    - 0.864
+    aggregate: mean
+    secondary:
+      min: 0.86
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_button_press_topdown.json
+  notes: 'hover over the button, press straight down, keep pressing. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/window_open
+  task: window_open
+  env_id: mt10_window-open-v3
+  gym_id: window-open-v3
+  entry:
+    file: mtsuite.py
+    symbol: _push_through
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 14.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.8768
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.874
+    - 0.88
+    - 0.882
+    - 0.866
+    - 0.87
+    - 0.882
+    - 0.874
+    - 0.856
+    - 0.896
+    - 0.872
+    - 0.876
+    - 0.882
+    - 0.856
+    - 0.896
+    - 0.89
+    - 0.886
+    - 0.868
+    - 0.868
+    - 0.896
+    - 0.868
+    - 0.896
+    - 0.886
+    - 0.876
+    - 0.864
+    - 0.86
+    aggregate: mean
+    secondary:
+      min: 0.856
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_window_open.json
+  notes: 'same shape as drawer_close: the handle slides in x; push from the away side through the goal.
+    verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'
+- id: mt10_suite/window_close
+  task: window_close
+  env_id: mt10_window-close-v3
+  gym_id: window-close-v3
+  entry:
+    file: mtsuite.py
+    symbol: _push_through
+  params:
+    d_tol: 0.016
+    hold_d: 0.05
+    k: 14.0
+    n_close: 8
+    press_z: 0.05
+    pull_tol: 0.022
+    standoff: 0.06
+    xy_tol: 0.01
+    z_grasp: 0.02
+    z_hover: 0.06
+  status: solved
+  score:
+    value: 0.8627
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.858
+    - 0.86
+    - 0.864
+    - 0.856
+    - 0.858
+    - 0.862
+    - 0.858
+    - 0.86
+    - 0.872
+    - 0.858
+    - 0.86
+    - 0.864
+    - 0.858
+    - 0.872
+    - 0.87
+    - 0.868
+    - 0.86
+    - 0.858
+    - 0.872
+    - 0.86
+    - 0.872
+    - 0.866
+    - 0.86
+    - 0.858
+    - 0.864
+    aggregate: mean
+    secondary:
+      min: 0.856
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_window_close.json
+  notes: 'same shape as drawer_close: the handle slides in x; push from the away side through the goal.
+    verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'

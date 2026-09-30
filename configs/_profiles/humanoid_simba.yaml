@@ -1,0 +1,11 @@
+# Profile `humanoid_simba`: `humanoid` with the RDA paper's learner, for RDA HumanoidBench
+# runs (configs/methods/rda_humanoidbench.yaml). train.backend is a profile key, so the
+# learner is chosen here rather than in the method config; `humanoid` stays the profile of
+# every other HumanoidBench method. The learner's hyperparameters (RDA Table 1) are method
+# keys and live in the method config. Everything else is inherited from `humanoid`.
+extends: humanoid.yaml
+
+train:
+  backend: simba_v2                   # SAC + SimbaV2: RDA Table 1 (appendix.tex:1420-1421)
+  n_parallel_envs: 16                 # RDA §5.1 / Table 1 (appendix.tex:1425); `dev` pins 1
+  env_steps: 1000000                  # pilot budget; paper 10M: -s train.env_steps=10000000

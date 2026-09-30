@@ -1,0 +1,209 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bird"
+version = "0.1.0"
+description = "Benchmark for Iterative Reward Design -- every published LLM reward-design method as a point in one config space"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*"]
+
+# Two hard dependencies, deliberately. Every CLI path that does not execute a
+# search -- --list-configs, --validate-all, --diff, --print-config, --dry-run --
+# and the offline test suite run with only these, on a machine with no GPU, no API
+# key and no network. Every optional extra is below, each with the config key
+# that gates it.
+dependencies = [
+    "pyyaml>=6.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+# Each extra maps 1:1 onto a config value; the import is lazy and inside the one
+# code path that needs it, so a missing extra is an actionable error at run time
+# rather than an ImportError at registry load.
+anthropic = ["anthropic>=0.40"]                                   # llm.*.provider: anthropic
+openai = ["openai>=1.40"]                                         # llm.*.provider: openai
+sb3 = ["stable-baselines3[extra]>=2.3", "gymnasium>=0.29"]        # train.backend: sb3
+fasttd3 = ["torch>=2.0"]                                          # train.backend: fasttd3
+# The JAX tier: `problem.env_id: upstream_assistax_*` / `jax_toy` plus
+# `generate.reward_language: jax`. Held OUT of `all`: `jax[cuda13]` pulls ~3 GB
+# of CUDA wheels and needs a GPU to be worth installing. The upper pin is
+# deliberate -- MJX's API moved inside 0.4.x; the lower bound is where
+# `mjx.put_model` stabilised.
+#
+# `assistax` itself is NOT here: it is a git-only dependency at a pinned commit
+# and no `uv.lock` can hold it, so it lives in `scripts/setup_jax.sh`.
+jax = [
+    # cuda13, not cuda12, and it is a MEASUREMENT not a preference: the lock's
+    # torch is 2.13.0+cu130, and jax and torch share ONE interpreter here. Two
+    # CUDA runtimes in one venv is the shape that produces a working import and
+    # a wrong device. Verified: jax 0.8.0 on cuda13 wheels, torch
+    # 2.13.0+cu130 and mujoco 3.13.0 coexisting, with
+    # `torch.from_dlpack(jnp_array)` landing on cuda:0 float32.
+    "jax[cuda13]>=0.4.37,<=0.8.0",
+    "mujoco==3.13.0",
+    "mujoco-mjx>=3.3.7",
+    "brax>=0.13",
+    # The sb3 learner and the Gym MuJoCo adapters import gymnasium, and both also
+    # run in this venv (`scripts/setup_jax.sh` installs the sb3 extra beside it).
+    "gymnasium[mujoco]>=1.1",
+]                                                                 # problem.env_id: upstream_assistax_* / jax_toy
+wandb = ["wandb>=0.17"]                                           # output.tracker: wandb
+video = ["imageio>=2.34", "imageio-ffmpeg>=0.5"]                  # output.video.format: gif|mp4
+# `gif` needs only imageio; `imageio-ffmpeg` is what `mp4` adds. They ship as one
+# extra because splitting them buys a second name for one decision. Note what is
+# NOT here: `output.video.format: frames` needs nothing at all -- it writes PNGs
+# with zlib+struct. That is why it is the default. Recording is ON by default, so
+# the default format must never depend on a package that might not be installed.
+
+# problem.env_id: mt10_*. Three notes:
+#   * `mujoco==3.3.0` is not a choice -- metaworld 3.1.1 pins it exactly
+#     (`Requires-Dist: mujoco==3.3.0`), so a range here would be freedom this
+#     install does not have, and this repo's rule is to never declare something
+#     the code cannot honour.
+#   * `gymnasium[mujoco]`, and the floor is 1.1 rather than the sb3 extra's 0.29:
+#     metaworld 3.1.1 requires `gymnasium>=1.1`, and the `mujoco` extra is what
+#     supplies `imageio` and `packaging`, both imported at the top of
+#     `gymnasium/envs/mujoco/mujoco_rendering.py`. Plain `gymnasium` renders
+#     nothing. The sb3 extra's floor is deliberately left alone: sb3 declares its
+#     own ceiling (2.9.0: `gymnasium<2.0,>=0.29.1`), so a resolver asked for both
+#     backtracks to a compatible sb3 rather than deadlocking.
+#   * MuJoCo also needs a GL context to render, which is a SYSTEM library and not
+#     a Python package -- `scripts/setup_gl.sh` installs a userland Mesa when the
+#     machine has none. Rendering is not optional for these envs: `rda` and
+#     `gt` score candidates by looking at frames.
+metaworld = ["metaworld>=3.0", "mujoco==3.3.0", "gymnasium[mujoco]>=1.1"]
+# problem.env_id: assistax_*. The same pin, for the same reason: `bird/envs/assistax.py`
+# drives the vendored Assistax scenes through the plain `mujoco` package on CPU
+# (upstream is JAX + Brax + MJX and pins mujoco>=3.3.7, which this repo never imports),
+# so the tier shares an interpreter with metaworld and is covered by `all` through it.
+assistax = ["mujoco==3.3.0"]
+# `jsonschema` is a TEST dependency and not an optional extra of its own, which is the
+# opposite of the rule above it -- deliberately. Every other extra is gated by a config
+# value and its absence is an actionable runtime error; this one gates
+# `tests/test_task_specs.py::test_every_spec_validates`, the ONLY thing that checks the
+# task specs against `tasks/shared_spec.schema.json`. Left undeclared it would
+# `importorskip` away, and the schema this repo ships would be validated by nothing.
+# Pure Python, no build step, so there is no cost to making it unconditional.
+test = ["pytest>=8.0", "jsonschema>=4.0"]
+all = [
+    "anthropic>=0.40",
+    "openai>=1.40",
+    "jsonschema>=4.0",
+    "stable-baselines3[extra]>=2.3",
+    # 1.1, not 0.29: `all` includes metaworld, which floors it there.
+    "gymnasium[mujoco]>=1.1",
+    "wandb>=0.17",
+    "imageio>=2.34",
+    "imageio-ffmpeg>=0.5",
+    "pytest>=8.0",
+    "metaworld>=3.0",
+    "mujoco==3.3.0",
+    # torch arrives transitively through stable-baselines3 already; named so the
+    # fasttd3 backend's dependency does not silently ride on sb3 staying in this list.
+    "torch>=2.0",
+]
+
+# No [project.scripts] entry, deliberately. The entrypoint `bird.py` and the
+# package `bird/` cannot both be importable under the name `bird`, which is why
+# tests/test_pipeline.py loads the entrypoint by FILE PATH rather than importing
+# it. A console script would have to point at a shim module that does not exist,
+# and declaring a thing the code cannot honour is the failure mode
+# this repo refuses. Invoke it as `python3 bird.py --config ...`.
+
+[tool.setuptools.packages.find]
+include = ["bird*"]
+
+# `configs/` SHIPS in the wheel; `tasks/` and `policies/` DO NOT. Run from a
+# checkout, or point $BIRD_DATA_ROOT at one, to supply the other two.
+#
+# `bird/_data/configs` is a symlink to the repo's `configs/`, so the
+# directory keeps its one canonical location and the wheel still carries a
+# copy. `bird/paths.py` looks there last, after the checkout and after
+# $BIRD_DATA_ROOT, which is the supported way to supply the other two.
+[tool.setuptools.package-data]
+# `bird/envs/assets/**` is INSIDE the package and setuptools includes no data
+# files unless they are declared: these are the vendored Assistax scenes the
+# adapter loads, and without them a non-editable install cannot construct it.
+bird = [
+    "_data/configs/**/*.yaml",
+    "_data/configs/**/*.yml",
+    "envs/assets/**/*",
+]
+
+[tool.uv]
+# The `jax` extra CANNOT be resolved beside the mujoco==3.3.0 tiers, and that
+# is a fact about MuJoCo rather than a packaging choice: Meta-World and
+# Assistax are pinned to mujoco==3.3.0, and MJX 3.3.7+ needs the matching
+# mujoco>=3.3.7. Declaring the conflict is what lets `uv lock` resolve them in
+# separate forks instead of failing outright.
+#
+# It is also the packaging statement of why this tier has its own venv
+# (`scripts/setup_jax.sh`); jax is on PyPI, so its pins stay HERE, citable and
+# checked by `uv lock --check`, rather than living only in a shell script.
+conflicts = [
+    [{ extra = "all" }, { extra = "jax" }],
+    [{ extra = "metaworld" }, { extra = "jax" }],
+    [{ extra = "assistax" }, { extra = "jax" }],
+]
+
+[tool.pytest.ini_options]
+# `tests` is not a default here by accident: a bare `pytest` would walk into a
+# `refs/` checkout of upstream repositories (`scripts/fetch_refs.sh`) and die
+# collecting their test files. testpaths pins it.
+testpaths = ["tests"]
+norecursedirs = ["refs", "runs", ".git", "__pycache__"]
+addopts = "-q"
+# `humanoid` marks tests that need HumanoidBench, which CANNOT be installed
+# alongside metaworld: HumanoidBench needs `mujoco==3.1.6` (its vendored
+# `dmc_deps/dmc_index.py` reads `MjModel.flex_xvert0`, removed after 3.1.6) and
+# metaworld 3.1.1 pins `mujoco==3.3.0` exactly. So there is no interpreter in
+# which both `tests/test_humanoid_hand.py` and `tests/test_metaworld.py` can run:
+# deselect one tier (`-m "not humanoid"`) rather than let it skip, and run the
+# humanoid tests by hand in the venv `scripts/setup_humanoid.sh` builds.
+markers = [
+    "humanoid: needs HumanoidBench; unrunnable in any venv that also has metaworld",
+    "slow: not part of the tester-tier smoke suite",
+    "jax: needs the `jax` extra (jax[cuda13], mujoco-mjx, brax) and in practice a GPU; the extra is ~3 GB of CUDA wheels. Tests `importorskip(\"jax\")` on top of the marker, so a developer who HAS the extra gets them locally",
+    "gl: renders through MuJoCo and therefore needs a GL context (`scripts/setup_gl.sh`). Applied by REQUESTING THE `gl` FIXTURE, never by a name list or a message match; a test that renders and forgets the fixture FAILS rather than being silently missed -- see tests/conftest.py, the `gl` fixture",
+]
+
+# `slow` SPLITS THE SUITE BY QUESTION, NOT BY STOPWATCH. `-m "not slow"` asks
+# one thing: did this change break the algorithm on the tester tier -- mock LLM,
+# mock learner, toy env, two iterations? Everything else is `slow`: heavyweight
+# execution (resume, parallelism, pruning), dependency-gated tiers (metaworld,
+# humanoid), rendering or recording, and corpus sweeps over the task catalogue.
+# The marker is assigned by KIND, not by measured seconds, so it does not go
+# stale when a test gets faster.
+
+# An EMPTY `parametrize` set is a COLLECTION FAILURE here, not pytest's default skip.
+#
+# This repo's suite is heavily parametrised over collections discovered at import --
+# `PAPER_CONFIGS`, `SPEC_PATHS`, the ten Meta-World specs and more. Every one of those
+# is a glob. A glob that
+# stops matching -- a directory renamed, a catalogue not checked out, a filter tightened
+# by one character -- turns its whole test into a green `s` under the default, and the
+# check reports success having checked nothing. That is the same defect
+# `tests/test_no_silent_skip.py` exists to catch, arriving through a door it does not
+# watch.
+#
+# `test_task_specs.py` guards itself with `test_the_catalogue_is_not_empty`. This makes
+# that structural instead of per-file discipline,
+# so the next parametrised test does not have to remember.
+empty_parameter_set_mark = "fail_at_collect"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["refs", "runs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # long lines are almost always a provenance comment carrying a citation
+    "B008",
+]

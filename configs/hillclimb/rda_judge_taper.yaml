@@ -1,0 +1,18 @@
+# rda_judge_taper: a parent in the hill-climb's inheritance chain, not a row of the paper's
+# hill-climb table.
+#
+# rda_judge with the same 40 trainings reshaped from 5 rounds x 8 candidates into 8 rounds
+# tapering 10 -> 2: explore wide while the reward is unsettled, then refine the incumbent
+# (under warm start the cheap tail rounds are extra refine-and-retrain passes). The taper
+# ends at 2, not 1, so the final round's answer is still a selection.
+
+extends: rda_judge.yaml
+name: rda_judge_taper
+
+loop:
+  n_iterations: 8
+
+generate:
+  n_candidates: 10
+  candidate_schedule: explicit
+  candidate_schedule_values: [10, 8, 6, 5, 4, 3, 2, 2]

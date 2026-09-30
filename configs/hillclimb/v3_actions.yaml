@@ -1,0 +1,15 @@
+# Hill-climb configuration 17 (v3_actions): action diversity on v3_tree. Four of RF-Agent's
+# five LLM actions (tex:197-203) instead of one mutation prompt: modify the structure (a_m1),
+# adjust the weights (a_m2), reason over the root-to-leaf path (a_r4) and depart from other
+# subtrees (a_d5). Elite crossover (a_c3) is left to v3_elite. Counts sum to K = 5.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_tree.yaml
+name: v3_actions
+
+generate:
+  actions:
+    mutation_mechanism: 2
+    mutation_param: 1
+    path_reasoning: 1
+    different_thought: 1

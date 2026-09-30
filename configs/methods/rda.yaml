@@ -1,0 +1,146 @@
+# RDA -- Lee et al., "Reward Design Agent for Reinforcement Learning",
+# Reinforcement Learning Journal 2026, arXiv 2606.01672. No code release.
+#
+# A VLM splits the instruction into J subtasks, writes N reward candidates
+# conditioned on the instruction, the environment code and the subtasks, and
+# trains each. It then scores every rollout on all J subtasks in one structured
+# call (a 3-point score and a rationale per subtask, App. 7.3); the best mean
+# subtask score wins, and the agent reflects twice: on the subtask list, then on
+# the reward. The paper's prompts (App. 7.1-7.5) define the protocol.
+#
+# Values follow the paper (§5.1 and Table 1 unless noted). RDA has no code, so no
+# value is ‡; †p = two places in the paper disagree (both given). §5.1 runs two
+# benchmarks: this file is ManiSkill, rda_humanoidbench.yaml is HumanoidBench.
+# ManiSkill has no env adapter here, so `problem.env_id` stays at its default. A
+# paper config is a citation, not a launchable job: choose the env with -s.
+# The matched protocol of the paper's experiments: scripts/paper_cell.py.
+
+extends: zeroshot.yaml
+name: rda
+
+# --- models and loop -------------------------------------------------------
+
+problem:
+  instruction_modality: text+image    # the env image goes to decomposition only (§4.1, App. 7.1)
+  reward_representation: weighted_components # weighted sums of subtask components (§4.1)
+  fitness_access: none                # ranked on the VLM subtask score (§4.2), not a task metric
+
+llm:
+  generator:
+    model: gpt-5                      # the Agent VLM (§5.1): every in-loop call
+    reasoning_effort: medium          # §5.1, stated for the backbone
+    modality: vlm                     # env image, 20 rollout frames per analysis (Table 1)
+    # temperature: paper silent, default kept unpinned.
+  evaluator:
+    model: gpt-4.1                    # post-hoc alignment-rate judge only (§10.1)
+    modality: vlm                     # it watches videos, which is the whole channel
+
+loop:
+  n_iterations: 5                     # §5.1 (`M`)
+  n_restarts: 3                       # "3 seeds" (§5.1): independent searches
+  carry: [best_reward, subtask_list, policy_checkpoint] # both reflections and the warm start (§4.2)
+
+# --- generate --------------------------------------------------------------
+# env_spec stays full_source: App. 7.1, 7.2 and 7.5 take the environment code.
+
+generate:
+  n_candidates: 4                     # §5.1, ManiSkill (8 on HumanoidBench)
+  parent_source: iteration_best       # reflection revises the round's argmax R^i_{n*} (§4.2)
+
+  context:
+    include_task_decomposition: true  # candidates are drawn from (I, E, T^i) (§4.1)
+    include_parent_code: true         # reward reflection quotes `R^i_{n*}` back
+    include_behavioural_analysis: true # per-subtask scores and rationales G^i_n (§4.2)
+
+  history_mode: last_iteration        # inert: the prompt is rebuilt each round (§4.2)
+
+  decomposition:
+    enabled: true                     # once per search, by the Agent VLM (§4.1, §5.1)
+    n_subtasks: auto                  # the VLM picks J: ~5 simple, ~10 complex (App. 7.1)
+    reward_must_map_to_subtasks: false # †p §4.1: one component per subtask; App. 7.2: "use
+                                      # subtasks as guidance" (8 components for 5 in §8)
+
+  output:
+    format: component_dict_plus_weights # components plus weights (§4.1); App. 7.2/7.5 rules not sent
+
+# --- verify ----------------------------------------------------------------
+
+verify:
+  enabled: true                       # "compiled and validated before proceeding" (§4.1)
+  quality_screen: none                # every candidate is trained, every round
+  llm_self_critique:
+    enabled: false                    # §6 leaves pre-training self-critique to future work
+
+# --- train -----------------------------------------------------------------
+
+train:
+  algorithm: sac                      # §5.1
+  architecture: simba                 # †p §5.1 says Simba; Table 1 and §11 say SimbaV2
+                                      # for both benchmarks (rda_humanoidbench pins simba_v2)
+  env_steps: 50000000                 # §5.1, ManiSkill (10M on HumanoidBench)
+  n_parallel_envs: 2048               # †p §5.1 2048; Table 1 2000 (16 on HumanoidBench)
+  seeds_per_candidate: 1              # one training per candidate; the 3 seeds are n_restarts
+  init: warm_start_from_best          # "may be warm-started" (§4.2); the +Ckpt of Fig. 7a
+
+# --- evaluate --------------------------------------------------------------
+# Selection optimises VLM alignment; success is reported separately (§5.2).
+
+evaluate:
+  rollouts_per_candidate: 3           # K = 3 trajectories per policy (Table 1)
+  artifacts: [scalar_metrics, videos] # the judge sees frames, reward code, components (App. 7.3)
+
+  fitness:
+    source: vlm_score                 # mean VLM subtask score, S: Π x I -> R (§3, §4.2)
+
+  feedback:
+    visual_analysis: true             # BIRD's own axis, no paper toggle
+    granularity: per_subtask          # per-subtask credit assignment (§4.2)
+    require_rationale: true           # the VLM returns a score and a reason (s, ρ) (§4.2)
+    score_scale: three_point          # †p App. 7.3 prompt: 3-point {0, 0.5, 1}; Fig. 2 shows
+                                      # 'score: 0.8'. The prompt is the instrument.
+    summarisation: per_candidate_per_subtask # G^i_n (§4.2); the prompts get the raw rationales
+    analyzer: none
+
+  vlm:
+    images_per_query: 20              # the Agent VLM (Table 1); the evaluator's 50 is below
+    repeats: 1                        # §5.1's "4 times" is the post-hoc metric, not this scorer
+
+  preferences:
+    enabled: false                    # point-wise, "due to GPT's visual context limits" (§5.1)
+
+# --- select ----------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # n* = argmax of the mean subtask score (§4.2)
+  scope: within_iteration             # over this round's N only (§4.2)
+  final_artifact: global_best
+  significance: none
+
+# --- update ----------------------------------------------------------------
+
+update:
+  topology: single_parent_hillclimb
+  operator: reflect_and_mutate        # reward reflection on G^i_{n*} (§4.2)
+  prompt:
+    mode: replace                     # inert: the dialogue is not carried
+  co_evolve:
+    subtasks: true                    # subtask reflection: revise at most one, keep J (§4.2)
+
+# --- report ----------------------------------------------------------------
+# The headline metric is the alignment rate (§5.2), computed as in §10.1.
+
+post:
+  - final_retrain                     # retrains the returned winner to rate it
+  - alignment_rate                    # the headline metric (§5.1, §10.1)
+
+final_retrain:
+  enabled: true                       # BIRD's; the paper never mentions a retrain
+  n_seeds: 3                          # "each task is trained with 3 random seeds" (§10.1)
+
+alignment_rate:
+  enabled: true
+  n_videos: 5                         # 5 trajectory videos per trained policy (§10.1)
+  repeats: 4                          # "we query the VLM four times per video" (§10.1)
+  images_per_query: 50                # the Evaluation VLM (Table 1)
+  scale: likert                       # 5-point Likert (§5.1); §10.1's rubric prompt is not sent
+  normalisation: divide_by_max        # "dividing by 5" (§10.1): a Likert 1 maps to 0.2

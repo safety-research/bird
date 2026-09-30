@@ -1,0 +1,209 @@
+# LIMEN -- Jaswal, Baghel & Chopra, "Discovering Reinforcement Learning
+# Interfaces with Large Language Models", RLC 2026, arXiv 2605.03408.
+# Code: https://github.com/Lossfunk/LIMEN. "Lx" = line x of its
+# configs/hard_rule_chain.yaml.
+#
+# LLM-guided evolution of the whole RL interface: each candidate is an observation
+# function and a reward function written together. One candidate per iteration is
+# drawn from a MAP-Elites archive (reward complexity x observation size, over
+# islands), passed through a crash filter and a short-budget training cascade,
+# trained over 3 seeds, and inserted back into the archive by descriptor.
+# The release's seven task configs disagree on most numbers; this file pins
+# hard_rule_chain (XLand-MiniGrid-R4-13x13); "off XLand" = the four non-XLand tasks.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: zeroshot.yaml
+name: limen
+
+# --- models and loop --------------------------------------------------------
+
+problem:
+  # rulesets/hard_rule_chain.py L1-16. env_id left at default: no XLand adapter.
+  task_description: >-
+    Four rooms (13x13). Pick up the blue pyramid -- it transforms into a green
+    ball in the agent's pocket -- then put that green ball down next to the
+    yellow hex. A purple ball and an orange square are distractors, and the
+    rule that consumes them is a dead end.
+
+  search_space: [reward, observation]  # the MDP interface is searched (prompts.py L57-59)
+  search_space_mode: joint            # BIRD default, kept: both functions in one completion
+
+llm:
+  generator:
+    model: anthropic/claude-sonnet-4  # † paper Claude Sonnet 4.6 (§5.3, App. B.1);
+                                      #   code anthropic/claude-sonnet-4 (L57)
+    temperature: 0.7                  # L58, also stated in the paper
+  # max_tokens 16384 (L59) and retries (L60-61) have no BIRD key.
+  # No evaluator LLM: fitness is measured by training, never judged.
+
+loop:
+  n_iterations: 30                    # † paper 30 (§5.2, App. F Table 14); code 500 (L1),
+                                      #   a dev ceiling: the released winners all say 30
+  carry: [archive, failure_memory]    # memory is the archive and failure store, no dialogue
+  on_total_failure: continue          # BIRD default, kept: the cascade can reject the round
+
+# --- generate ---------------------------------------------------------------
+
+generate:
+  n_candidates: 1                     # BIRD default, kept: L2, all seven task configs
+  parent_source: archive_sample       # database.py::sample_parent
+
+  context:
+    env_spec: state_action_api_stub   # contexts/xminigrid.md, a hand-written State table
+    include_parent_code: true         # Alg. 1 line 6: the sampled parent anchors the prompt
+    include_numeric_reflection: true  # the parent's training metrics
+    include_archive_elites: true      # L72-77: 3 top and 2 diverse programs
+    include_failure_traces: true      # L75: 2 failure examples
+    shuffle_sections: true            # prompts.py L675, L686 shuffle programs within sections
+
+    # † The paper's listing (App. B.2.1, appendix.tex:149-181) condenses the code's
+    # SYSTEM_PROMPT (prompts.py:90-136); the code text is pinned, "full"-mode slots
+    # filled, with three numpy adaptations: the Library Reference block moves to
+    # env_spec, "JAX-compatible Python functions" -> "Python functions", and the
+    # jax-only import line is dropped.
+    system_prompt: |-
+      You are an expert reinforcement learning engineer. You design MDP interfaces for RL agents in reinforcement learning environments.
+
+      Your task is to write two Python functions:
+      1. `get_observation(state)` — extracts a 1D float32 observation vector from the environment state
+      2. `compute_reward(state, action, next_state)` — computes a scalar float32 reward signal
+
+      The RL agent sees ONLY what get_observation returns and is trained ONLY on what compute_reward provides. Your design of these functions determines whether the agent can learn the task.
+
+      ## Design Philosophy
+
+      **The goal is to help a neural network LEARN, not to solve the task yourself.**
+
+      Observation design:
+      - The observation must give the agent ALL the information it needs to learn the task. Think carefully about what the agent needs to perceive from the environment state.
+      - Include any relational or structural information that is relevant to the task.
+      - Normalize features to similar ranges (e.g., [0, 1] or [-1, 1]).
+      - The observation can be anywhere from a handful of features to hundreds — use whatever the task requires. The max is 512 elements.
+      - Compute everything from the current state. Do NOT hardcode any environment-specific constants — the environment is randomized across episodes.
+
+      Reward design:
+      - The reward should provide a learning signal that guides the agent toward completing the task. The agent is evaluated on task success rate (% of episodes where the goal is reached), NOT on reward magnitude.
+      - Consider what sub-objectives or milestones exist in the task, and whether rewarding progress toward them would help learning.
+      - The reward can use any structure — dense shaping, sparse bonuses, milestone rewards, or combinations. Use what fits the task.
+
+      Generalization:
+      - The environment is evaluated across RANDOMIZED initial conditions. Your interface must generalize across all of them, not just one specific setup.
+      - Do NOT hardcode environment-specific constants. Compute everything from the current state.
+      - The reward must reflect ACTUAL task progress, not a proxy that happens to correlate in some configurations. If the reward can be maximized without completing the task, the agent will learn to exploit that shortcut.
+      - Test your reasoning: would this observation and reward still make sense if the initial conditions were completely different?
+
+      ## Output Format
+
+      Return your code inside a single Python markdown fence (```python ... ```).
+      The code must define both `get_observation` and `compute_reward` with the exact signatures shown above. You may define helper constants or functions above them.
+
+  output:
+    format: scalar_only               # prompts.py L69-70: a scalar reward, no component dict
+
+  co_design:
+    observation_fn: true              # get_observation is generated with the reward
+    observation_max_dim: 512          # BIRD default, kept: L39, enforced (crash_filter.py L84-87)
+
+# --- verify -----------------------------------------------------------------
+# Validity is crash_filter.py's three stages; quality is the training cascade.
+# Stage 0 (L32-57) -> static checks, stage 1 (L60-78) -> execution_smoke,
+# stage 2 (L79-112) -> output_shape; stage 2's JAX jit-compile check has no equivalent.
+
+verify:
+  enabled: true
+
+  check_order: staged                 # crash_filter.py L143-155 stops at the first failed stage
+
+  static_checks: [signature_parse, ast_syntax]
+                                      # BIRD default, kept: stage 0
+  dynamic_checks: [execution_smoke, output_shape]
+                                      # no finite_values: crash_filter.py does not test it
+  stage_timeouts_s:                   # L43-45, per stage (stage 2 is 60 off XLand)
+    signature_parse: 5
+    ast_syntax: 5
+    execution_smoke: 10
+    output_shape: 30
+
+  on_failure: resample_with_trace     # controller.py:423-448: one retry with the crash trace
+  max_repair_attempts: 1              # ‡ L46-47, retry_on_crash with max_crash_retries 1
+  on_exhaustion: teach_next_iteration # then quoted into a later prompt (controller.py:428-433)
+
+  quality_screen: cascade             # † XLand-only in the release (off on Brax and Panda)
+  cascade:
+    enabled: true
+    short_budget_steps: 3000000       # L17 (500K/1M on the two easier XLand tasks)
+    min_success_threshold: 0.01       # L53; a threshold, so it can reject the whole round
+
+# --- train ------------------------------------------------------------------
+
+train:
+  algorithm: ppo                      # BIRD default, kept: L19-25, purejaxrl-style PPO
+  architecture: rnn_ppo               # App. A.2.1, L32-36 (GRU 512); recorded, BIRD builds no RNN
+  env_steps: 5000000                  # L18, retrained from scratch (1M/2M on easier XLand tasks)
+  n_parallel_envs: 8192               # L13 (num_steps 16 per update, L14)
+  seeds_per_candidate: 3              # L30; ‡ by task: 1 brax_humanoid, 5 brax_ant, 3 others
+  timeout_s: 900                      # L50, per candidate evaluation
+
+final_retrain:
+  enabled: true
+  n_seeds: 10                         # paper only (no retrain in code): removes selection bias
+
+post: [final_retrain]
+
+# --- evaluate ---------------------------------------------------------------
+
+evaluate:
+  rollouts_per_candidate: 50          # L27, eval_episodes_for_fitness
+
+  fitness:
+    source: success_rate              # evaluator.py L89-90: a task metric, not the reward
+    metric: success_rate              # green ball next to the yellow hex (TileNearGoal)
+
+  screened_fitness: screen_measurement
+                                      # ‡ rejects keep short-run metrics (evaluator.py:237-258)
+
+  feedback:
+    granularity: scalar_only          # BIRD default, kept: the archive says which, never why
+
+# --- select -----------------------------------------------------------------
+
+select:
+  rule: map_elites_insert             # a candidate competes only with its cell's incumbent
+  final_artifact: archive_best        # the run returns the archive's best elite
+
+# --- update -----------------------------------------------------------------
+
+update:
+  topology: archive_map_elites        # MAP-Elites over islands
+  operator: archive_insert
+
+  winner:
+    action: insert_archive            # fills a cell; the next parent is sampled from the archive
+  loser:
+    action: store_as_negative_example # failed programs and tracebacks quoted back (L75)
+
+  archive:
+    enabled: true
+    descriptors: [reward_ast_node_count, observation_dim]
+                                      # L67 (reward_complexity, obs_dimensionality), renamed
+    bins_per_descriptor: [5, 5]       # † paper ~10 per axis, fixed (§4.2 example grid);
+                                      #   code 5 (L68, 3 off XLand), adaptive (database.py L703-732)
+    n_islands: 3                      # L66 (2 off XLand)
+    migration_interval: 20            # BIRD default, kept: L69 (5 off XLand)
+    migration_clock: island_generations  # database.py:532-535; never fires in 30 iterations
+    population_size: 200              # ‡ L64 (40 off XLand); unread by the release, BIRD's island cap
+    archive_size: 50                  # ‡ L65 (20 off XLand); caps the elite list, not the grid
+
+    migration_rate: 0.1               # ‡ L70 (0.2 off XLand)
+
+    parent_sampling:                  # † paper 70% global fitness-proportional, 30% island
+                                      #   uniform; code below (config.py L169-171)
+      uniform_over_elites: 0.7        # exploitation_ratio -> _sample_exploitation
+      island_uniform: 0.2             # exploration_ratio -> _sample_exploration
+      island_fitness_weighted: 0.1    # the remainder -> _sample_weighted
+
+  co_evolve:
+    observation_fn: true              # the observation function evolves across iterations

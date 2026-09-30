@@ -1,0 +1,20 @@
+# Hill-climb configuration 5 (v2_verify_adapt): v2_verify_wide with an adaptive training
+# width. Each round generates up to the [12,6,4,2] envelope and the verifier decides how
+# many passers to train: k starts at keep_cfg.cap and only shrinks, when the judge's best
+# has not beaten the incumbent for `patience` rounds or when the verifier scores cluster
+# (spread below min_spread); never below `floor`. Every cutoff is by rank, never an
+# absolute threshold. budget.max_policy_trainings stays 24 as the ceiling.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=4.
+
+extends: v2_verify_wide.yaml
+name: v2_verify_adapt
+
+verify:
+  demo_screen:
+    keep: adaptive
+    keep_cfg:
+      cap: 8
+      floor: 2
+      patience: 2
+      decay: 0.5
+      min_spread: 0.05

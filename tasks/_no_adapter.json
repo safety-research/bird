@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Specs carried as data for which BIRD has no env adapter, so no `problem.env_id`",
+    "names them. Absence is explicit: the catalogue is not a claim about what this repo",
+    "can run, and the registry -- not this directory -- remains the `problem.env_id`",
+    "enum. `tests/test_task_specs.py` asserts the partition in BOTH directions, so a",
+    "spec that gains an adapter must leave this file and an adapter that loses its spec",
+    "must fail the suite. A spec listed here with an empty reason is rejected.",
+    "`specs` is EMPTY: every spec in the catalogue backs a registered env. The file stays: it is the partition's declared half, and the next spec authored ahead of its adapter goes here with its reason.",
+    "Entries may carry `anchor_version_caveat`, `anchor_contradiction` and `anchor_mujoco_version`: known defects in a spec's anchors that a future adapter would inherit silently, recorded here because this is the file someone reads before writing that adapter."
+  ],
+  "specs": {}
+}

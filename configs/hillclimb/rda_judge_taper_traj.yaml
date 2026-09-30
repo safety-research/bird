@@ -1,0 +1,16 @@
+# rda_judge_taper_traj: a parent in the hill-climb's inheritance chain, not a row of the
+# paper's hill-climb table.
+#
+# rda_judge_taper with the judge also reading per-step observation/action text
+# (evaluate.artifacts: state_trajectories) beside the frames.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=8.
+
+extends: rda_judge_taper.yaml
+name: rda_judge_taper_traj
+
+evaluate:
+  artifacts: [scalar_metrics, videos, state_trajectories]
+
+output:
+  judge_trace:
+    record: inputs                    # keep the state table the judge actually saw

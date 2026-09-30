@@ -1,0 +1,220 @@
+{
+ "schema": "bird-policy-eval-v1",
+ "policy": "simple_suite/toy_reacher_pd",
+ "env_id": "toy_reacher",
+ "unit": "bird_task_metric",
+ "commit": "9632d65",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-03",
+ "params": null,
+ "summary": {
+  "n": 25,
+  "mean": 0.41280000000000006,
+  "min": 0.0,
+  "max": 0.76,
+  "successes": 24
+ },
+ "rows": [
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 0,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.44,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 1,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.64,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 2,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.32,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 3,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.4,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 4,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.64,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 5,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.76,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 6,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 7,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.0,
+   "success": false
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 8,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 9,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 10,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 11,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 12,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.32,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 13,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 14,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.32,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 15,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.68,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 16,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.52,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 17,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.56,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 18,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.48,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 19,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 20,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.32,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 21,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.4,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 22,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.32,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 23,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.36,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_reacher_pd",
+   "seed": 24,
+   "steps": 25,
+   "terminated_early": false,
+   "metric": 0.32,
+   "success": true
+  }
+ ]
+}

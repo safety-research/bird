@@ -1,0 +1,78 @@
+# R* -- Li, Hao, Tang, Yuan, Qiao, Dong & Zheng, "R*: Efficient Reward Design via
+# Reward Structure Evolution and Parameter Alignment Optimization with Large
+# Language Models", ICML 2025, PMLR 267:34509-34527. Not on arXiv; no code release.
+#
+# Eureka with two additions. 4 of every 16 rewards come from an AST crossover that
+# inserts one reward module of one parent into another (no LLM call), and each
+# reward's numeric parameters are re-fitted to trajectory-segment preferences voted
+# on by a population of LLM-written critic functions. All other settings and prompts
+# follow Eureka (§5.1, App. A), hence `extends: eureka.yaml`; the inherited
+# parallel-env count and final-retrain budget are Eureka's (ShadowHand), not R*'s.
+#
+# Values follow the paper. †p = the paper disagrees with itself (App. A is used);
+# ‡ and "BIRD's" = the paper is silent and there is no code, so BIRD chose.
+# Running it budget-matched (the paper's matched protocol, K = 8 = 6 LLM + 2
+# crossover) takes three overrides: generate.n_candidates=8, generate.crossover.n=2
+# and the rescaled loop.waves. scripts/paper_cell.py applies all three.
+
+extends: eureka.yaml
+name: rstar
+
+# --- models and loop ---------------------------------------------------------
+
+llm:
+  generator:
+    model: gpt-4o                     # §5.1 p.6; one LLM writes rewards and critics (Alg. 1)
+
+loop:
+  n_iterations: 5                     # §5.1 p.6
+  waves:                              # App. A p.12 two-step first iteration; no_archive runs at iter 1 only
+    - {llm: 12, crossover: 4, when: always}
+    - {llm: 0,  crossover: 4, when: no_archive}
+  carry: [best_reward, dialogue, trajectory_store, preference_dataset,
+          critic_population]          # Eureka's two + trajectories, labels and critics
+
+# --- generate ----------------------------------------------------------------
+
+generate:
+  n_candidates: 16                    # App. A p.12: 12 by the LLM + 4 by crossover (§5.1 p.6)
+  output:
+    format: component_dict_return     # modular rewards (§4.2 p.5); AST split reads the dict
+  crossover:
+    n: 4                              # App. A p.12; a 3:1 ratio, so 2 at a population of 8
+    operator: module_insert           # Eq. 3 (§4.2 p.5): one module of parent j into parent i
+    parent_selection: softmax_fitness  # softmax over success rates (App. A p.12)
+    temperature: 1.0                  # BIRD's: the paper states the softmax, not its temperature
+    backfill_failures: true           # App. A p.12; generation failures only, not §2-screened ones
+  alignment:
+    method: bradley_terry_segments    # §4.3, Eq. 1-2: fits the candidate's own parameters
+    labeller: critic_population_vote  # §4.3 p.5; BIRD's critic prompt is a reduced Prompt 1-2
+    critics: 5                        # App. A p.12; failed critics are not replaced; no Prompt 3 reflection
+    vote_ladder: [5, 4, 3]            # App. A p.12: 5/5, then 4/5, then 3/5 until 20 labels
+                                      # †p §4.3 states only the floor ("at least half of the critics")
+    min_segment_len: 5                # †p App. A "at least 5", §4.3 "greater than 5"; App. A used
+    target_segments: 20               # App. A p.12
+    max_pairs: 100                    # BIRD's: Alg. 1 l.10 gives no count; drawn from the whole store
+    iterations: 1000                  # App. A p.12
+    train_fraction: 0.7               # App. A p.12 (70/30, best validation accuracy kept)
+    learning_rate: 0.01               # BIRD's: no optimiser or step size given; BIRD uses SPSA
+    tunable: float_literals           # BIRD's: floats are coefficients, ints are indices
+
+# --- train -------------------------------------------------------------------
+
+train:
+  algorithm: ppo                      # §4.1 p.4
+
+# --- update ------------------------------------------------------------------
+
+update:
+  memory:
+    trajectory_store: append_always   # Alg. 1 l.10: every candidate's rollouts, not the winner's only
+
+# --- evaluate ----------------------------------------------------------------
+
+evaluate:
+  fitness:
+    checkpoint_aggregation: max_over_checkpoints  # ‡ paper silent; not eureka.yaml's max_over_training_epochs
+    source: success_rate              # §4.1 p.4; eureka.yaml ranks on `native`
+  # The reflection's curve is the inherited `fitness.metric`, not this success rate.

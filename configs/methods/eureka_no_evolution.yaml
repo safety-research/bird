@@ -1,0 +1,15 @@
+# Eureka without evolution -- the published ablation "EUREKA w.o. Evolution (32
+# Samples)" of Ma et al., "Eureka: Human-Level Reward Design via Coding Large
+# Language Models", ICLR 2024, arXiv 2310.12931, §4.3 and Fig. 5.
+# Code: https://github.com/eureka-research/Eureka (no harness for this ablation).
+#
+# One shot of 32 independent rewards (Eureka's budget for two iterations), no
+# feedback loop. The feedback keys keep Eureka's values and go inert at one
+# iteration. The paper compares this arm with Eureka after 2 iterations, not 5.
+extends: eureka.yaml
+name: eureka_no_evolution
+
+loop:
+  n_iterations: 1                     # §4.3: "performs only the initial reward generation step"
+generate:
+  n_candidates: 32                    # §4.3, Fig. 5: 2 x 16, the same budget as two Eureka iterations

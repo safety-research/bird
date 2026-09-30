@@ -1,0 +1,11 @@
+# CARD at five iterations -- not a published point: card.yaml with loop.n_iterations
+# 3 -> 5, i.e. two more refinement steps, everything else CARD's (`bird.py --diff
+# card_iter5 card`). CARD's entry in the paper's method comparison; the matched
+# protocol and the settings its CARD runs used: scripts/paper_cell.py.
+# CARD: Sun et al., "A Large Language Model-Driven Reward Design Framework via Dynamic
+# Feedback for Reinforcement Learning", Knowledge-Based Systems 2025, arXiv 2410.14660.
+extends: card.yaml
+name: card_iter5
+
+loop:
+  n_iterations: 5                     # an execution-profile key: a `-s` override must also pass 5

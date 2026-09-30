@@ -1,0 +1,886 @@
+campaign: h1hand_hb_hacks
+family: humanoidbench
+pattern: rig
+runtime:
+  mujoco: 3.1.6
+  notes: HumanoidBench family (humanoid_bench @ cb11890, mujoco 3.1.6), measured in the HumanoidBench
+    venv (scripts/setup_humanoid.sh). The controllers were written and tuned against hk.Rig over a plain gym.make env (the
+    upstream instrument HB's success_bar thresholds); entry.py re-seats the same controllers on the BIRD
+    adapter's own simulator, which zeroes qacc_warmstart every step. Every score below is the adapter's.
+code:
+- hk.py
+- hop4.py
+- final_params.json
+- snap_hop3.py
+- snap_hop3_cem_a.json
+- gallop_best_d0.json
+- moon.py
+- moon_t15.json
+- entry.py
+- rock.py
+- entry_crawl.py
+- robust3_rock_final.json
+- poscheck_crawl.py
+source:
+  archive: 'not distributed: only the policy code, its constants, write-ups and evaluation records are included'
+  date: '2026-09-23'
+  log: policies/h1hand_hb_hacks/NOTES_hop.md
+assets:
+- file: NOTES_hop.md
+  what: write-up of the hop -- the gym-env evaluation on seeds 0-9, 10-29 and 1000-1099, the
+    ankle-contact gait census and the mechanism
+- file: NOTES_moonhop.md
+  what: write-up of the moonhop -- its gym-env evaluation on held-out seeds 90-149, how moon_t15 was
+    chosen, and the loophole checks on the walk reward that came back negative
+- file: NOTES_crawl.md
+  what: write-up of the kneel-and-rock crawl (crawl_rock) -- the shipped Crawl reward and the three
+    misalignments it exploits, its gym-env numbers on held-out seeds 1000-1299, 2000-2299 and 3000-3299,
+    the robustness rounds, and the do-nothing and kneel-only ablations
+- file: poscheck_crawl.py
+  what: 'a position pass through the SAME adapter path as scripts/eval_policy.py (load_policy +
+    run_episode), recording per seed the max x over every body frame and site of the ROBOT (only bodies
+    whose kinematic root is the pelvis count, so the tunnel''s own frame at x = 2.200 is excluded), the
+    head-site x, max |imu y|, the pelvis-x range and the drift after step 250, because eval rows carry no
+    position; it wrote records/adapter_positions_crawl_rock_seeds{0-99,3000-3099}_2026-09-24.json,
+    and its returns equal the eval records'' to 5e-4'
+policies:
+- id: h1hand_hb_hacks/hop
+  task: h1hand_walk
+  env_id: h1hand_walk
+  gym_id: h1hand-walk-v0
+  entry:
+    file: entry.py
+    symbol: make_hop
+    kwargs_from: final_params.json
+  rig:
+    file: entry.py
+    symbol: Shim
+  params: null
+  status: reference
+  score:
+    value: 1.0
+    unit: bird_task_metric
+    reduction: null
+    threshold: 0.25
+    n_seeds: 100
+    seeds: 0-99
+    per_seed:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.9997
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    per_seed_hb_return:
+    - 888.61
+    - 888.77
+    - 897.03
+    - 886.1
+    - 895.9
+    - 888.39
+    - 895.88
+    - 888.9
+    - 889.63
+    - 888.69
+    - 886.76
+    - 896.55
+    - 885.93
+    - 897.23
+    - 895.7
+    - 885.42
+    - 887.88
+    - 886.43
+    - 889.52
+    - 897.21
+    - 886.13
+    - 888.25
+    - 888.79
+    - 898.61
+    - 889.62
+    - 886.07
+    - 887.79
+    - 898.93
+    - 884.29
+    - 894.37
+    - 897.9
+    - 878.96
+    - 888.75
+    - 886.58
+    - 889.46
+    - 892.21
+    - 886.15
+    - 888.93
+    - 891.05
+    - 889.75
+    - 887.29
+    - 889.5
+    - 896.15
+    - 887.32
+    - 897.84
+    - 896.19
+    - 886.29
+    - 885.2
+    - 896.43
+    - 885.55
+    - 887.67
+    - 886.62
+    - 899.49
+    - 897.25
+    - 895.84
+    - 897.34
+    - 893.67
+    - 885.26
+    - 886.0
+    - 887.08
+    - 889.96
+    - 897.17
+    - 897.21
+    - 887.02
+    - 886.57
+    - 888.34
+    - 898.71
+    - 895.89
+    - 886.94
+    - 897.07
+    - 885.79
+    - 884.5
+    - 888.39
+    - 894.88
+    - 885.06
+    - 895.68
+    - 884.08
+    - 896.18
+    - 896.83
+    - 884.56
+    - 886.1
+    - 895.52
+    - 890.3
+    - 885.49
+    - 889.22
+    - 897.38
+    - 897.07
+    - 885.21
+    - 884.83
+    - 897.38
+    - 885.28
+    - 894.47
+    - 896.51
+    - 885.06
+    - 885.81
+    - 887.93
+    - 897.09
+    - 896.15
+    - 887.0
+    - 887.41
+    aggregate: mean
+    secondary:
+      successes: 100/100
+      metric_min: 0.9997
+      full_episode: 100/100
+      hb_return_mean: 890.65
+      hb_return_min: 879.0
+      hb_return_max: 899.5
+      hb_return_bar: 700
+      hb_return_clears: 100/100
+      hb_return_record: records/eval_hop_2026-09-23_153654_af6678f1.json -- the env's own reward (HumanoidBench's
+        shipped reward) summed per episode after the rollout, mean over the same 100 seeds as the score
+        (metric mean 1.0000); rows[].reference_return
+      hb_return_clean_heldout_gym_1000_1099: 890.4 mean, min 884.1, 100/100 >= 700 -- gym seeds 1000-1099,
+        never used during development (NOTES_hop.md; hk.Rig on plain gym.make, not this adapter). This
+        record's seeds 0-99 overlap the seeds the constants were tuned and selected on, so they are not a
+        held-out block
+      fasttd3_published_return: see tasks/h1hand_walk spec (928.26)
+    verified_through: bird_adapter
+    verified_at_commit: 15eccc417
+    date: '2026-09-23'
+    record: records/eval_hop_2026-09-23_153654_af6678f1.json
+  caveats:
+  - 'INTENTIONAL REWARD HACK, built on purpose to show that HumanoidBench''s
+    walk success bar -- episode return >= 700 on the shipped reward -- is cleared by a gait no human would
+    use: both legs get the same command on every step, so the robot hops with its feet together like a
+    kangaroo and never alternates them. It is NOT a walking policy: never use it as a walking prior, a
+    BC/DAgger target or a ''walking'' baseline'
+  - 'status is `reference`, not `solved`, deliberately: bird.policies.reference_for_env ranks solved and partial
+    entries first, so this entry never becomes h1hand_walk''s scripted anchor or the registry''s default policy for the env. The registry has no status that says ''a
+    deliberate metric hack''; `reference` is the one that claims nothing about solving the task, and the notes
+    line and the first caveat carry the label'
+  - 'BIRD''s own walk metric is fooled too: task_metric is mean forward speed over 1 m/s, clipped, and
+    reads 1.0000 (min 0.9997) over 100 seeds -- it cannot tell a hop from a walk either'
+  - 'HB return 890.65 against FastTD3''s published 928.26 (tasks/h1hand_walk spec): a trained walker
+    OUT-SCORES the hop on the benchmark''s own score, and the hop claims to beat no walking policy -- what
+    it shows is that the score cannot tell the two gaits apart, since both clear the bar'
+  notes: 'INTENTIONAL REWARD HACK, not a walking policy: built on purpose against HumanoidBench''s
+    shipped walk reward, never to be used as a walking prior, a BC/DAgger target or a walking baseline.
+    Two-footed Raibert kangaroo hop: hop4.py, the final controller, both legs one virtual
+    leg in the heading frame, a four-phase event-gated machine (init crouch, thrust, flight with Raibert
+    foot placement, compression), stance pitch and roll held by hip torques issued through the position
+    servos, and an event-gated speed ramp to v_des 1.25. Constants: final_params.json (its own provenance
+    key: CEM a -> CEM b -> speed ramp -> gentle first push). The gait census (NOTES_hop.md, gym seeds 1000-1099) has both feet airborne on 55.7% of steps and exactly one foot down on 1.6%. Measured with scripts/eval_policy.py --seeds 0-99 from a clean clone.'
+- id: h1hand_hb_hacks/moonhop
+  task: h1hand_walk
+  env_id: h1hand_walk
+  gym_id: h1hand-walk-v0
+  entry:
+    file: entry.py
+    symbol: make_moonhop
+    kwargs_from: moon_t15.json
+  rig:
+    file: entry.py
+    symbol: Shim
+  params: null
+  status: reference
+  score:
+    value: 0.9655
+    unit: bird_task_metric
+    reduction: null
+    threshold: 0.25
+    n_seeds: 100
+    seeds: 0-99
+    per_seed:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.4185
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.1657
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.2848
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.3232
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 0.3581
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    per_seed_hb_return:
+    - 807.96
+    - 801.33
+    - 806.81
+    - 802.02
+    - 803.33
+    - 800.64
+    - 803.33
+    - 805.33
+    - 802.88
+    - 807.07
+    - 802.14
+    - 807.34
+    - 804.99
+    - 809.28
+    - 113.28
+    - 801.96
+    - 804.41
+    - 801.3
+    - 804.63
+    - 804.59
+    - 801.02
+    - 810.47
+    - 808.07
+    - 805.41
+    - 804.65
+    - 803.78
+    - 801.88
+    - 805.18
+    - 801.43
+    - 801.8
+    - 806.39
+    - 37.21
+    - 806.33
+    - 801.74
+    - 807.87
+    - 801.75
+    - 803.71
+    - 803.89
+    - 36.82
+    - 803.01
+    - 805.39
+    - 803.99
+    - 807.14
+    - 801.41
+    - 803.77
+    - 806.56
+    - 804.88
+    - 804.6
+    - 801.89
+    - 802.3
+    - 804.07
+    - 804.69
+    - 812.91
+    - 804.37
+    - 801.55
+    - 804.87
+    - 802.61
+    - 803.68
+    - 800.92
+    - 801.73
+    - 801.92
+    - 807.88
+    - 807.46
+    - 802.44
+    - 801.26
+    - 804.47
+    - 805.98
+    - 804.61
+    - 803.77
+    - 805.8
+    - 802.39
+    - 801.79
+    - 805.35
+    - 36.0
+    - 804.34
+    - 806.29
+    - 800.99
+    - 806.14
+    - 805.6
+    - 801.48
+    - 803.59
+    - 803.28
+    - 98.84
+    - 803.54
+    - 804.1
+    - 805.31
+    - 806.98
+    - 802.76
+    - 800.48
+    - 806.8
+    - 803.54
+    - 810.1
+    - 804.73
+    - 804.21
+    - 802.61
+    - 802.2
+    - 803.99
+    - 801.69
+    - 802.13
+    - 805.65
+    aggregate: mean
+    secondary:
+      successes: 99/100
+      metric_min: 0.1657
+      full_episode: 95/100
+      hb_return_mean: 767.23
+      hb_return_min: 36.0
+      hb_return_max: 812.9
+      hb_return_bar: 700
+      hb_return_clears: 95/100
+      hb_return_record: records/eval_moonhop_2026-09-23_153642_6bae96e5.json -- the env's own reward (HumanoidBench's
+        shipped reward) summed per episode after the rollout, mean over the same 100 seeds as the score
+        (metric mean 0.9655); rows[].reference_return
+      hb_return_mean_clearing: 804.22 over the 95 seeds that clear the bar (min 800.48)
+      falls: seeds 14, 31, 38, 73, 82 fall at steps 127-306, during or just after the turn (returns 36.0-113.3)
+      hb_return_seeds_not_in_cem_or_grid: '795.26 mean, 77/78 -- the 78 seeds of 0-99 that are neither the CEM''s seeds
+        (0-1) nor the turn-start grid''s (10-14, 20, 29-35, 38, 49, 57, 64, 71, 73, 88).
+        NOT a clean held-out set: the grid''s 20 seeds were picked by evaluating the pre-grid constants on
+        10-29 and 30-89, so every seed of 10-89 was looked at (NOTES_moonhop.md: "for moon_t15, then, 90-149 is the
+        only clean held-out set")'
+      hb_return_clean_heldout_adapter_90_99: '804.09 mean, min 801.69, 10/10 >= 700 -- adapter seeds 90-99
+        of this record, the part of 0-99 inside the only clean held-out block (gym 90-149: 790.8 mean,
+        59/60, NOTES_moonhop.md)'
+      fasttd3_published_return: see tasks/h1hand_walk spec (928.26)
+    verified_through: bird_adapter
+    verified_at_commit: 15eccc417
+    date: '2026-09-23'
+    record: records/eval_moonhop_2026-09-23_153642_6bae96e5.json
+  caveats:
+  - 'INTENTIONAL REWARD HACK, built on purpose: the robot hops round
+    180 degrees on the spot, then hops BACKWARDS for the rest of the episode, so it never faces the way
+    it is going. HumanoidBench''s move term reads the world-frame COM x velocity and never asks which
+    way the robot faces. It is NOT a walking policy: never use it as a walking prior, a BC/DAgger target
+    or a ''walking'' baseline'
+  - 'status is `reference`, not `solved`, deliberately: bird.policies.reference_for_env ranks solved and partial
+    entries first, so this entry never becomes h1hand_walk''s scripted anchor or the registry''s default policy for the env. The registry has no status that says ''a
+    deliberate metric hack''; `reference` is the one that claims nothing about solving the task, and the notes
+    line and the first caveat carry the label'
+  - '5/100 seeds fall during or just after the turn (seeds 14, 31, 38, 73, 82 fall at steps 127-306, returns
+    36.0-113.3). Held-out status: moon_t15 is the CEM''s constants with the turn start moved, and that setting came
+    from a grid run on 20 seeds chosen by evaluating the CEM''s constants on 10-29 and 30-89, so of this
+    block only 90-99 is clean (NOTES_moonhop.md: gym 90-149 is the only clean held-out set, 790.8 mean, 59/60). On
+    adapter seeds 90-99 this record reads 804.09 mean, min 801.69, 10/10 >= 700; on the 78 seeds outside
+    the CEM pair and the grid it reads 795.26, 77/78 -- a weaker statement than held-out, since every seed
+    of 10-89 was looked at'
+  - 'BIRD''s own walk metric is fooled too: task_metric reads 1.0 on every full episode (mean 0.9655);
+    travelling backwards at ~1.2 m/s is +x progress to it'
+  - the rendered floor ends at x = 20 m and the moonhop covers ~21 m, so a render's last frames show the robot past the drawn edge; a MuJoCo plane collides everywhere, only its drawing is finite
+  notes: 'INTENTIONAL REWARD HACK, not a walking policy: built on purpose against HumanoidBench''s
+    shipped walk reward, never to be used as a walking prior, a BC/DAgger target or a walking baseline.
+    moon.py subclasses an earlier version of the hopper (snap_hop3.py, a snapshot of hop3.py, the
+    predecessor of hop4.py) with re-tuned knobs (snap_hop3_cem_a.json overlaid by gallop_best_d0.json,
+    feet together), and adds only a heading servo whose reference slews 0 -> pi
+    from t_turn0 = 1.5 s and, once the robot faces back, a negative speed command in its own heading frame,
+    which is +x in the world. Constants: moon_t15.json (an 11-knob CEM on seeds 0-1, with the turn start moved
+    0.79 -> 1.5 s on a 20-seed grid). Measured with scripts/eval_policy.py --seeds 0-99 from a clean
+    clone.'
+- id: h1hand_hb_hacks/crawl_rock
+  task: h1hand_crawl
+  env_id: h1hand_crawl
+  gym_id: h1hand-crawl-v0
+  entry:
+    file: entry_crawl.py
+    symbol: make_rock
+    kwargs_from: robust3_rock_final.json
+  rig:
+    file: entry.py
+    symbol: Shim
+  params: null
+  status: reference
+  score:
+    value: 0.0329
+    unit: bird_task_metric
+    reduction: null
+    threshold: 0.25
+    n_seeds: 100
+    seeds: 0-99
+    per_seed:
+    - 0.0306
+    - 0.0335
+    - 0.0342
+    - 0.0322
+    - 0.031
+    - 0.0335
+    - 0.0345
+    - 0.0342
+    - 0.0337
+    - 0.0314
+    - 0.0316
+    - 0.0345
+    - 0.0328
+    - 0.0348
+    - 0.0332
+    - 0.0332
+    - 0.0329
+    - 0.0338
+    - 0.0339
+    - 0.0309
+    - 0.0323
+    - 0.0329
+    - 0.0315
+    - 0.0351
+    - 0.034
+    - 0.032
+    - 0.0334
+    - 0.0349
+    - 0.033
+    - 0.0322
+    - 0.0317
+    - 0.031
+    - 0.0316
+    - 0.0308
+    - 0.031
+    - 0.0263
+    - 0.0321
+    - 0.0334
+    - 0.0316
+    - 0.0355
+    - 0.0332
+    - 0.0338
+    - 0.0342
+    - 0.0324
+    - 0.0317
+    - 0.0346
+    - 0.0329
+    - 0.0326
+    - 0.035
+    - 0.0323
+    - 0.034
+    - 0.0332
+    - 0.0307
+    - 0.0343
+    - 0.0336
+    - 0.0344
+    - 0.0259
+    - 0.0309
+    - 0.0325
+    - 0.0332
+    - 0.0338
+    - 0.0332
+    - 0.0333
+    - 0.0335
+    - 0.0321
+    - 0.0339
+    - 0.0304
+    - 0.0347
+    - 0.0333
+    - 0.0336
+    - 0.0328
+    - 0.0311
+    - 0.0337
+    - 0.0319
+    - 0.0336
+    - 0.0337
+    - 0.0322
+    - 0.035
+    - 0.0343
+    - 0.0305
+    - 0.0328
+    - 0.0319
+    - 0.0339
+    - 0.0329
+    - 0.0338
+    - 0.0325
+    - 0.0332
+    - 0.0335
+    - 0.0315
+    - 0.0325
+    - 0.0326
+    - 0.0342
+    - 0.035
+    - 0.0323
+    - 0.0328
+    - 0.0337
+    - 0.0344
+    - 0.0345
+    - 0.0333
+    - 0.0335
+    per_seed_hb_return:
+    - 715.42
+    - 716.07
+    - 715.84
+    - 714.78
+    - 714.72
+    - 715.01
+    - 716.44
+    - 716.2
+    - 715.83
+    - 714.55
+    - 714.5
+    - 716.51
+    - 715.71
+    - 716.51
+    - 714.83
+    - 715.39
+    - 715.54
+    - 715.8
+    - 716.23
+    - 716.28
+    - 715.55
+    - 716.3
+    - 715.83
+    - 716.17
+    - 716.07
+    - 715.41
+    - 715.55
+    - 716.12
+    - 715.76
+    - 715.65
+    - 715.98
+    - 714.23
+    - 715.53
+    - 714.89
+    - 715.45
+    - 712.63
+    - 715.01
+    - 716.16
+    - 713.53
+    - 718.7
+    - 715.93
+    - 716.12
+    - 716.17
+    - 715.07
+    - 716.08
+    - 716.2
+    - 717.88
+    - 715.82
+    - 715.97
+    - 715.66
+    - 715.99
+    - 715.36
+    - 716.07
+    - 716.46
+    - 715.36
+    - 716.37
+    - 712.67
+    - 715.27
+    - 715.43
+    - 716.16
+    - 713.0
+    - 716.33
+    - 715.55
+    - 715.95
+    - 713.75
+    - 716.11
+    - 715.86
+    - 716.37
+    - 715.7
+    - 715.9
+    - 715.34
+    - 715.07
+    - 715.95
+    - 715.49
+    - 716.15
+    - 716.24
+    - 715.59
+    - 716.06
+    - 716.41
+    - 714.95
+    - 715.93
+    - 715.55
+    - 716.01
+    - 716.05
+    - 716.24
+    - 715.4
+    - 716.46
+    - 715.1
+    - 715.52
+    - 718.09
+    - 713.58
+    - 718.13
+    - 715.82
+    - 714.46
+    - 716.19
+    - 715.99
+    - 715.91
+    - 715.95
+    - 715.98
+    - 715.99
+    aggregate: mean
+    secondary:
+      successes: 0/100
+      metric_min: 0.0259
+      metric_max: 0.0355
+      full_episode: 100/100
+      hb_return_mean: 715.69
+      hb_return_min: 712.6
+      hb_return_max: 718.7
+      hb_return_bar: 700
+      hb_return_clears: 100/100
+      hb_return_record: records/eval_crawl_rock_2026-09-24_100127_f11ad35e.json -- the env's own reward
+        (HumanoidBench's shipped reward) summed per episode after the rollout, mean over the same 100
+        seeds as the score (metric mean 0.0329); rows[].reference_return
+      hb_return_below_bar: seeds none
+      never_enters_tunnel: 'no body and no site of the robot reaches the mouth at x = 2.2 m on any seed: max
+        over every body frame 1.604 m and over every site 1.629 m on 0-99 (1.588 / 1.603 m on 3000-3099), head
+        site 1.629 m; pelvis x stays in [-0.102, 0.963] m and max |imu y| is 0.150 m on 0-99 and 0.198 m on
+        3000-3099 (the in_tunnel term''s own input, band 1 m) -- measured through the same adapter and episodes
+        as the record (records/adapter_positions_crawl_rock_seeds0-99_2026-09-24.json,
+        records/adapter_positions_crawl_rock_seeds3000-3099_2026-09-24.json: poscheck_crawl.py, returns equal to
+        the record''s within 0.0005)'
+      rocks_in_place: 'pelvis x at step 250 (settled on hands and knees) lies in [0.589, 0.697] m on 0-99 and
+        the drift from step 250 to the end in [-0.143, +0.043] m ([-0.028, +0.049] m on 3000-3099): the robot
+        rocks where it knelt and does not creep; net episode dx +0.52..+0.71 m is the get-down
+        (records/adapter_positions_crawl_rock_seeds0-99_2026-09-24.json,
+        records/adapter_positions_crawl_rock_seeds3000-3099_2026-09-24.json)'
+      hb_return_heldout_3000_3099: '715.85 mean, 100/100 >= 700, min 713.50
+        (records/eval_crawl_rock_2026-09-24_100128_a4e3650d.json, same clean commit): a block no selection step
+        ran on; the gym-env held-out blocks were 1000-1299, 2000-2299 and 3000-3299 (NOTES_crawl.md)'
+      hb_return_unselected_seeds_of_0_99: 715.72 mean, 91/91 over the 91 seeds of 0-99 that were not CEM
+        training seeds (the constants file's own `seeds` key names 0, 1, 2, 3, 4, 5, 54, 73, 76 within
+        0-99)
+      fasttd3_published_return: see tasks/h1hand_crawl spec (956.24)
+    verified_through: bird_adapter
+    verified_at_commit: 602315a2e
+    date: '2026-09-24'
+    record: records/eval_crawl_rock_2026-09-24_100127_f11ad35e.json
+  caveats:
+  - 'INTENTIONAL REWARD HACK, built on purpose to show that HumanoidBench''s
+    crawl success bar -- episode return >= 700 on the shipped reward -- is cleared by a robot that never
+    enters the tunnel and never crawls: it gets down on hands and knees about a metre short of the mouth
+    and rocks its trunk fore and aft over planted hands and knees for the rest of the episode. The shipped
+    reward''s in_tunnel factor reads only the robot''s y (never x), its posture terms pay for being on
+    all fours anywhere, and its move term is one-sided in COM x velocity, so a zero-mean rock earns on
+    every forward half-stroke and pays nothing back on the backward one. It is NOT a crawling policy:
+    never use it as a crawl prior, a BC/DAgger target or a ''crawling'' baseline'
+  - 'status is `reference`, not `solved`, deliberately: bird.policies.reference_for_env ranks solved and partial
+    entries first, so this entry never becomes h1hand_crawl''s scripted anchor or the registry''s default policy for the env. The registry has no status that says ''a deliberate metric hack'';
+    `reference` is the one that claims nothing about solving the task, and the notes line and the first caveat
+    carry the label'
+  - 'a MARGINAL pass: HB return 715.69 mean, 100/100 >= 700 on seeds 0-99 (min 712.63) and 715.85, 100/100
+    on 3000-3099 (min 713.50), a few points over the bar per episode'
+  - 'BIRD''s own crawl metric is NOT fooled: task_metric is mean forward pelvis speed over 1 m/s gated
+    on |y| <= 1 m, and reads 0.0329 (max 0.0355) against the 0.25 threshold, 0/100 successes -- the small
+    positive value is the net forward travel of the get-down itself (pelvis x +0.59..+0.70 m at step 250),
+    not crawling; the opposite of the walk hacks, where both scores are fooled'
+  - 'HB return is far BELOW FastTD3''s published 956.24 (tasks/h1hand_crawl spec): the point is that the
+    bar is reachable without doing the task, not that the hack out-scores a crawl'
+  - 'the gym-env held-out blocks (NOTES_crawl.md, hk.Rig over plain gym.make): 300/300 >= 700
+    on seeds 3000-3299 (715.6 mean, min 709.7) for these constants; the pre-robustness constants failed
+    3/200 and the round-2 constants failed seed 54 on both instruments, so the tail rate is low, not proven
+    zero'
+  notes: 'INTENTIONAL REWARD HACK, not a crawling policy: built on purpose against HumanoidBench''s
+    shipped crawl reward, never to be used as a crawl prior, a BC/DAgger target or a crawling baseline.
+    rock.py: a gravity-led LEAN -> CATCH -> SETTLE get-down onto hands and knees short of the tunnel
+    mouth, then NO gait
+    at all -- hips, knees, ankles and shoulders driven by one sinusoid so the trunk rocks fore and aft
+    over planted hands and knees, a zero-mean fore-aft COM velocity that the one-sided move term pays
+    on every forward half-stroke. Constants: robust3_rock_final.json (three CEM robustness rounds on a
+    growing seed set that included every failure found so far). Measured with
+    scripts/eval_policy.py --seeds 0-99 and 3000-3099 from a clean clone; records/adapter_positions_crawl_rock_*
+    is poscheck_crawl.py''s position pass through the same adapter.'

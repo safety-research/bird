@@ -1,0 +1,355 @@
+schema_version: 1
+id: reacher_reach
+env:
+  env_id: Reacher-v5
+  library:
+    name: mujoco
+    version_verified: 3.3.0
+    commit: null
+    stack:
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 50
+  control_hz: 50
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null
+    prompt_states: The episode always runs its full 50 steps.
+  reset:
+    kind: stochastic
+    mechanism: library_reseeded
+    n_instances: null
+    instance_seed: null
+    entry:
+      path: bird/envs/gym_mujoco.py
+      symbol: GymMujoco._reset
+      lines: '1368-1381'
+    rng_note: 'One draw from the episode Generator -- int(rng.integers(2 ** 31 - 1)) in GymMujoco._reset, the entry above -- is
+      passed to gymnasium Env.reset(seed=), which reseeds the wheel np_random before MujocoEnv.reset
+      calls mj_resetData and reset_model (gymnasium/envs/mujoco/mujoco_env.py:174-178); every draw
+      below is then made by that reseeded np_random in reset_model order: arm qpos, goal (rejection
+      loop), qvel. The row _reset returns is the raw concat(qpos, qvel) (8 entries), NOT the
+      10-entry gymnasium observation the prose and state_surface describe, so fields are a:b slices
+      of that row. This adapter has no DR axes (dr_parameters is empty), so no draw precedes _reset
+      at any DR setting.'
+    draws:
+      - role: agent_pose
+        quantity: arm_angles
+        fields: ['0:1', '1:2']
+        distribution:
+          family: uniform
+          text: 'U(-0.1, 0.1) + init_qpos (0 for both arm joints) on the shoulder and elbow angles (rad).
+            The bound is a literal in reset_model -- Reacher-v5 has no reset_noise_scale kwarg.'
+          low: [-0.1, -0.1]
+          high: [0.1, 0.1]
+        source:
+          path: gymnasium/envs/mujoco/reacher_v5.py
+          lines: '215-218'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_reacher_reach built with ctx {},
+          reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns 0-1
+          move and span [-0.091, 0.089].'
+      - role: goal
+        quantity: target_xy
+        fields: ['2:3', '3:4']
+        distribution:
+          family: uniform
+          text: 'uniform over the open disc |g| < 0.2 m about the arm anchor: g ~ U(-0.2, 0.2)^2 redrawn
+            until norm(g) < 0.2 (rejection from the square, so the density is uniform on the disc,
+            not on the square), then written into qpos[2:4], the target slide joints. The support is
+            a disc, so no low/high box. The arm reaches 0.21 m (link lengths 0.1 + 0.11), so every
+            target is reachable.'
+        source:
+          path: gymnasium/envs/mujoco/reacher_v5.py
+          lines: '219-223'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_reacher_reach built with ctx {},
+          reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns 2-3
+          move; the largest target norm over the 24 resets was 0.196 m.'
+      - role: agent_velocity
+        quantity: arm_velocities
+        fields: ['4:5', '5:6']
+        distribution:
+          family: uniform
+          text: 'init_qvel (zeros) + U(-0.005, 0.005) on the shoulder and elbow angular velocities
+            (rad/s). The same call also fills qvel[2:4] for the target joints, which line 227 then
+            overwrites to 0.'
+          low: [-0.005, -0.005]
+          high: [0.005, 0.005]
+        source:
+          path: gymnasium/envs/mujoco/reacher_v5.py
+          lines: '224-226'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_reacher_reach built with ctx {},
+          reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns 4-5
+          move within [-0.005, 0.005].'
+    constants:
+      - role: goal
+        quantity: target_velocity
+        value: '0.0 m/s on both target slide joints -- qvel[-2:] = 0 after the velocity draw, and the
+          target has no actuator, so it never moves during the episode; neg_final_reach_distance
+          (gym_mujoco.py:314-316) reads the target from columns 2:4 of the last row'
+        fields: ['6:8']
+        source:
+          path: gymnasium/envs/mujoco/reacher_v5.py
+          lines: '227'
+        basis: measured
+        note: 'columns 6-7 were identically 0.0 across the 24 seeded resets above.'
+    stochastic_transitions: null
+    upstream_divergence: null
+    prompt_states: 'a target dot sits at a random reachable spot'
+    prompt_field: natural_language
+    prompt_omits: [agent_pose, agent_velocity]
+  spaces:
+    obs_dim: 10
+    action_dim: 2
+    action_low: -1.0
+    action_high: 1.0
+    action_semantics: Torques on the two arm joints, each in [-1, 1].
+description:
+  natural_language: |-
+    A two-joint planar robot arm is anchored at the centre of a small arena, and a
+    target dot sits at a random reachable spot. Move the fingertip to the target and
+    hold it there: swing the shoulder and elbow joints so the fingertip closes the
+    distance quickly, then keep it resting on the target for the rest of the episode
+    instead of orbiting around it, overshooting back and forth, or jittering nearby.
+    The closer the fingertip is to the target when the episode ends — and the more
+    stably it settled there — the better.
+  scene: |-
+    - Body: a planar two-link arm anchored at the arena centre, with two actuated hinge
+      joints: the shoulder at the anchor and the elbow between the links. The fingertip
+      is the free end of the outer link. The target dot does not move; its position is
+      randomized at the start of each episode.
+    - Observation: a (10,) float array. obs[0:2] are the cosines of the [shoulder,
+      elbow] joint angles and obs[2:4] their sines; obs[4:6] is the target's (x, y);
+      obs[6:8] the two joint angular velocities; obs[8:10] the (x, y) offset from the
+      target to the fingertip (fingertip minus target). The fingertip and target
+      coordinates on `s` are resolved from obs[4:6] and obs[8:10].
+    - Control: 2 torques, [shoulder, elbow], each clipped to [-1, 1].
+    - Timing: one control step holds the torques for 2 simulator substeps of 0.01 s, so
+      dt = 0.02 s per control step; the episode is exactly 50 steps (1 s) and never
+      ends early.
+    - Convention: all positions are planar (x, y) in metres in the arena frame.
+      Reaching means driving the fingertip-target distance to 0 and keeping it there.
+  success_criterion_prose: null
+  full_source:
+    path: gymnasium/envs/mujoco/reacher_v5.py
+    lines: null
+state_surface:
+  fields:
+  - name: s.joint_angles
+    shape: (2,)
+    units: null
+    description: '[shoulder, elbow] joint angles, radians, recovered as atan2(sin, cos) from the
+      observation'
+    source: null
+  - name: s.joint_velocities
+    shape: (2,)
+    units: null
+    description: angular velocities of [shoulder, elbow], rad/s (obs[6:8])
+    source: null
+  - name: s.fingertip_pos
+    shape: (2,)
+    units: null
+    description: fingertip (x, y), metres (obs[4:6] + obs[8:10])
+    source: null
+  - name: s.target_pos
+    shape: (2,)
+    units: null
+    description: target (x, y), metres (obs[4:6])
+    source: null
+  - name: s.to_target_vec
+    shape: (2,)
+    units: null
+    description: target_pos - fingertip_pos, the offset still to close; np.linalg.norm(s.to_target_vec)
+      is the fingertip-target distance
+    source: null
+  - name: s.obs
+    shape: (10,)
+    units: null
+    description: the raw observation as documented in the scene description
+    source: null
+  - name: action
+    shape: (2,)
+    units: null
+    description: the torques applied this step, [shoulder, elbow], each in [-1, 1]
+    source: null
+  helpers: []
+  helpers_note: |-
+    This task has no precomputed boolean helpers. The one quantity that matters — the
+    fingertip-target separation — is already resolved from the observation as
+    `s.to_target_vec` (its norm is the distance), and everything else the reward
+    plausibly wants is a direct function of the documented fields.
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: Gymnasium's control envs ship no discrete success check and no
+    info['success']; there is no shipped success check to game and nothing for a hardened oracle to
+    tighten. Ground truth is the continuous success metric in continuous_success.raw.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: neg_final_reach_distance
+    expr: -(fingertip-target distance at the FINAL step) (`bird/envs/gym_mujoco.py::_fit_final_reach_distance`)
+    unit: m, negated (0 = on target)
+    direction: maximize
+    saturates_at: 0.0
+  normalized:
+    method: anchors
+    formula: null
+    success_threshold: 0.9
+anchors:
+  # null: no `policies/` entry has been run on this task. Absence is explicit.
+  scripted: null
+  random:
+    value: -0.203
+    method: random_policy
+    source: 'Random baseline over n=12
+      episodes of action_space.sample() on seeds 0-11, same fitness function as training. The table reports
+      the distance 0.203 +/- 0.086 m; fitness is that value NEGATED. sigma 0.086.'
+    n_seeds: 12
+    n_episodes: 12
+    reason: null
+    date: '2026-08-20'
+  expert:
+    value: -0.04
+    method: trained_policy
+    source: >-
+      MEASURED 2026-08-28 by `scripts/train_expert.py`: PPO (sb3) trained for 1,001,472 env steps on
+      `env.reference_reward` -- the adapter's own hand-written reward, NOT `task_metric`, which
+      would be optimising the evaluation metric -- then rolled out with deterministic actions for 30
+      evaluation episodes per seed and scored by `task_metric`, i.e. `continuous_success.raw`
+      (neg_final_reach_distance, negated metres, 0 = on target), the same quantity the `random`
+      anchor above reports. Seeds 0/1/2 scored -0.1581 / -0.1327 / -0.04. Engine: mujoco 3.3.0 /
+      gymnasium 1.3.0 / stable-baselines3 2.9.0 -- BIRD's own pinned stack and the version this spec
+      declares, so the expert side needs no engine caveat; the `random` side may still carry one
+      (see `tasks/SOURCE.md`). The value recorded is the MAX (seed 2), which
+      makes it a FLOOR ON THE CEILING and not an expectation: a trained policy is whatever its run
+      reached, so this anchor may move UP if a better one is trained and must never be read as the
+      benchmark's own answer the way a `scripted_policy` anchor is. `any_step_episode_fraction` was
+      0.0 on all three seeds -- the discrete success check never fired even for this policy -- so no
+      any-step expert is claimed. Note this pair stays FLAT and unlabelled, so
+      `bird/envs/spec.py::baselines_of` still refuses it and fitness on this task stays RAW; filling
+      this anchor records the measurement and does not switch normalisation on. The measurement's
+      own confidence interval is deliberately NOT reproduced here: `measure_anchors.interval` clamps
+      to [0, 1] as though the metric were a fraction, and on a raw-valued metric that returns lo >
+      hi (or hi = 1.0 below the mean), so only the per-seed means are sound. The trained policies
+      are not distributed with this repository.
+    n_seeds: 3
+    n_episodes: 30
+    date: '2026-08-28'
+budget:
+  train_steps: 60000
+  learning_verified:
+    verified: true
+    reward_used: simple_correct
+    algo: sb3 PPO
+    seeds: 1
+    result: final distance 0.096 m vs random 0.203 m and the pass bar (<0.107 and <=0.75x random);
+      PASS on re-verification after a marginal 30k-step first attempt (0.107 m).
+    date: '2026-08-20'
+  saturates_at: null
+reward:
+  human:
+    kind: published_dense
+    scope: value_determining
+    reference:
+      path: gymnasium/envs/mujoco/reacher_v5.py
+      lines: 188-198
+      symbol: ReacherEnv.step
+      commit: null
+      sha256: 75ba6456dd32b2032b439fbd4eac95ea4d472752c202fe220c22b1c0dbd96f09
+    depends_on: []
+    import_path: null
+    verified_against: gymnasium 1.3.0 (mujoco 3.3.0)
+    notes: '-(fingertip-target distance) - ctrl_cost * sum(action**2): a dense distance reward aligned
+      with the reach objective. Verified against source; whole-file sha256 from the installed wheel (the
+      artifact the adapter runs against), commit null for that reason. Self-contained — no shared shaping
+      helpers, hence the empty depends_on.'
+  contract:
+    signature: |-
+      MAX_REWARD = <float>   # tight upper bound on `reward` below
+
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          """
+          Args:
+            s:      frozen state namespace, fields documented above; no env handle
+            action: (2,) float array, the action applied this step
+          Returns:
+            reward:     a single float in [0, MAX_REWARD]
+            components: dict mapping term name -> float
+          """
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, not a batch: a single Python float for reward and for each component.
+      Single environment, plain NumPy.'
+    reward_utils: []
+  forbidden_symbols: []
+judge:
+  vlm_legible: true
+  legibility_note: Arm and target are both visible in every frame; near vs on-target is readable,
+    settled vs jittering less so.
+  camera:
+    name: free (default)
+    mode: fixed
+    note: No camera element in the env XML; the default free camera is fixed. Top-down view of
+      the full arena; both the arm and the target dot are always in frame.
+  subtasks_sequential: true
+  telemetry_fields:
+  - to_target_dist
+domain_randomization:
+  # Multiplicative scales
+  # on the arrays bird/envs/gym_mujoco.py captures at construction, nominal 1.0; the
+  # adapter's _GYM_AXES table says what each writes. Only axes with a mechanical path on
+  # THIS model are declared (no fluid on a legged model, no collider on Reacher).
+  parameters:
+    body_mass_scale:
+    - 0.25
+    - 4.0
+    motor_strength_scale:
+    - 0.5
+    - 2.0
+    joint_damping_scale:
+    - 0.1
+    - 5.0
+  nominal:
+    body_mass_scale: 1.0
+    motor_strength_scale: 1.0
+    joint_damping_scale: 1.0
+exploits:
+- name: hover_or_jitter_near_target
+  mechanism: 'Oscillate through or hover beside the target: the final step lands near it by chance
+    while the arm never settles.'
+  status: open
+  closed_by: null
+  note: Invisible to THIS task's final-step fitness by construction — reacher_hold exists precisely
+    to score it (dwell fraction).
+- name: instruction_metric_divergence
+  mechanism: The instruction (`description.l_task`) asks to reach AND HOLD, while the ground-truth
+    metric reads the FINAL step only — a policy can satisfy the metric while ignoring half the
+    instruction, and vice versa.
+  status: open
+  closed_by: null
+  note: 'Known, and recorded here rather than silently edited:
+    the instruction is a rendered prompt surface, so changing either side is an experiment change. reacher_hold
+    is the variant whose metric matches the hold half.'
+symbol_mapping: null
+provenance:
+  authored_from:
+  - path: bird/envs/gym_mujoco.py
+    lines: null
+    what: '`_fit_final_reach_distance`, the ground-truth fitness (`_FITNESSES["neg_final_reach_distance"]`, selected by
+      `continuous_success.raw.name`)'
+  - path: gymnasium/envs/mujoco/reacher_v5.py
+    lines: null
+    what: 'gymnasium 1.3.0 env source: spaces, cameras, built-in reward'
+  rule: source, not docstrings
+  measured:
+  - Random final distance 0.203 +/- 0.086 m (n=12).
+  verified_by: BIRD authors
+  date: '2026-08-24'

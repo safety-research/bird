@@ -1,0 +1,17 @@
+# v4_peak: a parent in the hill-climb's inheritance chain, not a row of the paper's
+# hill-climb table.
+#
+# v4 plus one key, train.checkpoint_selection: best_own_return. The policy that leaves a
+# training (the one the judge scores, the videos show and the next round warm-starts from)
+# is the checkpoint with the highest return under the candidate's own reward rather than
+# the last one; under early stopping the last checkpoint is past the peak by construction.
+# The rule is a bare argmax that takes the first checkpoint on a tie, deliberately not
+# best_by_reward, which adds a noise margin and ties to the latest. It needs no extra
+# environment steps: the pruner already evaluates every checkpoint.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v4.yaml
+name: v4_peak
+
+train:
+  checkpoint_selection: best_own_return

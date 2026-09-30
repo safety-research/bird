@@ -1,0 +1,46 @@
+# Hill-climb configuration 14 (v3_tree): RF-Agent's search tree as the search's memory.
+#
+# v2_verify keeps only the incumbent across rounds. Here every trained reward is a node of a
+# tree carried across iterations (search_tree in loop.carry), descended by UCT to choose the
+# parent to expand, with each result backed up the ancestry (RF-Agent Eq. 3). The three tree
+# values (search_tree, uct_leaf, tree_actions) only work together, so this file sets all
+# three and uses a single action (mutation_mechanism, a_m1); it is the base of v3_actions,
+# v3_elite, v3_selfverify and v3_all. K is constant because tree_actions needs the action
+# counts to sum to K. The inherited cap of 24 trainings ends a run after about 4 of its 6
+# rounds, so read the tree arms as budget-matched to v2_verify; the same cap also refuses
+# the final retrain (a full six-round run sets it to 33 = 30 + final_retrain.n_seeds).
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify.yaml
+name: v3_tree
+
+loop:
+  carry: [best_reward, subtask_list, policy_checkpoint, search_tree]
+
+generate:
+  n_candidates: 5
+  candidate_schedule: constant
+  candidate_schedule_values: []
+  sampling_mode: tree_actions
+  parent_source: uct_leaf
+  actions:
+    mutation_mechanism: 5
+  tree:
+    horizon_trainings: 30             # = n_candidates x loop.n_iterations (5 x 6)
+    uct_lambda0: 0.4                  # RF-Agent (tex:829)
+    uct_lambda_final: 0.1             # configs/methods/rf_agent.yaml
+    max_depth: 16
+    group_size: [2, 4]
+    path_window: 4
+  history_mode: none                  # RF-Agent builds every action prompt fresh
+
+select:
+  failure_value: 0.0                  # RF-Agent's reward_fail_bound; v2's -10000 would flatten Q
+
+update:
+  topology: search_tree
+  tree:
+    best_child_weight: 0.7            # eta, Eq. 3 (tex:211)
+    mean_weight: 0.15
+  prompt:
+    mode: reset

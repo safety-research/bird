@@ -1,0 +1,101 @@
+campaign: mt10_peg_insert
+family: metaworld
+pattern: closure
+runtime:
+  mujoco: "3.3.0"
+  notes: >-
+    Evaluated in an isolated uv venv (metaworld 3.1.1, mujoco 3.3.0), separate
+    from the HumanoidBench venv.
+code:
+  - pegctl.py
+source:
+  archive: 'not distributed: only the policy code and its evaluation records are included'
+  date: "2026-09-01"
+  log: null
+policies:
+  - id: mt10_peg_insert/waypoint
+    task: peg_insert_side
+    env_id: mt10_peg-insert-side-v3
+    gym_id: null
+    entry:
+      file: pegctl.py
+      symbol: make_policy
+      kwargs_from: null
+    params:                      # FULL set: pegctl.DEFAULTS overlaid with
+      k: 14.0                    # (k 6->14, z_hover 0.10->0.06, n_close 15->8,
+      z_hover: 0.06              # pre_gap 0.10->0.06, ins_gain 2->4) and z_grasp 0.03, the
+      z_grasp: 0.03              # grasp height above the measured 0.046 m TCP floor. See
+      xy_tol: 0.010              # the first caveat: this block is a RECONSTRUCTION that
+      d_tol: 0.012               # measured 0.70 per-step on train instances 0-5,
+      n_close: 8                 # below the recorded 0.842.
+      z_carry: 0.19
+      z_lift_gate: 0.17
+      grasp_z: 0.07
+      pre_gap: 0.06
+      align_tol: 0.012
+      ins_gain: 4.0
+      ins_depth: 0.005
+      hold_gd: 0.045
+      drop_z: 0.05
+    params_file: null
+    status: solved
+    score:
+      value: 0.842
+      unit: bird_task_metric
+      reduction: per_step_fraction
+      threshold: null
+      n_seeds: 25
+      seeds: "0-24"
+      per_seed: [0.874, 0.83, 0.862, 0.842, 0.838, 0.844, 0.814, 0.81, 0.804,
+                 0.802, 0.852, 0.858, 0.836, 0.866, 0.858, 0.832, 0.81, 0.852,
+                 0.866, 0.84, 0.866, 0.844, 0.852, 0.832, 0.866]
+      aggregate: mean
+      secondary:
+        min: 0.802
+        any_step: 1.0
+      verified_through: bird_adapter
+      verified_at_commit: null
+      date: "2026-09-01"
+      record: records/final_eval.json
+    caveats:
+      - >-
+        The committed record (records/final_eval.json) is a bare per-seed
+        array carrying no summary.params: the final constants were passed as
+        CLI --set overrides on top of pegctl.py's DEFAULTS and the exact
+        override line was not recorded. `params` above is a reconstruction:
+        DEFAULTS overlaid with k=14, z_hover=0.06, n_close=8, pre_gap=0.06,
+        ins_gain=4 and z_grasp=0.03, written out in full because
+        `params: null` would hand make_policy an EMPTY dict and every loader
+        of this entry would die with KeyError 'z_hover'. DEFAULTS as
+        committed score 0.0 (eternal descend below the TCP z-floor) - do not
+        call make_policy(DEFAULTS) and expect this score. The reconstruction
+        scores 0.70 per-step on train instances 0-5 (z_grasp 0.005 -> 0.00,
+        0.02/0.026/0.03 -> 0.70, 0.035 -> 0.63), NOT the 0.842 recorded
+        above, which was measured with constants that were not fully
+        recorded. Re-evaluate through the adapter (n=25) before citing either
+        figure for these params.
+      - >-
+        The shipped success check is documented unsound to flings (transit
+        through the slot region registers as success); this policy
+        deliberately does not exploit it - it inserts and holds for the
+        remainder of the episode, which is what the per-step metric pays.
+    notes: >-
+      Own-written waypoint phase controller (approach / descend / close /
+      lift-with-regrasp / align / insert / hold), NOT Meta-World's bundled
+      expert; after the grasp it drives the reconstructed PEG HEAD - the
+      exact quantity the success check scores. Above the spec's
+      bundled-expert anchors (per-step 0.5347, any-step 0.8333, measured
+      n=30) on both reductions on EVERY seed: per-seed min 0.802 per-step
+      and 25/25 any-step; fresh seeds 10-24 (never touched by tuning) mean
+      0.849. Interface traps worth knowing: (1) obs
+      quaternions are scipy scalar-LAST (x,y,z,w) - import the adapter's
+      _rotate from bird.envs.metaworld, never reimplement it; a w-first
+      rotate put the reconstructed head ~0.2 m off while the true head was
+      inside the hole, so the policy half-worked while its own gates
+      misfired. (2) The TCP has a physical z-floor at ~0.046 m over a
+      tabletop object - a grasp waypoint below it is an eternal descend with
+      a clean-looking convergent trace; gate heights on measured floors.
+      (3) Render via mujoco.Renderer on the model's own corner2 camera and
+      flip rows ([::-1]) - the gymnasium default camera looks up from under
+      the table, and this EGL stack returns frames vertically flipped.
+      verified_at_commit is null because the original evaluation did not record the exact commit.

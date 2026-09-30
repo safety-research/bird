@@ -1,0 +1,18 @@
+# Hill-climb configuration 13 (v2_noverify_es8): the verifier's control. v2_verify_es8 with
+# the demonstration verifier removed: no screen, no demonstration scores shown to the judge,
+# no demonstration access declared. Beside the screen, the verifier's channel is the score
+# table shown to the judge and the reflecting LLM; this pair measures what the verifier,
+# that table included, is worth.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify_es8.yaml
+name: v2_noverify_es8
+
+problem:
+  fitness_access: none
+
+verify:
+  quality_screen: none
+
+evaluate:
+  artifacts: [scalar_metrics, videos, state_trajectories]

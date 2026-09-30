@@ -1,0 +1,859 @@
+schema_version: 1
+id: reach
+env:
+  env_id: reach-v3
+  library:
+    name: metaworld
+    version_verified: 3.1.1
+    commit: null
+    stack:
+      mujoco: 3.3.0
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 500
+  control_hz: null
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null
+    prompt_states: The episode always runs the full 500 steps; reaching the criterion does not
+      end it.
+  reset:
+    kind: stochastic
+    mechanism: pinned_instances
+    n_instances: 50
+    instance_seed: 0
+    instances_source: '`metaworld.MT1("reach-v3", seed=0).train_tasks` (bird/envs/metaworld.py:1135-1136;
+      `benchmark_seed = 0` is a class attribute at :951). `_make_tasks` (metaworld/__init__.py:114-179)
+      seeds the GLOBAL `np.random` to 0, constructs the env with `_freeze_rand_vec = False`, calls
+      `reset()` 50 times keeping each `_last_rand_vec` -- one `np.random.uniform` over
+      `_random_reset_space` per call (sawyer_xyz_env.py:711-719), re-drawn by this task''s own rejection
+      loop in `reset_model` (sawyer_reach_v3.py:127-129) while the two x-y positions are < 0.15 m apart
+      -- asserts the 50 are distinct, then restores the global RNG state. Every run, cfg.seed and
+      candidate shares the same 50 vectors.'
+    entry:
+      path: bird/envs/metaworld.py
+      symbol: MetaWorld._reset
+      lines: 1747-1765
+    rng_note: 'One draw per reset: `rng.integers(50)` picks the instance (metaworld.py:1761). `env.reset()`
+      is then called UNSEEDED (:1762) and `reset_model` reads the frozen `_last_rand_vec` that `set_task`
+      installed (sawyer_xyz_env.py:308-309, :699-701) -- twice per reset (SawyerXYZEnv.reset:677, then
+      gymnasium MujocoEnv.reset:178), idempotently. A seed is a choice over 50 points: two seeds collide
+      with probability 1/50, and `default_rng(0..23)` lands on 21 distinct instances (measured). `_sample_dr`
+      reads the same Generator BEFORE `_reset` (base.py:401-406) but consumes nothing at nominal (`_dr_ranges`
+      is empty, base.py:685-686); with DR ranges installed the same seed lands on a different instance.'
+    draws:
+      - role: object_pose
+        quantity: puck_xy
+        fields:
+          - object_x
+          - object_y
+          - prev_object_x
+          - prev_object_y
+        distribution:
+          family: uniform
+          text: 'puck body x ~ U(-0.1, 0.1), y ~ U(0.6, 0.7) m (obj_low/obj_high, :44-45): entries 0:3 of
+            ONE 6-D `_random_reset_space` Box drawn jointly with the goal (:70-73), the whole vector re-drawn
+            while the puck-goal x-y distance is < 0.15 m (:127-129). z is 0.02 (low == high). The observed
+            object is `get_body_com("obj")` (:100-101), which equals the drawn vector exactly. Over the
+            50 pinned instances: x in [-0.0995, 0.0981], y in [0.6033, 0.6999], min puck-goal x-y separation
+            0.156 m.'
+          low:
+            - -0.1
+            - 0.6
+            - -0.1
+            - 0.6
+          high:
+            - 0.1
+            - 0.7
+            - 0.1
+            - 0.7
+        source:
+          path: metaworld/envs/sawyer_reach_v3.py
+          lines: 125-132
+        basis: measured
+        note: 'measured through the registry adapter (`registry.get("env", "mt10_reach-v3")(None)`): 24
+          resets with `np.random.default_rng(0..23)` move exactly the `fields` listed across this block''s
+          draws and nothing else; resetting on each of the 50 pinned instances gives the ranges quoted in `text`. `prev_*`
+          equal the current entries at reset (SawyerXYZEnv.reset:679-680), so they move with their source.'
+      - role: goal
+        quantity: target
+        fields:
+          - goal_x
+          - goal_y
+          - goal_z
+        distribution:
+          family: uniform
+          text: 'target x ~ U(-0.1, 0.1), y ~ U(0.8, 0.9), z ~ U(0.05, 0.3) m (goal_low/goal_high, :40-41):
+            entries 3:6 of the same 6-D Box, coupled to the puck only by the >= 0.15 m x-y rejection (:127).
+            Written to `_target_pos` and the `goal` site (:130, :134); observed verbatim in obs[36:39] because
+            MT1 sets `partially_observable=False` (metaworld/__init__.py:94). Over the 50 instances: x in
+            [-0.0929, 0.0971], y in [0.8016, 0.8976], z in [0.0542, 0.295].'
+          low:
+            - -0.1
+            - 0.8
+            - 0.05
+          high:
+            - 0.1
+            - 0.9
+            - 0.3
+        source:
+          path: metaworld/envs/sawyer_reach_v3.py
+          lines: 125-134
+        basis: measured
+        note: The only rendering that tells the model this varies is flat_fields[goal_x].description ("goal
+          position x for this episode; re-randomised every reset"), which reaches it under the state-API
+          stub alone; l_task and env_prose describe a fixed scene.
+    constants:
+      - role: agent_pose
+        quantity: hand start
+        value: hand_init_pos = (0.0, 0.6, 0.2) m (sawyer_reach_v3.py:61); `_reset_hand` drives the mocap
+          weld there for 50 frames with the fingers commanded open (sawyer_xyz_env.py:684-695), no draw.
+          Settles to (0.00458, 0.60139, 0.19514) with gripper_opening 1.0 on every one of the 50 instances
+          (measured, identical to 1e-6).
+        fields:
+          - hand_x
+          - hand_y
+          - hand_z
+          - gripper_opening
+          - prev_hand_x
+          - prev_hand_y
+          - prev_hand_z
+          - prev_gripper_opening
+        source:
+          path: metaworld/envs/sawyer_reach_v3.py
+          lines: '61'
+        basis: measured
+      - role: agent_velocity
+        quantity: arm and gripper velocity
+        value: none -- velocity is not in the 39-D observation; `SawyerXYZEnv.reset` copies the current
+          frame into obs[18:36] (sawyer_xyz_env.py:679-680), so the finite-difference velocity `(s[0:18]
+          - s[18:36]) / dt` is exactly zero at step 0 on every instance.
+        source:
+          path: metaworld/sawyer_xyz_env.py
+          lines: 664-682
+        basis: read
+      - role: object_pose
+        quantity: puck z and orientation
+        value: z = 0.02 m (obj_low[2] == obj_high[2] == 0.02, :44-45; `_set_obj_xyz` :132); orientation
+          from the `objGeom` xmat (:103-105), (qx, qy, qz, qw) = (-0.0001, 0.00016, -0.0, 1.0) on every
+          instance -- `obj_init_angle` (0.3, :59) is stored and never applied.
+        fields:
+          - object_z
+          - object_qx
+          - object_qy
+          - object_qz
+          - object_qw
+          - prev_object_z
+          - prev_object_qx
+          - prev_object_qy
+          - prev_object_qz
+          - prev_object_qw
+        source:
+          path: metaworld/envs/sawyer_reach_v3.py
+          lines: 44-45
+        basis: measured
+      - role: object_velocity
+        quantity: puck velocity
+        value: zero -- `_set_obj_xyz` writes the puck position and zeroes `qvel[9:15]` (sawyer_xyz_env.py:351-361);
+          not observed except through `prev_*`, which equal the current frame at reset.
+        source:
+          path: metaworld/envs/sawyer_reach_v3.py
+          lines: '132'
+        basis: read
+      - role: object_pose
+        quantity: second object slot
+        value: none -- `_obs_obj_max_len = 14` zero padding for a second object this task does not have;
+          all 14 entries (7 current, 7 previous) are exactly 0.0 on every instance.
+        fields:
+          - object2_x
+          - object2_y
+          - object2_z
+          - object2_qx
+          - object2_qy
+          - object2_qz
+          - object2_qw
+          - prev_object2_x
+          - prev_object2_y
+          - prev_object2_z
+          - prev_object2_qx
+          - prev_object2_qy
+          - prev_object2_qz
+          - prev_object2_qw
+        source:
+          path: metaworld/sawyer_xyz_env.py
+          lines: 475-511
+        basis: measured
+    stochastic_transitions: null
+    upstream_divergence: 'Same 50 instances and the same uniform choice over them as Meta-World''s own MT1
+      route (`RandomTaskSelectWrapper._set_random_task`: `np_random.choice(len(self.tasks))`, metaworld/wrappers.py:98-100),
+      drawn from BIRD''s episode Generator instead of the wrapper''s `np_random`; `env.reset()` is never
+      handed a seed (metaworld.py:1762). Against the env class''s own continuous `_random_reset_space` this
+      is a 50-point discretisation -- a run never sees a 51st initial condition -- which is the benchmark''s
+      protocol, not the adapter''s. Nothing else is added or removed.'
+    prompt_states: A Sawyer robot arm stands at a table with a puck on it and a target point marked in the
+      space above the table.
+    prompt_field: l_task
+    prompt_omits:
+      - object_pose
+      - goal
+  spaces:
+    action_fields:
+      - name: delta_x
+        description: commanded gripper displacement along x, in [-1, 1]; scaled and integrated into
+          the mocap target by `set_xyz_action`, so this is a velocity command, not a position
+        low: -1.0
+        high: 1.0
+      - name: delta_y
+        description: commanded gripper displacement along y, in [-1, 1]
+        low: -1.0
+        high: 1.0
+      - name: delta_z
+        description: commanded gripper displacement along z, in [-1, 1]
+        low: -1.0
+        high: 1.0
+      - name: gripper
+        description: gripper command in [-1, 1]; -1 opens, +1 closes
+        low: -1.0
+        high: 1.0
+    obs_dim: 39
+    action_dim: 4
+    action_low:
+    - -1.0
+    - -1.0
+    - -1.0
+    - -1.0
+    action_high:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    action_semantics: '[dx, dy, dz, grip]: mocap-driven — the first three command a change in
+      the gripper''s world xyz at action_scale = 0.01 m/step, the fourth is gripper effort (sawyer_xyz_env.py:182,
+      320-336).'
+description:
+  env_prose: 'A Sawyer arm must move its gripper to a target position in free space. There is nothing
+    to grasp: the puck in the scene is a distractor and the goal is a point the tool centre must
+    reach. This is the easiest MT10 task and the one whose success check is about the hand rather
+    than an object.'
+  l_task: A Sawyer robot arm stands at a table with a puck on it and a target point marked in the
+    space above the table. Move the gripper to the target point and hold it there for the rest of
+    the episode. Nothing has to be grasped or moved -- the puck is a distractor and what is scored
+    is where the tool centre is. The arm is commanded by a small Cartesian displacement of the gripper
+    each step plus an open/close command for the fingers.
+  natural_language: 'A Sawyer arm must move its gripper to a target position in free space. There
+    is nothing to grasp: the puck in the scene is a distractor and the goal is a point the tool
+    centre must reach. This is the easiest MT10 task and the one whose success check is about
+    the hand rather than an object.'
+  scene: A Sawyer arm with a parallel-jaw gripper over a table, mocap-driven; the manipulated
+    thing is a target point in free space. The 39-D observation carries the hand, one object pose,
+    the previous frame and the goal.
+  success_criterion_prose: The task registers as complete on any step where the tool centre point
+    (the midpoint of the two fingertips — NOT the hand body the observation carries, which sits
+    ~4.5 cm above it) is within 0.05 m of the goal point. Checked afresh every step, no memory.
+  full_source:
+    path: metaworld/envs/sawyer_reach_v3.py
+    lines: null
+state_surface:
+  fields:
+  - name: s.obs
+    slice: "0:39"
+    shape: (39,)
+    units: null
+    description: 'the raw observation: 18 current-frame entries, the same 18 for the previous
+      frame (obs[18:36]), then the goal position (obs[36:39]). Layout verified at sawyer_xyz_env.py:513-527.'
+    source: sawyer_xyz_env.py:513-527
+  - name: s.hand_pos
+    slice: "0:3"
+    shape: (3,)
+    units: m
+    description: 'obs[0:3] = data.body(''hand'').xpos. NOT tcp_center: the tool centre the built-in
+      rewards use sits ~4.5 cm below this in z.'
+    source: null
+  - name: s.gripper_openness
+    slice: "3:4"
+    shape: scalar
+    units: null
+    description: obs[3], normalised finger separation in [0, 1].
+    source: null
+  - name: s.obj_pos
+    slice: "4:7"
+    shape: (3,)
+    units: m
+    description: obs[4:7], the manipulated object (handle/button/puck/peg grasp point).
+    source: null
+  - name: s.obj_quat
+    slice: "7:11"
+    shape: (4,)
+    units: null
+    description: 'obs[7:11], object orientation quaternion in scipy (x, y, z, w) order on this task
+      -- the scalar part LAST, opposite MuJoCo''s convention. The component order is task-specific;
+      see object_qx.'
+    source: null
+  - name: s.goal_pos
+    slice: "36:39"
+    shape: (3,)
+    units: m
+    description: obs[36:39], the goal position.
+    source: null
+  - name: action
+    shape: (4,)
+    units: null
+    description: 'the action applied this step: [dx, dy, dz, grip]'
+    source: null
+  helpers:
+    - name: hand_pos
+      signature: hand_pos(s)
+      description: = s[0:3]
+      kind: inline_expression
+      expression: s[0:3]
+    - name: object_pos
+      signature: object_pos(s)
+      description: = s[4:7]
+      kind: inline_expression
+      expression: s[4:7]
+    - name: object_quat
+      signature: object_quat(s)
+      description: '= s[7:11]; component order is task-specific (see object_qx): scipy x,y,z,w on reach/push/pick_place/door_open/peg_insert_side, MuJoCo w,x,y,z on drawer_open/button_press_topdown, zeros on drawer_close/window_open/window_close'
+      kind: inline_expression
+      expression: s[7:11]
+    - name: goal_pos
+      signature: goal_pos(s)
+      description: = s[36:39]
+      kind: inline_expression
+      expression: s[36:39]
+    - name: gripper_opening
+      signature: gripper_opening(s)
+      description: = s[3], 1.0 open
+      kind: inline_expression
+      expression: s[3]
+    - name: hand_velocity
+      signature: hand_velocity(s)
+      description: = (s[0:3] - s[18:21]) / 0.0125
+      kind: inline_expression
+      expression: (s[0:3] - s[18:21]) / 0.0125
+    - name: tolerance
+      signature: tolerance(x, bounds, margin, sigmoid='long_tail')
+      description: 'Meta-World''s shaping kernel: 1.0 inside `bounds`, decaying over `margin`'
+      kind: inline_expression
+      expression: null
+    - name: hamacher_product
+      signature: hamacher_product(a, b)
+      description: = a*b / (a + b - a*b); Meta-World's soft AND
+      kind: inline_expression
+      expression: null
+  flat_fields:
+    - index: 0
+      name: hand_x
+      description: 'gripper body x, `data.body(''hand'').xpos`. NOTE this is NOT tcp_center: the tool centre
+        point used by the built-in rewards sits 4.5 cm below this in z'
+    - index: 1
+      name: hand_y
+      description: gripper body y
+    - index: 2
+      name: hand_z
+      description: gripper body z; the table surface is near z = 0
+    - index: 3
+      name: gripper_opening
+      description: distance between the two claws, normalised to [0, 1]; 1.0 = fully open, 0.0 = fully closed
+    - index: 4
+      name: object_x
+      description: manipulated object x (the handle/button/peg position for the fixture tasks)
+    - index: 5
+      name: object_y
+      description: manipulated object y
+    - index: 6
+      name: object_z
+      description: manipulated object z
+    - index: 7
+      name: object_qx
+      description: 'object orientation quaternion, slot 1 of 4 (the name is a slot label, not a component).
+        The component ORDER is per task and is stated in the task''s spec: scipy (x, y, z, w) where the task
+        converts a rotation matrix, MuJoCo (w, x, y, z) where it reads the body''s xquat; all four zero on
+        the fixture tasks that report none. On the MT10 ten: scipy on reach, push, pick_place, door_open and
+        peg_insert_side; MuJoCo on drawer_open and button_press_topdown -- where it is also CONSTANT, (1,
+        0, 0, 0) and (0.7074, -0.7068, 0, 0), because those bodies translate on slide joints and never rotate;
+        all four components constant zeros on drawer_close, window_open and window_close'
+    - index: 8
+      name: object_qy
+      description: object orientation quaternion, slot 2 of 4 (order per task, see object_qx)
+    - index: 9
+      name: object_qz
+      description: object orientation quaternion, slot 3 of 4 (order per task, see object_qx)
+    - index: 10
+      name: object_qw
+      description: 'object orientation quaternion, slot 4 of 4: the scalar w on the scipy-order tasks, z on
+        the MuJoCo-order tasks, 0 where the task reports no orientation'
+    - index: 11
+      name: object2_x
+      description: second object x -- exactly zero (padding) on every MT10 task and on every other task with
+        one object; hammer carries the nail here, stick-push and stick-pull the container's insertion point
+    - index: 12
+      name: object2_y
+      description: second object y -- zero padding (always on MT10) except on hammer, stick-push, stick-pull
+    - index: 13
+      name: object2_z
+      description: second object z -- zero padding (always on MT10) except on hammer, stick-push, stick-pull
+    - index: 14
+      name: object2_qx
+      description: second object quaternion, slot 1 of 4 -- zero (always on MT10) except on hammer (the nail
+        body's xquat, w, x, y, z)
+    - index: 15
+      name: object2_qy
+      description: second object quaternion, slot 2 of 4 -- zero except on hammer
+    - index: 16
+      name: object2_qz
+      description: second object quaternion, slot 3 of 4 -- zero except on hammer
+    - index: 17
+      name: object2_qw
+      description: second object quaternion, slot 4 of 4 -- zero except on hammer
+    - index: 18
+      name: prev_hand_x
+      description: 'the PREVIOUS step''s hand_x, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 19
+      name: prev_hand_y
+      description: 'the PREVIOUS step''s hand_y, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 20
+      name: prev_hand_z
+      description: 'the PREVIOUS step''s hand_z, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 21
+      name: prev_gripper_opening
+      description: 'the PREVIOUS step''s gripper_opening, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 22
+      name: prev_object_x
+      description: 'the PREVIOUS step''s object_x, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 23
+      name: prev_object_y
+      description: 'the PREVIOUS step''s object_y, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 24
+      name: prev_object_z
+      description: 'the PREVIOUS step''s object_z, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 25
+      name: prev_object_qx
+      description: 'the PREVIOUS step''s object_qx, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 26
+      name: prev_object_qy
+      description: 'the PREVIOUS step''s object_qy, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 27
+      name: prev_object_qz
+      description: 'the PREVIOUS step''s object_qz, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 28
+      name: prev_object_qw
+      description: 'the PREVIOUS step''s object_qw, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 29
+      name: prev_object2_x
+      description: 'the PREVIOUS step''s object2_x, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 30
+      name: prev_object2_y
+      description: 'the PREVIOUS step''s object2_y, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 31
+      name: prev_object2_z
+      description: 'the PREVIOUS step''s object2_z, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 32
+      name: prev_object2_qx
+      description: 'the PREVIOUS step''s object2_qx, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 33
+      name: prev_object2_qy
+      description: 'the PREVIOUS step''s object2_qy, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 34
+      name: prev_object2_qz
+      description: 'the PREVIOUS step''s object2_qz, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 35
+      name: prev_object2_qw
+      description: 'the PREVIOUS step''s object2_qw, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 36
+      name: goal_x
+      description: goal position x for this episode; re-randomised every reset
+    - index: 37
+      name: goal_y
+      description: goal position y
+    - index: 38
+      name: goal_z
+      description: goal position z
+  helpers_note: 'The seven-field `s` namespace -- obs, hand_pos, gripper_openness, obj_pos, obj_quat,
+    goal_pos, action -- is identical on every MT10 spec, so a consumer that honours one Meta-World spec
+    honours them all. `info` is deliberately not part of it even though the trainer passes it: Meta-World''s
+    info carries `success`, and `s` reaches the candidate''s reward, so reading it there would put the
+    oracle inside the barrier. obs[11:18] (a second object''s pose slots) is exactly zero on every MT10
+    task and is deliberately not surfaced. Suite hazard recorded on door_open: `touching_main_object`
+    raises on assets without an `objGeom`, so no contact helper is proposed until each task''s geometry
+    is read.'
+discrete_success:
+  kind: discrete
+  no_discrete_success_because: null
+  shipped:
+    reimplementation:
+      repo: bird
+      module: bird.envs.metaworld
+      symbol: _success_reach
+      verified_against: 'info["success"] from the untouched evaluate_state, over 600 steps on each of
+        the ten MT10 tasks: 0 mismatches on nine, `reach` the exception (its tcp_center is not recoverable
+        from the 39-D observation, so the transcription approximates it). Resolved through the closed
+        _SUCCESS_CHECKS allow-list in that module, never by importlib on this string.'
+      sha256: null
+    expr: float(reach_dist <= 0.05), reach_dist = ||tcp_center - target||
+    provenance:
+      path: metaworld/envs/sawyer_reach_v3.py
+      lines: '86'
+      symbol: SawyerXYZEnv.evaluate_state
+      commit: null
+      sha256: 6403bb039f0627c376be11f2157ff48b8747154024effd8c16f19904762c7c47
+    sound: false
+    unsoundness: 'Per-step with no memory and about a point in free space: a hand swinging through
+      the 5 cm ball registers success in transit. Note for any recomputation from the observation:
+      tcp_center is not in the 39-D obs -- BIRD''s hand-0.045z approximation is 0.3-6.4 mm out on
+      average depending on the seed and policy (up to ~8.6 mm on a single step). The error is not
+      the fingers (their slide joints move under 0.05 mm) but the hand body tilting on its soft
+      mocap weld by up to ~9 degrees, which the 4.5 cm lever arm to the fingertips turns into 0-6 mm
+      of +y lead -- posture-dependent, largest while holding the lowest goals. It disagrees with
+      info[''success''] on 1 to 8 of every 300 scripted-expert steps depending on the seed (8, 1, 2
+      and 3 on seeds 0-3 with env.reset(default_rng(s)); pinned instance s gives 4, 3, 2, 2; never on
+      random steps), typically within 2 mm of the 0.05 m boundary (21 of 23 mismatches over seeds
+      0-5) and up to 4.2 mm on the lowest-goal seed, and always one way: it under-reports while the
+      hand approaches from -y.'
+  hardened:
+    status: pending
+    module: null
+    symbol: hardened_success
+    tightened: null
+    added_conjuncts: null
+    pending_plan: PLAN, not an implemented oracle. `settled` (hand speed below threshold at the
+      judged step) closes the swing-through. No object conjunct exists to add — the task is about
+      the hand. Decide from source, recording each conjunct considered and rejected.
+    not_tightened_because: null
+    conservatism: null
+    invariant: hardened <= shipped
+continuous_success:
+  raw:
+    name: shipped_success_once
+    expr: 'fraction of eval episodes in which the shipped success check holds on at least one step.
+      Named against the SHIPPED success check: no hardened oracle exists yet; rename when it lands.'
+    unit: fraction of episodes
+    direction: maximize
+    saturates_at: 1.0
+  normalized:
+    method: anchors
+    formula: null
+    success_threshold: 0.9
+anchors:
+  scripted:
+    value: 0.9466
+    method: scripted_policy
+    policy_id: mt10_suite/reach
+    status: solved
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    n_episodes: 25
+    reason: null
+    date: '2026-09-01'
+    source: 'REGISTRY 2026-09-03: policies/mt10_suite/policies.yaml entry `mt10_suite/reach` (status solved),
+      score 0.9466 bird_task_metric under per_step_fraction, n=25, verified through bird_adapter. The
+      manifest is the primary record. What THIS repo''s scripted policy scores on the task''s own metric,
+      beside `expert` (here Meta-World''s bundled scripted policy) and `published`, so ''is the scripted
+      policy good compared to a trained specialist'' is answerable from the spec. NOTE the reduction:
+      this is the per-step fraction, while the flat expert/random pair above is the any-step one -- compare
+      it with by_reduction.per_step_fraction.'
+  reduction: any_step_episode_fraction
+  by_reduction:
+    any_step_episode_fraction:
+      random:
+        value: 0.0
+        method: random_policy
+        source: 'MEASURED 2026-08-25: fraction of n=30 uniform-random episodes in which the shipped success
+          check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other
+          reduction, which is the only way the pair can be guaranteed consistent (per-step <= any-step,
+          always). The scripted policy is handed a COPY of the observation: Meta-World''s policies mutate
+          it in place, which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+          Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+      expert:
+        value: 1.0
+        method: scripted_policy
+        source: 'MEASURED 2026-08-25: fraction of n=30 scripted-expert episodes in which the shipped success
+          check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other
+          reduction, which is the only way the pair can be guaranteed consistent (per-step <= any-step,
+          always). The scripted policy is handed a COPY of the observation: Meta-World''s policies mutate
+          it in place, which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+          Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+    per_step_fraction:
+      random:
+        value: 0.0
+        method: random_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` -- the fraction of an episode''s arriving states
+          inside the goal region -- over n=30 uniform-random episodes through bird/envs/metaworld.py,
+          seed 0. Taken from the SAME rollouts as this task''s other reduction, which is the only way
+          the pair can be guaranteed consistent (per-step <= any-step, always). The scripted policy is
+          handed a COPY of the observation: Meta-World''s policies mutate it in place, which would corrupt
+          the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json. Supersedes
+          smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+      expert:
+        value: 0.8909
+        method: scripted_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 episodes of metaworld.policies.ENV_POLICY_MAP[task],
+          the benchmark''s own scripted solution and the honest ceiling here, seed 0. Taken from the SAME
+          rollouts as this task''s other reduction, which is the only way the pair can be guaranteed consistent
+          (per-step <= any-step, always). The scripted policy is handed a COPY of the observation: Meta-World''s
+          policies mutate it in place, which would corrupt the success read on the following step. Raw
+          record: tasks/_anchors_2026-08-25.json. Supersedes smaller-sample figures measured under a different
+          goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+  random:
+    value: 0.0
+    method: random_policy
+    source: 'MEASURED 2026-08-25: fraction of n=30 uniform-random episodes in which the shipped success
+      check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other reduction,
+      which is the only way the pair can be guaranteed consistent (per-step <= any-step, always). The
+      scripted policy is handed a COPY of the observation: Meta-World''s policies mutate it in place,
+      which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+      Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-08-25'
+  expert:
+    value: 1.0
+    method: scripted_policy
+    source: 'MEASURED 2026-08-25: fraction of n=30 scripted-expert episodes in which the shipped success
+      check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other reduction,
+      which is the only way the pair can be guaranteed consistent (per-step <= any-step, always). The
+      scripted policy is handed a COPY of the observation: Meta-World''s policies mutate it in place,
+      which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+      Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-08-25'
+budget:
+  train_steps: 1000000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: 'Not established, and door_open''s finding generalises: there is no published MT1 single-task
+      result for any v3 task at any budget — the published figures are v2 MT10/MT50 multi-task curves,
+      and v3 changed the physics and the mocap. The budget above is a placeholder with no measurement
+      behind it.'
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: published_dense
+    scope: value_determining
+    reference:
+      path: metaworld/envs/sawyer_reach_v3.py
+      lines: 140-182
+      symbol: SawyerXYZEnv.compute_reward
+      commit: null
+      sha256: 6403bb039f0627c376be11f2157ff48b8747154024effd8c16f19904762c7c47
+    depends_on:
+    - path: metaworld/utils/reward_utils.py
+      lines: null
+      symbol: tolerance, hamacher_product (the shaping primitives)
+      commit: null
+      sha256: 46478c0139f923f0d090c8e2324b45375cac02ee74a258ca35de597d8ad1f3bb
+    - path: metaworld/sawyer_xyz_env.py
+      lines: null
+      symbol: 'SawyerXYZEnv: TARGET_RADIUS (:156), tcp_center, the obs layout'
+      commit: null
+      sha256: 4282580b80befc557f67d25acffffec737ad0dae2c440601be76fc09139f351d
+    import_path: metaworld.envs.sawyer_reach_v3:SawyerXYZEnv.compute_reward
+    verified_against: metaworld 3.1.1 (PyPI wheel; mujoco 3.3.0, gymnasium 1.3.0)
+    notes: 'Built almost entirely from reward_utils primitives (verified: the file references
+      reward_utils), which is why depends_on pins that file — the same value_determining scope
+      argument as door_open. Where the success threshold resolves through the base class (TARGET_RADIUS),
+      sawyer_xyz_env.py is value-determining too.'
+  contract:
+    signature: |-
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          # single env, plain NumPy — door_open's contract
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'Mirrors the door_open contract: one scalar out, plain NumPy.'
+    reward_utils:
+    - name: tolerance
+      signature: tolerance(x, bounds, margin, sigmoid='long_tail')
+      provenance:
+        path: metaworld/utils/reward_utils.py
+        lines: null
+        symbol: tolerance
+        commit: null
+        sha256: 46478c0139f923f0d090c8e2324b45375cac02ee74a258ca35de597d8ad1f3bb
+    - name: hamacher_product
+      signature: hamacher_product(a, b)
+      provenance:
+        path: metaworld/utils/reward_utils.py
+        lines: null
+        symbol: hamacher_product
+        commit: null
+        sha256: 46478c0139f923f0d090c8e2324b45375cac02ee74a258ca35de597d8ad1f3bb
+  forbidden_symbols_by_consumer:
+    bird:
+    - task_metric
+    - reference_reward
+    - gt_reward
+    - evaluate_state
+    - reward_source
+    - _env
+  forbidden_symbols_note: 'BIRD''s gate, and it is a different SET from the flat list above rather than
+    a superset. Four of these six name ADAPTER INTERNALS -- `task_metric`, `reference_reward`, `reward_source`,
+    `_env` -- which are not properties of the task at all; they are the routes by which a candidate could
+    reach the metric it is scored on IN THIS REPO. Upstream''s list names benchmark symbols, which is
+    right for a consumer that calls the benchmark directly.
+    
+    `success` is DELIBERATELY ABSENT, and the omission is measured rather than an oversight. Meta-World''s
+    `info["success"]` is a threshold on the distance between obj (obs[4:7]) and goal (obs[36:39]), both
+    of which are IN the observation a generated reward receives -- so an identifier gate is both too strict
+    and too weak. Measured: listing it rejected 15 of 15 candidates and no policy was trained, and
+    every rejected program''s offence was naming its OWN proxy `success`. A candidate that spells the
+    same quantity `hit` passes either way. The defence that does hold is structural: a generated reward
+    can influence the POLICY and nothing else, so a candidate that re-derives the check has written a
+    SPARSE reward -- a legitimate design point that trains poorly at this tier''s budget and loses on
+    its merits.'
+  forbidden_symbols:
+  - evaluate_state
+  - hardened_success
+  - touching_main_object
+  - info["success"]
+judge:
+  vlm_legible: true
+  legibility_note: Manipulation stages (approach, engage, move) are readable from frames; the
+    centimetre-scale tolerances are not — the distance telemetry carries what frames cannot.
+  camera:
+    name: corner
+    mode: fixed
+    note: Meta-World's corner cameras are fixed; the whole workspace stays in frame, so absolute
+      progress is visible — no tracking-camera caveat.
+  extra_views:
+  - name: behindGripper
+    mode: tracking
+    note: >-
+      Tracking camera mounted behind and above the gripper, moving with it. A close view of the
+      fingers and whatever they touch, for grasp and contact; the scene shifts as the arm moves,
+      so it shows no absolute position, and early in an episode it can be filled by the arm's
+      own link. Shows the fingertip approaching the goal sphere at close range.
+  - name: topview
+    mode: fixed
+    note: >-
+      Fixed camera looking straight down at the table. Shows the arm and the objects in the
+      table plane: where the gripper is relative to the goal marker and how far the gripper has
+      travelled. Height above the table is not visible from here, and an object directly under
+      the gripper is hidden by the arm. The goal is a point in the air; this panel gives its
+      position over the table and nothing about height.
+  subtasks_sequential: true
+  telemetry_fields:
+  - hand_to_goal_dist
+domain_randomization:
+  parameters:
+    object_mass_scale:
+    - 0.2
+    - 4.0
+    arm_damping_scale:
+    - 0.5
+    - 4.0
+    friction_scale:
+    - 0.05
+    - 4.0
+    gravity_scale:
+    - 0.7
+    - 1.3
+    actuator_gain_scale:
+    - 0.5
+    - 1.75
+    weld_softness_scale:
+    - 0.75
+    - 3.0
+    contact_friction_scale:
+    - 0.1
+    - 4.0
+    fixture_damping_scale:
+    - 0.1
+    - 10.0
+  nominal:
+    object_mass_scale: 1.0
+    arm_damping_scale: 1.0
+    friction_scale: 1.0
+    gravity_scale: 1.0
+    actuator_gain_scale: 1.0
+    weld_softness_scale: 1.0
+    contact_friction_scale: 1.0
+    fixture_damping_scale: 1.0
+exploits: []
+symbol_mapping:
+  distance_to_goal: np.linalg.norm(s[0:3] - s[36:39])
+  object_to_goal: np.linalg.norm(s[4:7] - s[36:39])
+  gripper_to_object: np.linalg.norm(s[0:3] - s[4:7])
+  gripper_to_goal: np.linalg.norm(s[0:3] - s[36:39])
+  hand_position: s[0:3]
+  object_position: s[4:7]
+  object_orientation: s[7:11]
+  object_height: s[6]
+  goal_position: s[36:39]
+  gripper_open: s[3]
+  hand_velocity: ((s[0:3] - s[18:21]) / 0.0125)
+  object_velocity: ((s[4:7] - s[22:25]) / 0.0125)
+  action_magnitude: np.linalg.norm(a[0:3])
+  gripper_action: a[3]
+provenance:
+  authored_from:
+  - path: metaworld/envs/sawyer_reach_v3.py
+    lines: '86'
+    what: 'the shipped success check, verified verbatim at the cited line: success = float(reach_dist
+      <= 0.05)'
+  - path: metaworld/envs/sawyer_reach_v3.py
+    lines: 140-182
+    what: compute_reward, the published human baseline
+  - path: metaworld/sawyer_xyz_env.py
+    lines: 513-527
+    what: the 39-D observation layout; TARGET_RADIUS at :156
+  - path: bird/envs/metaworld.py
+    lines: null
+    what: 'the transcription seed: per-task success-check re-derivations (validated by BIRD against
+      info[''success''] over 600 steps/task — 0 mismatches on 9 of 10, reach''s tcp approximation
+      the exception), task prose reused verbatim as nl_description, and the per-step baselines
+      cited under anchors'
+  rule: source, not docstrings
+  measured:
+  - 'Success-check line 86 of metaworld/envs/sawyer_reach_v3.py matches the transcription: success
+    = float(reach_dist <= 0.05)'
+  - Whole-file sha256 recorded from the installed 3.1.1 wheel; wheel-vs-repo-pin byte identity
+    verified only for sawyer_door_v3.py.
+  verified_by: BIRD authors
+  date: '2026-08-24'

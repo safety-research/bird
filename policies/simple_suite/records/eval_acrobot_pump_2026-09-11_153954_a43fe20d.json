@@ -1,0 +1,252 @@
+{
+ "schema": "bird-policy-eval-v2",
+ "policy": "simple_suite/acrobot_pump",
+ "env_id": "acrobot",
+ "unit": "bird_task_metric",
+ "commit": "4288c38e",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-11",
+ "measured_at": "2026-09-11T15:39:54.931933+00:00",
+ "provenance": "measured",
+ "engine": {
+  "mujoco": null
+ },
+ "seed_block_hash": "5ac95882454a16093b590e25f83bfde1edcf259ee1070b3aaded3221b97430e1",
+ "params": {},
+ "summary": {
+  "n": 25,
+  "mean": 0.16146179401993355,
+  "min": 0.053156146179401995,
+  "max": 0.31893687707641194,
+  "successes": 1,
+  "reference_return_mean": -547.191771906268
+ },
+ "rows": [
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 0,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.2059800664451827,
+   "success": false,
+   "reference_return": -472.68463067443935
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 1,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.15614617940199335,
+   "success": false,
+   "reference_return": -651.3563596292325
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 2,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.08305647840531562,
+   "success": false,
+   "reference_return": -509.7387233872346
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 3,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.1461794019933555,
+   "success": false,
+   "reference_return": -420.78361639994813
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 4,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.14950166112956811,
+   "success": false,
+   "reference_return": -563.0922392149062
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 5,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.09966777408637874,
+   "success": false,
+   "reference_return": -584.2805385476883
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 6,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.132890365448505,
+   "success": false,
+   "reference_return": -718.0204378341161
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 7,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.14950166112956811,
+   "success": false,
+   "reference_return": -749.9390733042582
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 8,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.132890365448505,
+   "success": false,
+   "reference_return": -591.4847960718519
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 9,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.18272425249169436,
+   "success": false,
+   "reference_return": -663.8091274385631
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 10,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.1760797342192691,
+   "success": false,
+   "reference_return": -671.2162979087254
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 11,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.31893687707641194,
+   "success": true,
+   "reference_return": -446.39286240238977
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 12,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.17275747508305647,
+   "success": false,
+   "reference_return": -666.2162956789435
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 13,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.21926910299003322,
+   "success": false,
+   "reference_return": -298.3634522217003
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 14,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.2059800664451827,
+   "success": false,
+   "reference_return": -243.84644478801278
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 15,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.053156146179401995,
+   "success": false,
+   "reference_return": -506.7757752085939
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 16,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.17275747508305647,
+   "success": false,
+   "reference_return": -669.0217138540427
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 17,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.18604651162790697,
+   "success": false,
+   "reference_return": -614.0705887210227
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 18,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.23588039867109634,
+   "success": false,
+   "reference_return": -617.4057037497166
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 19,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.11295681063122924,
+   "success": false,
+   "reference_return": -446.51419249648256
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 20,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.11627906976744186,
+   "success": false,
+   "reference_return": -610.7626116010405
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 21,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.1893687707641196,
+   "success": false,
+   "reference_return": -316.3208021924011
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 22,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.1461794019933555,
+   "success": false,
+   "reference_return": -456.18086488377236
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 23,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.09302325581395349,
+   "success": false,
+   "reference_return": -613.9693902495596
+  },
+  {
+   "policy": "simple_suite/acrobot_pump",
+   "seed": 24,
+   "steps": 300,
+   "terminated_early": false,
+   "metric": 0.19933554817275748,
+   "success": false,
+   "reference_return": -577.5477591980539
+  }
+ ]
+}

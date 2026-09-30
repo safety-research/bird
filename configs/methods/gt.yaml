@@ -1,0 +1,165 @@
+# Gran Turismo -- Ma et al., "Automated Reward Design for Gran Turismo",
+# arXiv 2511.02094, 2025 (":N" = line N of its source, neurips_2025.tex).
+# No code release.
+#
+# Reward design without a fitness function (§3: F is "not accessible while
+# searching"). Each round the LLM writes ten rewards from a state/action API stub, a
+# trajectory alignment filter over stored preferences keeps five to train, a VLM
+# compares the trained agents' clips pairwise, Bradley-Terry picks the winner, and
+# feedback on it is appended to the prompt; the last round's winner is returned.
+# This file is the closed-loop arm of §5.1 (iii) / App. D, where an LLM describes
+# the selected agent. The published human-in-the-loop method is this file plus the
+# five overrides in tests/conftest.py::GT_PUBLISHED_OVERRIDES.
+#
+# Every value is from the paper; † = the paper disagrees with itself (both places
+# cited), ‡ = the paper leaves it unstated.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: zeroshot.yaml
+name: gt
+
+# --- models and loop --------------------------------------------------------
+
+problem:
+  # §5.1, deliberately vague. env_id left at default: Gran Turismo 7 (§5) has no adapter.
+  task_description: >-
+    win races while obeying standard motorsport racing rules and maintaining
+    good sportsmanship
+  reward_representation: weighted_components
+                                      # §4/App. B: named components plus a weights dict
+  fitness_access: none                # §3: the premise of the method
+
+llm:
+  generator:
+    model: gpt-4o                     # §5, all code generation
+    # No temperature is published; the resolved 1.0 is BIRD's default, not GT's.
+  evaluator:
+    model: gpt-4.1                    # §5, all preferences
+    modality: vlm                     # it watches frames (App. C)
+
+loop:
+  n_iterations: 4                     # §5.1: "for four iterations (K = 4)"
+  n_restarts: 10                      # §5.1 "seeds"; paper retrains all, BIRD the returned one
+  carry: [best_reward, dialogue, preference_dataset, replay_buffer]
+                                      # parent, appended prompt, D_pref, winner's replay buffer
+
+# --- generate ---------------------------------------------------------------
+
+generate:
+  n_candidates: 10                    # §5.1 "ten different rewards" (Alg. 1 calls it M, §5.1 N)
+
+  parent_source: iteration_best       # Alg. 1 lines 15-19: this round's BT argmax, ungated
+
+  context:
+    env_spec: state_action_api_stub   # §4: the state/action dataclass API, no dynamics code
+    include_parent_code: true         # §4/App. B: R_best quoted in full
+    include_numeric_reflection: true  # App. B: weighted component values every 100 epochs
+    include_behavioural_analysis: true  # what the selected agent did (here written by an LLM)
+    include_human_feedback: false     # §5.1 (iii); published arm: true (App. B)
+
+  history_mode: cumulative_append     # App. B (:627-636), Alg. 1 line 19: the prompt grows
+
+  output:
+    format: component_dict_plus_weights
+                                      # App. B: components plus weights = {...}
+    two_stage_nl_then_code: true      # App. B: English spec, then code (2 calls per candidate)
+    forbid_helper_functions: true     # App. B: "There should be no helper functions."
+    edit_mode: full_rewrite           # BIRD default, kept; App. B's 4-op edit grammar has no key
+    # Prompt wording is BIRD's, not App. B's (no motorsport persona or tag format).
+
+# --- verify -----------------------------------------------------------------
+
+verify:
+  enabled: true
+  dynamic_checks: [execution_smoke]   # §4: called on randomly sampled states and actions
+  on_failure: resample_with_trace     # §4: regenerated with the error trace until it passes
+  max_repair_attempts: 0              # BIRD default (uncapped), kept: §4; BIRD stops at 100
+
+  quality_screen: tac                 # §4: Trajectory Alignment Filter
+  alignment_filter:
+    enabled: true
+    # Iteration 1 has no stored preferences: the ten are cut to five by cand_id.
+    keep_top_n: 5                     # BIRD default, kept: five of ten trained (§5.1)
+    subtraj_len: 64                   # BIRD default; the paper never values L
+
+# --- train ------------------------------------------------------------------
+
+train:
+  algorithm: qr_sac                   # §5: QR-SAC, the GT Sophy learner
+  env_steps: 1800000                  # §5, fn. 5: 300 epochs x 6000 steps
+  init: secondary_replay_buffer       # §4: last winner's replay buffer, for every candidate
+  secondary_buffer:
+    ratio: 0.2                        # BIRD default, kept: App. E Table 3
+    size: 100000                      # BIRD default, kept: App. E Table 3
+  hyperparameters:                    # App. E Table 3; at most gamma reaches a BIRD learner
+    gamma: 0.9896                     # "Discount"
+    n_step: 7
+    n_quantiles: 32
+    policy_lr: 1.25e-5
+    critic_lr: 2.5e-5
+    entropy_coef: 0.01                # fixed, not tuned
+    target_copy_tau: 0.005
+    replay_buffer_size: 1000000       # the primary buffer
+
+final_retrain:
+  enabled: true                       # §5: reported agents are retrained from scratch
+  n_seeds: 3                          # §5: "Three seeds of the final policy"
+  env_steps: 9000000                  # §5: 1500 epochs x 6000, no secondary buffer
+
+# --- evaluate ---------------------------------------------------------------
+
+evaluate:
+  rollouts_per_candidate: 1           # §4: one long trajectory with video per policy
+  artifacts: [state_trajectories, videos]
+                                      # Table 2: human agreement 74% with both, 63% video alone
+
+  fitness:
+    source: preference_bt             # stands in for F: BT strength within one round
+
+  feedback:
+    numeric_reflection: true          # App. B: weighted component totals
+    granularity: per_component
+    include_task_metric: false        # §3: no ground-truth metric reaches the prompt
+    state_selection_scalar: false     # App. B: no strength, rank or best-so-far shown
+    analyzer: llm                     # App. D, the substitution; published arm: none (a human)
+
+  preferences:
+    enabled: true
+    # ‡ one evaluator client does both steps; GT used a VLM, then a text model.
+    comparator: llm_on_vlm_captions   # † §4 (:341): a VLM gives the preference; App. C
+                                      #   (:673-715): VLM captions both clips, a text model picks
+    pairs: all_pairs                  # BIRD default, kept: Alg. 1 line 11, C(5,2) = 10 per round
+    aggregator: bradley_terry         # BIRD default, kept: §4; ‡ fitting details unstated
+    allow_ties: false                 # BIRD default, kept: App. C, no tie option
+    clip_length_s: 15                 # BIRD default, kept: App. C
+    fps: 10                           # BIRD default, kept: App. C
+    max_video_s: 180                  # BIRD default, kept: App. C ("first lap" half has no key)
+    store_dataset: true               # Alg. 1 line 21: every label appended to D_pref
+
+  # evaluate.vlm.images_per_query stays default: App. C gives no per-query cap.
+
+  human:
+    mode: none                        # closed loop; published arm: feedback_text (§5)
+    queries_per_iteration: 0          # published arm: 1
+    applies_to: selected_only         # BIRD default, kept: Alg. 1 line 17, human(pi_best)
+
+# --- select -----------------------------------------------------------------
+
+select:
+  rule: bradley_terry                 # Alg. 1 lines 13-15: argmax of BT strengths
+  scope: within_iteration             # BIRD default, kept: strengths not comparable across rounds
+  final_artifact: chain_end           # Alg. 1 line 23: the last round's winner, ungated
+
+# --- update -----------------------------------------------------------------
+
+update:
+  operator: reflect_and_mutate        # App. B: summarise, suggest changes, rewrite
+  loser:
+    action: discard                   # its comparisons are already in D_pref (Alg. 1 line 21)
+  elitism:
+    keep_global_best: false           # §4: the previous round's winner, unconditionally
+  prompt:
+    mode: append                      # Alg. 1 line 19: prompt : feedback : R_best : eta_best
+    assistant_content: nl_spec        # App. B (:627-634): all English designs, the latest code once
+
+post: [final_retrain]

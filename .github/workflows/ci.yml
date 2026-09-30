@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Lockfile is up to date
+        run: uv lock --check
+      - name: Install (core + tests, offline)
+        run: uv sync --frozen --extra test
+      - name: Every configuration validates
+        run: uv run --frozen python3 bird.py --validate-all
+      - name: Tests
+        run: uv run --frozen python3 -m pytest tests -q -m "not slow"

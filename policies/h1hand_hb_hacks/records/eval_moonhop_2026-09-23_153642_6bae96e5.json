@@ -1,0 +1,1444 @@
+{
+ "schema": "bird-policy-eval-v2",
+ "policy": "h1hand_hb_hacks/moonhop",
+ "env_id": "h1hand_walk",
+ "unit": "bird_task_metric",
+ "horizon": 1000,
+ "max_steps": null,
+ "commit": "15eccc417",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-23",
+ "measured_at": "2026-09-23T15:36:42.277511+00:00",
+ "provenance": "measured",
+ "engine": {
+  "mujoco": "3.1.6"
+ },
+ "seed_block_hash": "6312660c5f0fd4b3533cf2f64a277a8d0ef58122eb58ac1c4cc2f313cdfa09aa",
+ "params": {
+  "p": {
+   "t_turn0": 1.5,
+   "yaw_rate": 1.9514394284759247,
+   "V_b": 2.0347726467861436,
+   "phi_b": -0.0034567798987551112,
+   "k_yaw": 0.7994821448121733,
+   "kv": 0.12303496496284705,
+   "k_ns": 0.7634513870043099,
+   "vz_des": 0.8804694690377657,
+   "kp_phi": 836.543181766583,
+   "ky": 0.1168770419599498,
+   "slew": 1.173484679652484
+  },
+  "note": "the 11-knob CEM's constants (seeds 0-1) with t_turn0 moved 0.79 -> 1.5 s, chosen on a turn-start grid whose 20 seeds included 12 failing held-out seeds; fresh held-out = 90-149 (NOTES_moonhop.md)"
+ },
+ "summary": {
+  "n": 100,
+  "mean": 0.9655034142361272,
+  "min": 0.16574080422145024,
+  "max": 1.0,
+  "successes": 99,
+  "reference_return_mean": 767.2281944879072
+ },
+ "rows": [
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 0,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.9578459483123
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 1,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.3276735095276
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 2,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.8067235311111
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 3,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.0244635507435
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 4,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.330360579562
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 5,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 800.6362167853366
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 6,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.3338547079038
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 7,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.3302307636164
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 8,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.883720909448
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 9,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.0700953403222
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 10,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.1432984879381
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 11,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.341737297019
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 12,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.9882682380188
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 13,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 809.282496487183
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 14,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 306,
+    "resets": 1
+   },
+   "steps": 306,
+   "terminated_early": true,
+   "metric": 0.4184671637852452,
+   "success": true,
+   "reference_return": 113.27648194153319
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 15,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.9553975531016
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 16,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.4082426563132
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 17,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.2959337598799
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 18,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.6286268697188
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 19,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.5893138397336
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 20,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.0243648100713
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 21,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 810.4695312048254
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 22,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 808.0684019187851
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 23,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.4114533341818
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 24,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.6459652097603
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 25,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.779534174082
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 26,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.8756353097405
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 27,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.1755993800331
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 28,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.4272734375683
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 29,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.8003950973301
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 30,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.3888237682256
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 31,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 227,
+    "resets": 1
+   },
+   "steps": 227,
+   "terminated_early": true,
+   "metric": 0.16574080422145024,
+   "success": false,
+   "reference_return": 37.214853603264565
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 32,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.3342772982676
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 33,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.7437875481469
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 34,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.8723472709418
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 35,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.7522337307776
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 36,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.7117878557108
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 37,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.8939395303719
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 38,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 127,
+    "resets": 1
+   },
+   "steps": 127,
+   "terminated_early": true,
+   "metric": 0.284791010193539,
+   "success": true,
+   "reference_return": 36.82108179748363
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 39,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.0052672588799
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 40,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.3885723349928
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 41,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.9851516955841
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 42,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.1409481876343
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 43,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.4075775301103
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 44,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.7716131513745
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 45,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.5579452846204
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 46,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.8811880413967
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 47,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.5951071195625
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 48,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.8901435915577
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 49,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.2953610312774
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 50,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.0697674328826
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 51,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.6907723436332
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 52,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 812.9125044511286
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 53,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.3673537460681
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 54,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.5476150225666
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 55,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.8730937069004
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 56,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.6055750408692
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 57,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.6765077718819
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 58,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 800.916029763577
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 59,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.7338993405916
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 60,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.921998734924
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 61,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.8805823725105
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 62,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 807.46063842645
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 63,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.4438704954888
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 64,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.2613671213966
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 65,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.4713742460104
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 66,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.9809444035764
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 67,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.6067619393272
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 68,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.7719226328707
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 69,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.7950496667145
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 70,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.3922204923656
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 71,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.7865344771603
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 72,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.3513962132935
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 73,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 169,
+    "resets": 1
+   },
+   "steps": 169,
+   "terminated_early": true,
+   "metric": 0.32324481689477064,
+   "success": true,
+   "reference_return": 36.00217218838716
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 74,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.3443252232959
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 75,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.285108297027
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 76,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 800.9858074072131
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 77,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.139486154654
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 78,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.5999512577059
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 79,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.4782171205468
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 80,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.586056392676
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 81,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.2796197022786
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 82,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 281,
+    "resets": 1
+   },
+   "steps": 281,
+   "terminated_early": true,
+   "metric": 0.3580976285177172,
+   "success": true,
+   "reference_return": 98.83869559465249
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 83,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.537467962108
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 84,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.0984344538191
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 85,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.3137304541502
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 86,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.9804859699531
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 87,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.7605025167472
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 88,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 800.4754599388235
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 89,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 806.8031582260517
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 90,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.5401778081084
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 91,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 810.0953117187413
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 92,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.727904688648
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 93,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 804.214232029478
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 94,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.6114402455181
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 95,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.1980698480089
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 96,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 803.990607981652
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 97,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 801.6931101419405
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 98,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 802.1347719531553
+  },
+  {
+   "policy": "h1hand_hb_hacks/moonhop",
+   "seed": 99,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 805.6462194102851
+  }
+ ]
+}

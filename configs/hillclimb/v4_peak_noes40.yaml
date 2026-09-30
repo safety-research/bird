@@ -1,0 +1,20 @@
+# Hill-climb configuration 24 (v4_peak_noes40): v4_peak at Eureka's budget. Every v4 choice
+# plus the peak checkpoint, with only the budget and schedule moved to the Eureka and RDA
+# protocol: 8 candidates per round at constant width, 5 rounds, no early stopping (about 40M
+# environment steps under --profile full). configs/era_u.yaml is this configuration under
+# its paper name, ERA-U.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=5.
+
+extends: v4_peak.yaml
+name: v4_peak_noes40
+
+generate:
+  n_candidates: 8
+  candidate_schedule: constant
+  candidate_schedule_values: []
+
+train:
+  pruning: none
+
+budget:
+  max_policy_trainings: 43            # 40 trainings + final_retrain.n_seeds (3)

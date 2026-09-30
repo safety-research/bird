@@ -1,0 +1,29 @@
+# Hill-climb configuration 15 (v3_all): all five RF-Agent choices together on v3_tree: the
+# tree, action diversity (all five actions at one slot each, K = 5; RF-Agent's own mix is
+# [2,2,2,1,1] at K = 8, tex:829), elite crossover (elite set 10), design thought with
+# thought alignment and the parent's thought, and the self-verify prior in UCT.
+# Base of v3_puct.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_tree.yaml
+name: v3_all
+
+generate:
+  actions:
+    mutation_mechanism: 1
+    mutation_param: 1
+    crossover_elite: 1
+    path_reasoning: 1
+    different_thought: 1
+  tree:
+    elite_size: 10
+  output:
+    design_thought: inline_brace
+  context:
+    include_parent_thought: true
+
+evaluate:
+  thought_alignment:
+    enabled: true
+  self_verify:
+    enabled: true

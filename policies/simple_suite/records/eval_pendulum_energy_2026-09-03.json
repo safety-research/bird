@@ -1,0 +1,220 @@
+{
+ "schema": "bird-policy-eval-v1",
+ "policy": "simple_suite/pendulum_energy",
+ "env_id": "pendulum",
+ "unit": "bird_task_metric",
+ "commit": "9632d65",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-03",
+ "params": null,
+ "summary": {
+  "n": 25,
+  "mean": 1.0,
+  "min": 1.0,
+  "max": 1.0,
+  "successes": 25
+ },
+ "rows": [
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 0,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 1,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 2,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 3,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 4,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 5,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 6,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 7,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 8,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 9,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 10,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 11,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 12,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 13,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 14,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 15,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 16,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 17,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 18,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 19,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 20,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 21,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 22,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 23,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/pendulum_energy",
+   "seed": 24,
+   "steps": 200,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true
+  }
+ ]
+}

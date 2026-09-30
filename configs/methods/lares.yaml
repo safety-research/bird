@@ -1,0 +1,109 @@
+# LaRes -- Li, Tang, Qiao, Zheng, Hao, "LaRes: Evolutionary Reinforcement
+# Learning with LLM-based Adaptive Reward Search", NeurIPS 2025 (no arXiv
+# version; cited by section and equation). Code: https://github.com/yeshenpy/LaRes
+#
+# A population of five LLM-written rewards, one SAC agent each, sharing a replay
+# buffer relabelled under every member's reward; Thompson sampling on recent
+# successes picks which agent interacts. At each evolution the elites are chosen
+# by success rate, the non-elite rewards are rewritten from the best one and
+# rescaled to its reward moments, and their agents restart from its policy.
+# BIRD regenerates all five rewards each round (the elites persist as parent
+# and archive, not as live agents) and reallocates interaction per slice, not
+# per episode.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value. A bare :N is LaRes_from_scratch.py.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: zeroshot.yaml
+name: lares
+
+# --- models and loop -------------------------------------------------------
+
+problem:
+  # drawer-open, one of the no-init setting's five tasks (run.sh:20-21; Table 2);
+  # env_id is not pinned: pass -s problem.env_id=mt10_drawer-open-v3
+  task_description: open a drawer
+
+llm:
+  generator:
+    model: gpt-4o                     # † paper GPT-4o for the no-init setting (§5.1);
+                                      #   code gpt-4o-mini (run.sh:4-21)
+    temperature: 1.0                  # ‡ a literal 1.0 (:210), sent on every call (:155)
+
+loop:
+  n_iterations: 5                     # "5 evolutions (including the generation of the initial population)", App. B
+  n_restarts: 1
+  carry: [best_reward, replay_buffer, policy_checkpoint, archive]
+                                      # buffer, elite policy and elites persist (§4.2, Alg. 1);
+                                      #   ‡ `archive` is BIRD's slot for the elite set
+  termination: fixed_iterations
+
+# --- generate --------------------------------------------------------------
+
+generate:
+  n_candidates: 5                     # population of 5 (§5.1, App. B). ‡ The release resamples until 5
+                                      #   execute (:207-261); here a sample that fails is lost
+  parent_source: global_best          # the best member's response is the parent (:658)
+  sampling_mode: iid_parallel
+
+  context:
+    include_parent_code: true         # the elite's code goes into the prompt (:203, :658)
+    include_numeric_reflection: true  # with its success rate and reward statistics (:645-654)
+
+# --- train -----------------------------------------------------------------
+
+train:
+  algorithm: sac                      # §5.1
+  backend: sb3
+  env_steps: 200000                   # LLM_freq (run.sh:20; §5.1, App. B.2); pooled in LaRes, per member here (5x)
+  seeds_per_candidate: 1
+
+  candidate_parallelism: sequential   # BIRD's scheduling choice, same results; LaRes is parallel (§4.3, App. B.2)
+  interaction: shared_population      # one pooled interaction budget per round (§4.3)
+  interaction_allocator: thompson_success
+                                      # §4.3, Eq. 2; the posterior counts env success (:827)
+  interaction_cfg:
+    window: 200                       # ‡ run.sh only, per task (50-500); 200 is drawer-open's
+    prior_alpha: 1.0                  # App. B: alpha and beta "are set to 1 by default" (:338)
+    prior_beta: 1.0
+    skip_duplicates: true             # App. B: a re-sampled individual skips the interaction (:809)
+    shared_buffer: true               # §4.3's shared replay buffer, relabelled under each reward
+    slices_per_candidate: 5           # BIRD's: LaRes reallocates every episode (:799-827)
+    moment_samples: 4096              # BIRD's: buffer samples for Eq. 3's moments
+
+  reward_scaling: elite_moments       # §4.3 Eq. 3: match the elite's reward mean and std; elites exempt (:729-730)
+  elite_constraint:
+    kind: l2_params                   # §4.3 Eq. 4: L2 to the elite's actor and critics (sac.py:440-488)
+    weight: 1.0                       # App. D: untuned, 1.0 on all tasks (sac.py:459)
+    apply_to: non_elite               # §4.3, Alg. 1 line 10
+
+  init: warm_start_from_best          # Alg. 1 line 15, §4.1: non-elites restart from pi_best and Q_best
+
+# --- evaluate --------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: success_rate              # elites are chosen on ground-truth success rate (§4.1; :621)
+    # LaRes's reduction is any-step success over ‡ 20 eval episodes (run.sh
+    # --eval-episodes 20; arguments.py:29 default 10; :870). Not pinned, as the
+    # default env cannot apply it; with an MT10 env add
+    # -s evaluate.fitness.reduction=any_step_episode_fraction
+
+  feedback:
+    numeric_reflection: true          # the elite's win_rate and reward statistics (:645-654)
+
+# --- select ----------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # all-zero tie: the release ranks by GT return (:614-616), BIRD by index
+  n_survivors: 3                      # App. B elite size 3 (run.sh:20 --elite_num=3); App. D Table 6 sweeps it
+  final_artifact: global_best
+
+# --- update ----------------------------------------------------------------
+
+update:
+  topology: elitist_population        # (mu + lambda): "the elite reward functions will not be replaced" (§4.2)
+  operator: reflect_and_mutate        # the LLM rewrites the non-elites from the elite (§4.2)
+  prompt:
+    mode: reset                       # each improvement call is built fresh (:658)

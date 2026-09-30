@@ -1,0 +1,248 @@
+{
+ "summary": {
+  "task": "reach",
+  "n": 25,
+  "mean_metric": 0.9466,
+  "min_metric": 0.93,
+  "any_step": 1.0,
+  "params": {
+   "d_tol": 0.016,
+   "hold_d": 0.05,
+   "k": 14.0,
+   "n_close": 8,
+   "press_z": 0.05,
+   "pull_tol": 0.022,
+   "standoff": 0.06,
+   "xy_tol": 0.01,
+   "z_grasp": 0.02,
+   "z_hover": 0.06
+  }
+ },
+ "rows": [
+  {
+   "task": "reach",
+   "seed": 0,
+   "steps": 500,
+   "metric": 0.936,
+   "success_any": true,
+   "inside_frac": 0.936,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 1,
+   "steps": 500,
+   "metric": 0.954,
+   "success_any": true,
+   "inside_frac": 0.954,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 2,
+   "steps": 500,
+   "metric": 0.954,
+   "success_any": true,
+   "inside_frac": 0.954,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 3,
+   "steps": 500,
+   "metric": 0.93,
+   "success_any": true,
+   "inside_frac": 0.93,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 4,
+   "steps": 500,
+   "metric": 0.958,
+   "success_any": true,
+   "inside_frac": 0.958,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 5,
+   "steps": 500,
+   "metric": 0.932,
+   "success_any": true,
+   "inside_frac": 0.932,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 6,
+   "steps": 500,
+   "metric": 0.95,
+   "success_any": true,
+   "inside_frac": 0.95,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 7,
+   "steps": 500,
+   "metric": 0.938,
+   "success_any": true,
+   "inside_frac": 0.938,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 8,
+   "steps": 500,
+   "metric": 0.944,
+   "success_any": true,
+   "inside_frac": 0.944,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 9,
+   "steps": 500,
+   "metric": 0.95,
+   "success_any": true,
+   "inside_frac": 0.95,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 10,
+   "steps": 500,
+   "metric": 0.946,
+   "success_any": true,
+   "inside_frac": 0.946,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 11,
+   "steps": 500,
+   "metric": 0.954,
+   "success_any": true,
+   "inside_frac": 0.954,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 12,
+   "steps": 500,
+   "metric": 0.958,
+   "success_any": true,
+   "inside_frac": 0.958,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 13,
+   "steps": 500,
+   "metric": 0.942,
+   "success_any": true,
+   "inside_frac": 0.942,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 14,
+   "steps": 500,
+   "metric": 0.946,
+   "success_any": true,
+   "inside_frac": 0.946,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 15,
+   "steps": 500,
+   "metric": 0.944,
+   "success_any": true,
+   "inside_frac": 0.944,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 16,
+   "steps": 500,
+   "metric": 0.936,
+   "success_any": true,
+   "inside_frac": 0.936,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 17,
+   "steps": 500,
+   "metric": 0.948,
+   "success_any": true,
+   "inside_frac": 0.948,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 18,
+   "steps": 500,
+   "metric": 0.942,
+   "success_any": true,
+   "inside_frac": 0.942,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 19,
+   "steps": 500,
+   "metric": 0.95,
+   "success_any": true,
+   "inside_frac": 0.95,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 20,
+   "steps": 500,
+   "metric": 0.942,
+   "success_any": true,
+   "inside_frac": 0.942,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 21,
+   "steps": 500,
+   "metric": 0.96,
+   "success_any": true,
+   "inside_frac": 0.96,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 22,
+   "steps": 500,
+   "metric": 0.946,
+   "success_any": true,
+   "inside_frac": 0.946,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 23,
+   "steps": 500,
+   "metric": 0.948,
+   "success_any": true,
+   "inside_frac": 0.948,
+   "last_phase": "-"
+  },
+  {
+   "task": "reach",
+   "seed": 24,
+   "steps": 500,
+   "metric": 0.958,
+   "success_any": true,
+   "inside_frac": 0.958,
+   "last_phase": "-"
+  }
+ ]
+}

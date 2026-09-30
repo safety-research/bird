@@ -1,0 +1,70 @@
+# ROSKA -- Huang, Chang, Lin, Liang, Zeng & Li, "Efficient Language-instructed Skill
+# Acquisition via Reward-Policy Co-Evolution", AAAI 2025, arXiv 2412.13492.
+# No usable code release: the URL the paper gives, github.com/NextMyLove/ROSKA, is
+# 404, and github.com/Yanbin-Chang/ROSKA holds model checkpoints only.
+#
+# Eureka with two additions. (1) A dynamic population: the prompt's incumbent reward
+# advances only when a candidate beats it. (2) Policy evolution: each candidate's
+# policy starts from alpha * (previous best policy) + (1 - alpha) * (fresh init),
+# with alpha found by Bayesian optimisation over short training probes; alpha = 1
+# is RDA's warm start and alpha = 0 is Eureka's training from scratch.
+#
+# Values follow the paper (no code to compare against); ‡ = the paper is silent and
+# there is no code, so BIRD chose. The paper's budgets are in Isaac Gym epochs, so
+# they are given as fractions of train.env_steps (200 of 3000 epochs = 0.0667).
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: eureka.yaml
+name: roska
+
+# --- models and loop ---------------------------------------------------------
+
+llm:
+  generator:
+    model: gpt-4o                     # experiment.tex:39
+
+loop:
+  n_iterations: 5                     # N = 5 fixed-size rounds (experiment.tex:39)
+  carry:
+    - best_reward
+    - dialogue                        # Eureka's, kept (lists replace on `extends:`)
+    - policy_checkpoint               # required by train.init: fused_warm_start
+
+# --- generate ----------------------------------------------------------------
+
+generate:
+  n_candidates: 6                     # K = 6 (experiment.tex:39, appendix.tex:7)
+  parent_source: global_best          # (1): incumbent advances only when beaten (methodology.tex:53, :108)
+
+# --- train -------------------------------------------------------------------
+
+train:
+  algorithm: ppo                      # experiment.tex:39
+  init: fused_warm_start              # (2): policy fusion (methodology.tex:69)
+  fusion:
+    ratio_search: sc_bo               # Short-Cut Bayesian Optimization, GP + EI (methodology.tex:88-94)
+    alpha: 1.0                        # used only by ratio_search: fixed (1.0 = RDA's warm start)
+    sc_bo:
+      init_points: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]  # experiment.tex:39
+      n_evaluations: 12               # J = 12, including the six initial points (experiment.tex:39)
+      probe_fraction: 0.0667          # T_BO = 200/3000 epochs per probe
+      post_probe_fraction: 0.1        # +300/3000 per candidate after the search (appendix.tex:42)
+    first_round_fraction: 0.1667      # 500/3000 (appendix.tex:7); round 1 has nothing to fuse
+  winner_extension_fraction: 0.8333   # +2500/3000 for the round's winner (appendix.tex:42)
+
+# --- evaluate ----------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: native                    # return under the ground-truth sparse reward (methodology.tex:27)
+
+# --- update ------------------------------------------------------------------
+
+update:
+  winner:
+    action: extend_then_become_parent  # the winner's extended training (appendix.tex:42); ‡ from its own checkpoint
+
+# --- select ------------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # scope stays within_iteration: cumulative would re-extend an old winner

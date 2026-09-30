@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bird/policies.schema.json",
+  "title": "Scripted-policy campaign manifest",
+  "description": "One policies.yaml per policies/<campaign>/ directory. A campaign is a set of hand-written policies sharing code files and provenance; each entry under `policies` is one policy with one measured score. The style rules are tasks/shared_spec.schema.json's: additionalProperties false everywhere, and absence is explicit -- a null score.value REQUIRES a reason, never a zero-fill.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["campaign", "family", "pattern", "code", "source", "policies"],
+  "properties": {
+    "campaign": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Must equal the directory name under policies/."
+    },
+    "family": {
+      "enum": ["metaworld", "humanoidbench", "bird_control"],
+      "description": "Which runtime family the code imports against. metaworld and humanoidbench are MUTUALLY EXCLUSIVE at runtime (mujoco==3.3.0 vs 3.1.6); no interpreter runs both. bird_control is this repo's own pure-numpy tier (bird/envs/control.py, bird/envs/toy.py): no external runtime, runs in every venv."
+    },
+    "pattern": {
+      "enum": ["closure", "rig"],
+      "description": "closure: make_policy(p) -> act(obs) in normalised action units. rig: make_x(**consts) -> fn(rig, t, ctrl) in RAW actuator units over a mujoco Rig/Shim."
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mujoco": {"type": ["string", "null"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "code": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+      "description": "Files in this directory: the policy code and its constants, kept as they were measured. Never edited to fit a convention -- the wrappers in bird/policy_api.py adapt."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date"],
+      "properties": {
+        "archive": {"type": "string", "description": "Where the policy's development record is, if distributed."},
+        "date": {"type": "string", "format": "date", "description": "The day the result was recorded -- the LAST day of work, not the first."},
+        "log": {"type": ["string", "null"], "description": "Repo-relative path of the write-up, or null."}
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "what"],
+        "properties": {
+          "file": {"type": "string"},
+          "what": {"type": "string"}
+        }
+      },
+      "description": "Non-policy artifacts worth keeping next to the code, such as write-ups."
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/policy"}
+    }
+  },
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "task", "env_id", "entry", "status", "score"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+/[a-z0-9_]+$",
+          "description": "<campaign>/<name>, unique across the repo."
+        },
+        "pattern": {
+          "enum": ["closure", "rig"],
+          "description": "Per-policy override of the campaign-level pattern."
+        },
+        "task": {
+          "type": ["string", "null"],
+          "description": "tasks/<id> directory this policy solves. null (with task_reason) when it has no task spec."
+        },
+        "task_reason": {"type": ["string", "null"]},
+        "env_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "registry.names(\"env\") entry, i.e. a valid problem.env_id: the BIRD adapter the score was measured through."
+        },
+        "gym_id": {"type": ["string", "null"], "description": "The underlying library's own env id, when one exists."},
+        "entry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "symbol"],
+          "properties": {
+            "file": {"type": "string"},
+            "symbol": {"type": "string"},
+            "kwargs_from": {"type": ["string", "null"], "description": "JSON file in this dir whose object is splatted into the factory call."}
+          },
+          "description": "Factory in a `code` file: what bird.policy_api loads, and what scripts/eval_policy.py reproduces the score through."
+        },
+        "rig": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["file", "symbol"],
+          "properties": {"file": {"type": "string"}, "symbol": {"type": "string"}},
+          "description": "For pattern rig: the Rig/Shim class the controller reads. Must be constructed over the BIRD adapter's own _env (see README)."
+        },
+        "params": {"type": ["object", "null"], "description": "The tuned constants, inline. Prefer this or params_file -- a policy without its constants is not reproducible."},
+        "params_file": {"type": ["string", "null"]},
+        "status": {"enum": ["solved", "partial", "reference", "negative"]},
+        "score": {"$ref": "#/$defs/score"},
+        "caveats": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"task": {"type": "null"}}, "required": ["task"]},
+          "then": {"required": ["task_reason"], "properties": {"task_reason": {"type": "string", "minLength": 1}}}
+        }
+      ]
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "verified_through", "date"],
+      "properties": {
+        "value": {
+          "type": ["number", "null"],
+          "description": "The headline number ON THE STANDARD ENV under the standard reset. Any other number goes in `secondary`, named."
+        },
+        "unit": {
+          "enum": ["bird_task_metric"],
+          "description": "The task spec's own metric as the BIRD adapter scores it. The benchmark's own episode return, where one exists, is a different quantity and lives in per_seed_hb_return / secondary."
+        },
+        "reduction": {"type": ["string", "null"], "enum": ["per_step_fraction", "any_step_episode_fraction", null]},
+        "threshold": {"type": ["number", "null"], "description": "The success bar in this unit, when one exists."},
+        "n_seeds": {"type": ["integer", "null"]},
+        "seeds": {"type": ["string", "null"], "description": "e.g. \"0-24\" or \"0,1,2\"."},
+        "per_seed": {"type": ["array", "null"], "items": {"type": "number"}},
+        "per_seed_hb_return": {
+          "type": ["array", "null"],
+          "items": {"type": "number"},
+          "description": "The benchmark's own episode return per seed, in per_seed's order, copied from the record's rows[].reference_return -- for a HumanoidBench entry, the per-seed series in the benchmark's own metric (its episode return). A per-seed distribution in the task's own metric is drawn from this wherever that metric is the HB return, and never from per_seed there: a distribution of this repo's per-step fraction is not a distribution of the benchmark's score. It must equal the cited record."
+        },
+        "aggregate": {"enum": ["mean", "min", "single", null], "description": "What `value` is over per_seed."},
+        "secondary": {
+          "type": ["object", "null"],
+          "additionalProperties": {"type": ["number", "string"]},
+          "description": "Named extra numbers: min, any_step, hb_return_mean, ..."
+        },
+        "verified_through": {
+          "enum": ["bird_adapter"],
+          "description": "bird_adapter: the repo's own EnvAdapter scored it -- the instrument of record."
+        },
+        "verified_at_commit": {"type": ["string", "null"], "description": "The repo commit whose adapter scored it. null means it was not recorded -- say so in notes, never guess one."},
+        "date": {"type": "string", "format": "date"},
+        "record": {"type": ["string", "null"], "description": "Per-seed evaluation record (JSON) in this directory. The value must be re-derivable from it."},
+        "reason": {"type": ["string", "null"], "description": "REQUIRED when value is null."}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"value": {"type": "null"}}, "required": ["value"]},
+          "then": {"required": ["reason"], "properties": {"reason": {"type": "string", "minLength": 1}}}
+        }
+      ]
+    }
+  }
+}

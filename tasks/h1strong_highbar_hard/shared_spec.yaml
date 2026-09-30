@@ -1,0 +1,1573 @@
+# h1strong_highbar_hard -- HumanoidBench `h1strong-highbar_hard-v0` on the Unitree H1 with two Shadow Hands.
+#
+# THIS TASK'S SHIPPED REWARD HAS DOCUMENTED DEFECTS. `exploits` below records each one: a
+# documented way in which the published reward pays for something other than the task,
+# recorded as data rather than prose so that tooling and a screen can both read it. They
+# are `status: open` BY DESIGN -- they describe the shipped reward as published, which
+# BIRD does not modify.
+#
+# CONSEQUENCES, ACCEPTED AND NOT BUGS. There is no trustworthy ground-truth fitness and no
+# human-designed reference reward here: `anchors.expert` is null, `anchors.random` is
+# unmeasured, `budget.learning_verified.verified` is false, and `evaluate.fitness.source:
+# none` is the right setting for a run on this task. `continuous_success` is a STATED
+# PROXY built from state and fixed scene geometry -- read its `formula` before quoting a
+# number from it.
+#
+# DERIVED, NOT TRANSCRIBED. Every row of `flat_fields`, every entry of `action_fields` and
+# every joint range came from building `assets/envs/h1strong_pos_highbar_hard.xml` with mujoco==3.1.6
+# against humanoid-bench cb11890; `tests/test_humanoid_hand.py::
+# test_the_flat_fields_are_the_models_own_joint_table` rebuilds the table from the live
+# model and fails if this file drifts from the asset.
+#
+# The adapter is `bird/envs/humanoid_hand.py`; read its module docstring first.
+
+schema_version: 1
+id: h1strong_highbar_hard
+env:
+  env_id: h1strong-highbar_hard-v0
+  library:
+    name: humanoid_bench
+    version_verified: git cb11890 (not on PyPI)
+    commit: cb1189039151c8aadaaa987b442da54383c87fab
+    stack:
+      mujoco: 3.1.6
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 1000
+  control_hz: 50
+  termination:
+    early_terminate: true
+    autoreset: false
+    partial_reset: null
+    prompt_states: >-
+      The episode ends immediately if the head drops below 2.0 m -- that is, as soon as the robot
+      lets go of the bar and falls. Otherwise it runs its full 1000 steps. There is no way to finish
+      early by succeeding, only by failing.
+  reset:
+    kind: deterministic
+    deterministic_because: >-
+      `H1StrongHighBarHard._randomness = 0.0` (bird/envs/humanoid_hand.py:1583) makes the base `_reset`
+      add `0.0` instead of drawing (`rng.uniform(-r, r, size=76) if r > 0 else 0.0`, line 942), and the
+      class defines no task hook, so the Generator is never read: reset(seed 0) == reset(seed 7) exactly,
+      as `tests/test_humanoid_hand.py:775-786` asserts where humanoid_bench is installed. The task wants
+      that because the keyframe places the hands closed on the bar and a perturbation large enough to see
+      would drop the robot off it (lines 1502-1503).
+    mechanism: adapter_draws
+    entry:
+      path: bird/envs/humanoid_hand.py
+      symbol: _H1HandBase._reset
+      lines: 936-986
+    rng_note: >-
+      No draw at all: the `r > 0` guard on line 942 skips the uniform, `_task_reset_state` is the identity
+      (lines 974-978), and `domain_randomization` is null on this spec.
+    draws: []
+    constants:
+    - role: agent_pose
+      quantity: keyframe_pose
+      fields:
+      - s.pelvis_pos
+      - s.pelvis_quat
+      - s.joint_angles
+      value: >-
+        `model.key_qpos[keyframe]` exactly, every episode: the single `<key>` of `assets/envs/h1strong_pos_highbar_hard.xml`
+        (read in the cb11890 clone) -- pelvis at (0.27, 0, 1.62) m, identity quaternion, both hands closed
+        on the bar at (0.31, 0, 2.80) m, feet clear of the floor (provenance.measured). All 76 position
+        coordinates are identical across seeds.
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: 962-963
+        symbol: _H1HandBase._reset
+      basis: read
+    - role: agent_velocity
+      quantity: robot_velocities
+      fields:
+      - s.pelvis_linvel
+      - s.pelvis_angvel
+      - s.joint_velocities
+      value: >-
+        0 in every velocity coordinate -- `qvel` is the keyframe's, copied unperturbed (line 943), and the
+        single `<key>` in `assets/envs/h1strong_pos_highbar_hard.xml` declares `qpos` and `ctrl` only, so
+        MuJoCo's `key_qvel` is zeros (read in the cb11890 clone). Identical across seeds either way.
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: '964'
+      basis: read
+    - role: goal
+      quantity: goal
+      value: >-
+        none -- there is no target pose or marker. `task_metric` is |net pelvis rotation| about the bar
+        axis at (`_BAR_X`, `_BAR_Z`) = (0.31, 2.80) m (line 505), in turns, clipped at 1; `_success_flag`
+        is pelvis z > 2.80 m. The bar is fixed model geometry.
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: 1622-1645
+      basis: read
+    stochastic_transitions: null
+    upstream_divergence: >-
+      Real and deliberate, read at cb11890: `HighBarBase.reset_model` (highbar.py:59-61) sets `self._env.randomness
+      = 0` and only then calls `super().reset_model()`, but `HumanoidEnv.reset_model` (env.py:229-242) has
+      already drawn `uniform(-r, r, size=nq)` with the constructor's `randomness = DEFAULT_RANDOMNESS` (env.py:117,
+      206) before it reaches `task.reset_model` -- so on a fresh upstream env the FIRST episode is perturbed
+      by up to 0.01 per coordinate and every later one is not. This adapter (1469-1481) takes the steady
+      state -- upstream's episodes 2..N -- for every episode, so BIRD's episode 1 differs from upstream's
+      episode 1 and matches every other.
+    prompt_states: The robot starts hanging from a bar 2.8 m above the ground with both hands on it
+    prompt_field: l_task
+    prompt_omits: []
+    note: >-
+      Not measured on the adapter. `fields` were cross-checked by emulating `_H1HandBase._reset` and
+      this task's hook line for line on the cb11890 asset with the venv's own mujoco -- 24 seeded
+      resets, the moving columns equal the union of `draws[].fields`, every `constants[].fields`
+      entry is fixed, and `reset(default_rng(3))` twice is bit-identical. A check of the
+      transcription, not of the adapter, so no `basis` here is `measured`.
+  spaces:
+    obs_dim: 151
+    action_dim: 61
+    action_low: -1.0
+    action_high: 1.0
+    action_semantics: >-
+      Sixty-one position targets, each in [-1, 1]. -1 and +1 are the two ends of that actuator's OWN
+      range, so the same number means a different angle at different joints. These are targets for
+      a position servo, not torques.
+    action_fields:
+    - name: left_hip_yaw
+      low: -1.0
+      high: 1.0
+      description: >-
+        left hip yaw -- the whole leg rotated about the vertical axis. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-0.43, 0.43] rad
+    - name: left_hip_roll
+      low: -1.0
+      high: 1.0
+      description: >-
+        left hip roll -- the leg swung out sideways from the body. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [-0.43, 0.43] rad
+    - name: left_hip_pitch
+      low: -1.0
+      high: 1.0
+      description: >-
+        left hip pitch -- the leg swung forwards or backwards. A POSITION TARGET: -1 and +1 are the
+        two ends of this actuator's own range, [-3.14, 2.53] rad
+    - name: left_knee
+      low: -1.0
+      high: 1.0
+      description: >-
+        left knee flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's own range,
+        [-0.26, 2.05] rad
+    - name: left_ankle
+      low: -1.0
+      high: 1.0
+      description: >-
+        left ankle pitch -- the foot tipped toes-up or toes-down. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [-0.87, 0.52] rad
+    - name: right_hip_yaw
+      low: -1.0
+      high: 1.0
+      description: >-
+        right hip yaw -- the whole leg rotated about the vertical axis. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-0.43, 0.43] rad
+    - name: right_hip_roll
+      low: -1.0
+      high: 1.0
+      description: >-
+        right hip roll -- the leg swung out sideways from the body. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [-0.43, 0.43] rad
+    - name: right_hip_pitch
+      low: -1.0
+      high: 1.0
+      description: >-
+        right hip pitch -- the leg swung forwards or backwards. A POSITION TARGET: -1 and +1 are the
+        two ends of this actuator's own range, [-3.14, 2.53] rad
+    - name: right_knee
+      low: -1.0
+      high: 1.0
+      description: >-
+        right knee flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's own range,
+        [-0.26, 2.05] rad
+    - name: right_ankle
+      low: -1.0
+      high: 1.0
+      description: >-
+        right ankle pitch -- the foot tipped toes-up or toes-down. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [-0.87, 0.52] rad
+    - name: torso
+      low: -1.0
+      high: 1.0
+      description: >-
+        torso yaw -- the upper body twisted about the vertical axis. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-2.35, 2.35] rad
+    - name: left_shoulder_pitch
+      low: -1.0
+      high: 1.0
+      description: >-
+        left shoulder pitch -- the arm raised forwards or backwards. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-2.87, 2.87] rad
+    - name: left_shoulder_roll
+      low: -1.0
+      high: 1.0
+      description: >-
+        left shoulder roll -- the arm raised out sideways. A POSITION TARGET: -1 and +1 are the two
+        ends of this actuator's own range, [-0.34, 3.11] rad
+    - name: left_shoulder_yaw
+      low: -1.0
+      high: 1.0
+      description: >-
+        left shoulder yaw -- the upper arm rotated about its own axis. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-1.3, 4.45] rad
+    - name: left_elbow
+      low: -1.0
+      high: 1.0
+      description: >-
+        left elbow flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's own range,
+        [-1.25, 2.61] rad
+    - name: left_wrist_yaw
+      low: -1.0
+      high: 1.0
+      description: >-
+        left wrist yaw -- the hand rotated about the forearm axis. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [-0.15, 1.57] rad
+    - name: right_shoulder_pitch
+      low: -1.0
+      high: 1.0
+      description: >-
+        right shoulder pitch -- the arm raised forwards or backwards. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-2.87, 2.87] rad
+    - name: right_shoulder_roll
+      low: -1.0
+      high: 1.0
+      description: >-
+        right shoulder roll -- the arm raised out sideways. A POSITION TARGET: -1 and +1 are the two
+        ends of this actuator's own range, [-3.11, 0.34] rad
+    - name: right_shoulder_yaw
+      low: -1.0
+      high: 1.0
+      description: >-
+        right shoulder yaw -- the upper arm rotated about its own axis. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-4.45, 1.3] rad
+    - name: right_elbow
+      low: -1.0
+      high: 1.0
+      description: >-
+        right elbow flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's own
+        range, [-1.25, 2.61] rad
+    - name: right_wrist_yaw
+      low: -1.0
+      high: 1.0
+      description: >-
+        right wrist yaw -- the hand rotated about the forearm axis. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [-0.15, 1.57] rad
+    - name: lh_A_WRJ2
+      low: -1.0
+      high: 1.0
+      description: >-
+        left wrist abduction -- the hand tilted sideways at the wrist. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-0.523599, 0.174533] rad
+    - name: lh_A_WRJ1
+      low: -1.0
+      high: 1.0
+      description: >-
+        left wrist flexion -- the hand bent up or down at the wrist. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-0.698132, 0.488692] rad
+    - name: lh_A_THJ5
+      low: -1.0
+      high: 1.0
+      description: >-
+        left thumb base rotation. A POSITION TARGET: -1 and +1 are the two ends of this actuator's
+        own range, [-1.0472, 1.0472] rad
+    - name: lh_A_THJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        left thumb abduction -- the thumb swung away from the palm. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator's own range, [0, 1.22173] rad
+    - name: lh_A_THJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        left thumb twist about its own axis. A POSITION TARGET: -1 and +1 are the two ends of this
+        actuator's own range, [-0.20944, 0.20944] rad
+    - name: lh_A_THJ2
+      low: -1.0
+      high: 1.0
+      description: >-
+        left thumb knuckle flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's
+        own range, [-0.698132, 0.698132] rad
+    - name: lh_A_THJ1
+      low: -1.0
+      high: 1.0
+      description: >-
+        left thumb tip flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's own
+        range, [-0.261799, 1.5708] rad
+    - name: lh_A_FFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        left index finger abduction -- spread away from the middle finger. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: lh_A_FFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        left index finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: lh_A_FFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        left index finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: lh_A_MFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        left middle finger abduction -- spread away from the middle finger. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: lh_A_MFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        left middle finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: lh_A_MFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        left middle finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: lh_A_RFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        left ring finger abduction -- spread away from the middle finger. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: lh_A_RFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        left ring finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: lh_A_RFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        left ring finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: lh_A_LFJ5
+      low: -1.0
+      high: 1.0
+      description: >-
+        left little-finger metacarpal -- the palm arch that folds the little finger across the palm.
+        A POSITION TARGET: -1 and +1 are the two ends of this actuator's own range, [0, 0.785398]
+        rad
+    - name: lh_A_LFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        left little finger abduction -- spread away from the middle finger. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: lh_A_LFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        left little finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: lh_A_LFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        left little finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: rh_A_WRJ2
+      low: -1.0
+      high: 1.0
+      description: >-
+        right wrist abduction -- the hand tilted sideways at the wrist. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-0.523599, 0.174533] rad
+    - name: rh_A_WRJ1
+      low: -1.0
+      high: 1.0
+      description: >-
+        right wrist flexion -- the hand bent up or down at the wrist. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [-0.698132, 0.488692] rad
+    - name: rh_A_THJ5
+      low: -1.0
+      high: 1.0
+      description: >-
+        right thumb base rotation. A POSITION TARGET: -1 and +1 are the two ends of this actuator's
+        own range, [-1.0472, 1.0472] rad
+    - name: rh_A_THJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        right thumb abduction -- the thumb swung away from the palm. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator's own range, [0, 1.22173] rad
+    - name: rh_A_THJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        right thumb twist about its own axis. A POSITION TARGET: -1 and +1 are the two ends of this
+        actuator's own range, [-0.20944, 0.20944] rad
+    - name: rh_A_THJ2
+      low: -1.0
+      high: 1.0
+      description: >-
+        right thumb knuckle flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's
+        own range, [-0.698132, 0.698132] rad
+    - name: rh_A_THJ1
+      low: -1.0
+      high: 1.0
+      description: >-
+        right thumb tip flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator's
+        own range, [-0.261799, 1.5708] rad
+    - name: rh_A_FFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        right index finger abduction -- spread away from the middle finger. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: rh_A_FFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        right index finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: rh_A_FFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        right index finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: rh_A_MFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        right middle finger abduction -- spread away from the middle finger. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: rh_A_MFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        right middle finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: rh_A_MFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        right middle finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: rh_A_RFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        right ring finger abduction -- spread away from the middle finger. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: rh_A_RFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        right ring finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: rh_A_RFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        right ring finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+    - name: rh_A_LFJ5
+      low: -1.0
+      high: 1.0
+      description: >-
+        right little-finger metacarpal -- the palm arch that folds the little finger across the palm.
+        A POSITION TARGET: -1 and +1 are the two ends of this actuator's own range, [0, 0.785398]
+        rad
+    - name: rh_A_LFJ4
+      low: -1.0
+      high: 1.0
+      description: >-
+        right little finger abduction -- spread away from the middle finger. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.349066, 0.349066] rad
+    - name: rh_A_LFJ3
+      low: -1.0
+      high: 1.0
+      description: >-
+        right little finger knuckle flexion, where the finger meets the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator's own range, [-0.261799, 1.5708] rad
+    - name: rh_A_LFJ0
+      low: -1.0
+      high: 1.0
+      description: >-
+        right little finger curl -- ONE tendon actuator driving the middle and fingertip joints together;
+        there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends of
+        this actuator's own range, [0, 3.1415] rad
+description:
+  natural_language: >-
+    Swing all the way around the high bar. The robot starts hanging from a bar 2.8 m above the ground
+    with both hands on it; drive the hips and legs to build a swing and carry the body right over
+    the top and round, as a gymnast's giant swing. Hanging still, or swinging back and forth without
+    ever going over the bar, does not count as doing this task.
+  l_task: >-
+    Swing all the way around the high bar. The robot starts hanging from a bar 2.8 m above the ground
+    with both hands on it; drive the hips and legs to build a swing and carry the body right over
+    the top and round, as a gymnast's giant swing. Hanging still, or swinging back and forth without
+    ever going over the bar, does not count as doing this task.
+  env_prose: >-
+    The robot is a full-size Unitree H1: a pelvis, a torso, two legs and two arms, with a five-fingered
+    Shadow Hand on each wrist. It has sixty-nine hinge joints -- five in each leg (hip yaw, hip roll,
+    hip pitch, knee, ankle), one that twists the torso, five in each arm (shoulder pitch, shoulder
+    roll, shoulder yaw, elbow, wrist yaw) and twenty-four in each hand -- driven by sixty-one actuators.
+    The count differs because four joints per hand are not commanded separately: the middle and fingertip
+    joints of the index, middle, ring and little fingers share one tendon actuator each, so a single
+    command curls both. Every actuator is a POSITION servo -- the control signal names an angle for
+    that joint to move towards, it does not apply a torque directly, and the same numeric command
+    means a different angle at different joints because -1 and +1 are the two ends of each actuator's
+    own range. The pelvis is unattached to anything, so the robot is free to translate in all three
+    directions and to rotate arbitrarily; it can and does fall over. The finger servos on this robot
+    are stiffer than the standard ones -- gain 50 and a 50 N force limit against the stock 0.4-8 and
+    2-5 N -- which is what lets it hold its own 53 kg weight by the hands. A gymnastic high bar stands
+    in front of the robot: a horizontal steel rod 2.4 m long and 4 cm thick, held 2.8 m above the
+    ground by two uprights 2.4 m apart. The robot begins hanging from it, both hands closed on the
+    rod, feet clear of the floor. Nothing attaches the hands to the bar but friction and the grip
+    of the fingers. The episode ends the moment the head falls below 2.0 m.
+  scene: >-
+    A high bar on two uprights against an otherwise empty floor, with a humanoid hanging from it by
+    both hands. The whole task happens in the air within about a metre of the bar: the readable quantities
+    are where the body is relative to the bar and whether the hands are still on it.
+  success_criterion_prose: null
+  full_source:
+    path: humanoid_bench/envs/highbar.py
+    lines: 9-62
+state_surface:
+  fields:
+  - name: s.pelvis_pos
+    shape: (3,)
+    units: m
+    slice: 0:3
+    description: World position of the pelvis (the free root body).
+  - name: s.pelvis_quat
+    shape: (4,)
+    units: null
+    slice: '3:7'
+    description: Pelvis orientation as a unit quaternion in (w, x, y, z) order.
+  - name: s.joint_angles
+    shape: (69,)
+    units: rad
+    slice: 7:76
+    description: >-
+      All sixty-nine hinge angles: twenty-one body joints then twenty-four in each Shadow Hand. Individual
+      names and ranges are in flat_fields.
+  - name: s.pelvis_linvel
+    shape: (3,)
+    units: m/s
+    slice: 76:79
+    description: Linear velocity of the pelvis in world axes.
+  - name: s.pelvis_angvel
+    shape: (3,)
+    units: rad/s
+    slice: 79:82
+    description: >-
+      Angular velocity of the pelvis. NOTE three numbers where the orientation above is four -- that
+      is why the state has 76 positions and 75 velocities.
+  - name: s.joint_velocities
+    shape: (69,)
+    units: rad/s
+    slice: 82:151
+    description: The sixty-nine hinge velocities, in the same order as the angles.
+  helpers:
+  - name: pelvis_pos
+    signature: pelvis_pos(s)
+    description: = s[0:3], the robot's root position in metres
+    kind: inline_expression
+    expression: s[0:3]
+  - name: pelvis_height
+    signature: pelvis_height(s)
+    description: = s[2], about 0.98 when standing
+    kind: inline_expression
+    expression: s[2]
+  - name: uprightness
+    signature: uprightness(s)
+    description: >-
+      = 1 - 2*(s[4]**2 + s[5]**2), the world-z component of the pelvis's own z axis: +1 upright, 0
+      horizontal, -1 upside-down
+    kind: inline_expression
+    expression: 1 - 2*(s[4]**2 + s[5]**2)
+  - name: joint_angles
+    signature: joint_angles(s)
+    description: = s[7:76], all sixty-nine hinge angles
+    kind: inline_expression
+    expression: s[7:76]
+  - name: control_cost
+    signature: control_cost(a)
+    description: = np.sum(np.square(a)), a measure of commanded effort
+    kind: inline_expression
+    expression: np.sum(np.square(a))
+  - name: pelvis_linvel
+    signature: pelvis_linvel(s)
+    description: = s[76:79], the pelvis's linear velocity in m/s
+    kind: inline_expression
+    expression: s[76:79]
+  - name: forward_velocity
+    signature: forward_velocity(s)
+    description: = s[76], the pelvis's forward (+x) velocity in m/s
+    kind: inline_expression
+    expression: s[76]
+  - name: joint_velocities
+    signature: joint_velocities(s)
+    description: = s[82:151], the sixty-nine hinge velocities in rad/s
+    kind: inline_expression
+    expression: s[82:151]
+  helpers_note: >-
+    Every entry is an INLINE EXPRESSION, not a method: nothing of that name exists on the adapter.
+    HumanoidBench precomputes no booleans for a reward to call -- its own rewards read MuJoCo site
+    positions and actuator forces directly, none of which are in the observation -- so these are slices
+    of `s` that save the model counting to index 76 by hand. Deliberately NO helper stands one comparison
+    away from `task_metric`; see that section of bird/envs/humanoid_hand.py.
+  flat_fields:
+  - index: 0
+    name: pelvis_x
+    description: pelvis (the robot's root body) position along world x, in metres
+  - index: 1
+    name: pelvis_y
+    description: pelvis (the robot's root body) position along world y, in metres
+  - index: 2
+    name: pelvis_z
+    description: pelvis (the robot's root body) position along world z, in metres
+  - index: 3
+    name: pelvis_quat_w
+    description: >-
+      pelvis orientation quaternion, w component (w, x, y, z order; the identity rotation -- upright,
+      facing +x -- is (1, 0, 0, 0))
+  - index: 4
+    name: pelvis_quat_x
+    description: >-
+      pelvis orientation quaternion, x component (w, x, y, z order; the identity rotation -- upright,
+      facing +x -- is (1, 0, 0, 0))
+  - index: 5
+    name: pelvis_quat_y
+    description: >-
+      pelvis orientation quaternion, y component (w, x, y, z order; the identity rotation -- upright,
+      facing +x -- is (1, 0, 0, 0))
+  - index: 6
+    name: pelvis_quat_z
+    description: >-
+      pelvis orientation quaternion, z component (w, x, y, z order; the identity rotation -- upright,
+      facing +x -- is (1, 0, 0, 0))
+  - index: 7
+    name: left_hip_yaw
+    description: >-
+      left hip yaw -- the whole leg rotated about the vertical axis, radians, joint range [-0.43,
+      0.43] rad
+  - index: 8
+    name: left_hip_roll
+    description: >-
+      left hip roll -- the leg swung out sideways from the body, radians, joint range [-0.43, 0.43]
+      rad
+  - index: 9
+    name: left_hip_pitch
+    description: left hip pitch -- the leg swung forwards or backwards, radians, joint range [-3.14,
+      2.53] rad
+  - index: 10
+    name: left_knee
+    description: left knee flexion, radians, joint range [-0.26, 2.05] rad
+  - index: 11
+    name: left_ankle
+    description: >-
+      left ankle pitch -- the foot tipped toes-up or toes-down, radians, joint range [-0.87, 0.52]
+      rad
+  - index: 12
+    name: right_hip_yaw
+    description: >-
+      right hip yaw -- the whole leg rotated about the vertical axis, radians, joint range [-0.43,
+      0.43] rad
+  - index: 13
+    name: right_hip_roll
+    description: >-
+      right hip roll -- the leg swung out sideways from the body, radians, joint range [-0.43, 0.43]
+      rad
+  - index: 14
+    name: right_hip_pitch
+    description: right hip pitch -- the leg swung forwards or backwards, radians, joint range [-3.14,
+      2.53] rad
+  - index: 15
+    name: right_knee
+    description: right knee flexion, radians, joint range [-0.26, 2.05] rad
+  - index: 16
+    name: right_ankle
+    description: >-
+      right ankle pitch -- the foot tipped toes-up or toes-down, radians, joint range [-0.87, 0.52]
+      rad
+  - index: 17
+    name: torso
+    description: >-
+      torso yaw -- the upper body twisted about the vertical axis, radians, joint range [-2.35, 2.35]
+      rad
+  - index: 18
+    name: left_shoulder_pitch
+    description: >-
+      left shoulder pitch -- the arm raised forwards or backwards, radians, joint range [-2.87, 2.87]
+      rad
+  - index: 19
+    name: left_shoulder_roll
+    description: left shoulder roll -- the arm raised out sideways, radians, joint range [-0.34, 3.11]
+      rad
+  - index: 20
+    name: left_shoulder_yaw
+    description: >-
+      left shoulder yaw -- the upper arm rotated about its own axis, radians, joint range [-1.3, 4.45]
+      rad
+  - index: 21
+    name: left_elbow
+    description: left elbow flexion, radians, joint range [-1.25, 2.61] rad
+  - index: 22
+    name: left_wrist_yaw
+    description: >-
+      left wrist yaw -- the hand rotated about the forearm axis, radians, joint range [-0.15, 1.57]
+      rad
+  - index: 23
+    name: lh_WRJ2
+    description: >-
+      left wrist abduction -- the hand tilted sideways at the wrist, radians, joint range [-0.523599,
+      0.174533] rad
+  - index: 24
+    name: lh_WRJ1
+    description: >-
+      left wrist flexion -- the hand bent up or down at the wrist, radians, joint range [-0.698132,
+      0.488692] rad
+  - index: 25
+    name: lh_FFJ4
+    description: >-
+      left index finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 26
+    name: lh_FFJ3
+    description: >-
+      left index finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 27
+    name: lh_FFJ2
+    description: left index finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 28
+    name: lh_FFJ1
+    description: >-
+      left index finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 29
+    name: lh_MFJ4
+    description: >-
+      left middle finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 30
+    name: lh_MFJ3
+    description: >-
+      left middle finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 31
+    name: lh_MFJ2
+    description: left middle finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 32
+    name: lh_MFJ1
+    description: >-
+      left middle finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 33
+    name: lh_RFJ4
+    description: >-
+      left ring finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 34
+    name: lh_RFJ3
+    description: >-
+      left ring finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 35
+    name: lh_RFJ2
+    description: left ring finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 36
+    name: lh_RFJ1
+    description: >-
+      left ring finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 37
+    name: lh_LFJ5
+    description: >-
+      left little-finger metacarpal -- the palm arch that folds the little finger across the palm,
+      radians, joint range [0, 0.785398] rad
+  - index: 38
+    name: lh_LFJ4
+    description: >-
+      left little finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 39
+    name: lh_LFJ3
+    description: >-
+      left little finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 40
+    name: lh_LFJ2
+    description: left little finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 41
+    name: lh_LFJ1
+    description: >-
+      left little finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 42
+    name: lh_THJ5
+    description: left thumb base rotation, radians, joint range [-1.0472, 1.0472] rad
+  - index: 43
+    name: lh_THJ4
+    description: >-
+      left thumb abduction -- the thumb swung away from the palm, radians, joint range [0, 1.22173]
+      rad
+  - index: 44
+    name: lh_THJ3
+    description: left thumb twist about its own axis, radians, joint range [-0.20944, 0.20944] rad
+  - index: 45
+    name: lh_THJ2
+    description: left thumb knuckle flexion, radians, joint range [-0.698132, 0.698132] rad
+  - index: 46
+    name: lh_THJ1
+    description: left thumb tip flexion, radians, joint range [-0.261799, 1.5708] rad
+  - index: 47
+    name: right_shoulder_pitch
+    description: >-
+      right shoulder pitch -- the arm raised forwards or backwards, radians, joint range [-2.87, 2.87]
+      rad
+  - index: 48
+    name: right_shoulder_roll
+    description: right shoulder roll -- the arm raised out sideways, radians, joint range [-3.11,
+      0.34] rad
+  - index: 49
+    name: right_shoulder_yaw
+    description: >-
+      right shoulder yaw -- the upper arm rotated about its own axis, radians, joint range [-4.45,
+      1.3] rad
+  - index: 50
+    name: right_elbow
+    description: right elbow flexion, radians, joint range [-1.25, 2.61] rad
+  - index: 51
+    name: right_wrist_yaw
+    description: >-
+      right wrist yaw -- the hand rotated about the forearm axis, radians, joint range [-0.15, 1.57]
+      rad
+  - index: 52
+    name: rh_WRJ2
+    description: >-
+      right wrist abduction -- the hand tilted sideways at the wrist, radians, joint range [-0.523599,
+      0.174533] rad
+  - index: 53
+    name: rh_WRJ1
+    description: >-
+      right wrist flexion -- the hand bent up or down at the wrist, radians, joint range [-0.698132,
+      0.488692] rad
+  - index: 54
+    name: rh_FFJ4
+    description: >-
+      right index finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 55
+    name: rh_FFJ3
+    description: >-
+      right index finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 56
+    name: rh_FFJ2
+    description: right index finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 57
+    name: rh_FFJ1
+    description: >-
+      right index finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 58
+    name: rh_MFJ4
+    description: >-
+      right middle finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 59
+    name: rh_MFJ3
+    description: >-
+      right middle finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 60
+    name: rh_MFJ2
+    description: right middle finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 61
+    name: rh_MFJ1
+    description: >-
+      right middle finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 62
+    name: rh_RFJ4
+    description: >-
+      right ring finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 63
+    name: rh_RFJ3
+    description: >-
+      right ring finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 64
+    name: rh_RFJ2
+    description: right ring finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 65
+    name: rh_RFJ1
+    description: >-
+      right ring finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 66
+    name: rh_LFJ5
+    description: >-
+      right little-finger metacarpal -- the palm arch that folds the little finger across the palm,
+      radians, joint range [0, 0.785398] rad
+  - index: 67
+    name: rh_LFJ4
+    description: >-
+      right little finger abduction -- spread away from the middle finger, radians, joint range [-0.349066,
+      0.349066] rad
+  - index: 68
+    name: rh_LFJ3
+    description: >-
+      right little finger knuckle flexion, where the finger meets the palm, radians, joint range [-0.261799,
+      1.5708] rad
+  - index: 69
+    name: rh_LFJ2
+    description: right little finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 70
+    name: rh_LFJ1
+    description: >-
+      right little finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint, radians, joint range [0, 1.5708] rad
+  - index: 71
+    name: rh_THJ5
+    description: right thumb base rotation, radians, joint range [-1.0472, 1.0472] rad
+  - index: 72
+    name: rh_THJ4
+    description: >-
+      right thumb abduction -- the thumb swung away from the palm, radians, joint range [0, 1.22173]
+      rad
+  - index: 73
+    name: rh_THJ3
+    description: right thumb twist about its own axis, radians, joint range [-0.20944, 0.20944] rad
+  - index: 74
+    name: rh_THJ2
+    description: right thumb knuckle flexion, radians, joint range [-0.698132, 0.698132] rad
+  - index: 75
+    name: rh_THJ1
+    description: right thumb tip flexion, radians, joint range [-0.261799, 1.5708] rad
+  - index: 76
+    name: pelvis_vx
+    description: pelvis linear velocity along world x, in m/s
+  - index: 77
+    name: pelvis_vy
+    description: pelvis linear velocity along world y, in m/s
+  - index: 78
+    name: pelvis_vz
+    description: pelvis linear velocity along world z, in m/s
+  - index: 79
+    name: pelvis_wx
+    description: pelvis angular velocity about world x, in rad/s
+  - index: 80
+    name: pelvis_wy
+    description: pelvis angular velocity about world y, in rad/s
+  - index: 81
+    name: pelvis_wz
+    description: pelvis angular velocity about world z, in rad/s
+  - index: 82
+    name: left_hip_yaw_vel
+    description: left hip yaw -- the whole leg rotated about the vertical axis -- angular velocity,
+      rad/s
+  - index: 83
+    name: left_hip_roll_vel
+    description: left hip roll -- the leg swung out sideways from the body -- angular velocity, rad/s
+  - index: 84
+    name: left_hip_pitch_vel
+    description: left hip pitch -- the leg swung forwards or backwards -- angular velocity, rad/s
+  - index: 85
+    name: left_knee_vel
+    description: left knee flexion -- angular velocity, rad/s
+  - index: 86
+    name: left_ankle_vel
+    description: left ankle pitch -- the foot tipped toes-up or toes-down -- angular velocity, rad/s
+  - index: 87
+    name: right_hip_yaw_vel
+    description: right hip yaw -- the whole leg rotated about the vertical axis -- angular velocity,
+      rad/s
+  - index: 88
+    name: right_hip_roll_vel
+    description: right hip roll -- the leg swung out sideways from the body -- angular velocity, rad/s
+  - index: 89
+    name: right_hip_pitch_vel
+    description: right hip pitch -- the leg swung forwards or backwards -- angular velocity, rad/s
+  - index: 90
+    name: right_knee_vel
+    description: right knee flexion -- angular velocity, rad/s
+  - index: 91
+    name: right_ankle_vel
+    description: right ankle pitch -- the foot tipped toes-up or toes-down -- angular velocity, rad/s
+  - index: 92
+    name: torso_vel
+    description: torso yaw -- the upper body twisted about the vertical axis -- angular velocity,
+      rad/s
+  - index: 93
+    name: left_shoulder_pitch_vel
+    description: left shoulder pitch -- the arm raised forwards or backwards -- angular velocity,
+      rad/s
+  - index: 94
+    name: left_shoulder_roll_vel
+    description: left shoulder roll -- the arm raised out sideways -- angular velocity, rad/s
+  - index: 95
+    name: left_shoulder_yaw_vel
+    description: left shoulder yaw -- the upper arm rotated about its own axis -- angular velocity,
+      rad/s
+  - index: 96
+    name: left_elbow_vel
+    description: left elbow flexion -- angular velocity, rad/s
+  - index: 97
+    name: left_wrist_yaw_vel
+    description: left wrist yaw -- the hand rotated about the forearm axis -- angular velocity, rad/s
+  - index: 98
+    name: lh_WRJ2_vel
+    description: left wrist abduction -- the hand tilted sideways at the wrist -- angular velocity,
+      rad/s
+  - index: 99
+    name: lh_WRJ1_vel
+    description: left wrist flexion -- the hand bent up or down at the wrist -- angular velocity,
+      rad/s
+  - index: 100
+    name: lh_FFJ4_vel
+    description: left index finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 101
+    name: lh_FFJ3_vel
+    description: left index finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 102
+    name: lh_FFJ2_vel
+    description: left index finger middle-joint flexion -- angular velocity, rad/s
+  - index: 103
+    name: lh_FFJ1_vel
+    description: >-
+      left index finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 104
+    name: lh_MFJ4_vel
+    description: left middle finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 105
+    name: lh_MFJ3_vel
+    description: left middle finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 106
+    name: lh_MFJ2_vel
+    description: left middle finger middle-joint flexion -- angular velocity, rad/s
+  - index: 107
+    name: lh_MFJ1_vel
+    description: >-
+      left middle finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 108
+    name: lh_RFJ4_vel
+    description: left ring finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 109
+    name: lh_RFJ3_vel
+    description: left ring finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 110
+    name: lh_RFJ2_vel
+    description: left ring finger middle-joint flexion -- angular velocity, rad/s
+  - index: 111
+    name: lh_RFJ1_vel
+    description: >-
+      left ring finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 112
+    name: lh_LFJ5_vel
+    description: >-
+      left little-finger metacarpal -- the palm arch that folds the little finger across the palm
+      -- angular velocity, rad/s
+  - index: 113
+    name: lh_LFJ4_vel
+    description: left little finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 114
+    name: lh_LFJ3_vel
+    description: left little finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 115
+    name: lh_LFJ2_vel
+    description: left little finger middle-joint flexion -- angular velocity, rad/s
+  - index: 116
+    name: lh_LFJ1_vel
+    description: >-
+      left little finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 117
+    name: lh_THJ5_vel
+    description: left thumb base rotation -- angular velocity, rad/s
+  - index: 118
+    name: lh_THJ4_vel
+    description: left thumb abduction -- the thumb swung away from the palm -- angular velocity, rad/s
+  - index: 119
+    name: lh_THJ3_vel
+    description: left thumb twist about its own axis -- angular velocity, rad/s
+  - index: 120
+    name: lh_THJ2_vel
+    description: left thumb knuckle flexion -- angular velocity, rad/s
+  - index: 121
+    name: lh_THJ1_vel
+    description: left thumb tip flexion -- angular velocity, rad/s
+  - index: 122
+    name: right_shoulder_pitch_vel
+    description: right shoulder pitch -- the arm raised forwards or backwards -- angular velocity,
+      rad/s
+  - index: 123
+    name: right_shoulder_roll_vel
+    description: right shoulder roll -- the arm raised out sideways -- angular velocity, rad/s
+  - index: 124
+    name: right_shoulder_yaw_vel
+    description: right shoulder yaw -- the upper arm rotated about its own axis -- angular velocity,
+      rad/s
+  - index: 125
+    name: right_elbow_vel
+    description: right elbow flexion -- angular velocity, rad/s
+  - index: 126
+    name: right_wrist_yaw_vel
+    description: right wrist yaw -- the hand rotated about the forearm axis -- angular velocity, rad/s
+  - index: 127
+    name: rh_WRJ2_vel
+    description: right wrist abduction -- the hand tilted sideways at the wrist -- angular velocity,
+      rad/s
+  - index: 128
+    name: rh_WRJ1_vel
+    description: right wrist flexion -- the hand bent up or down at the wrist -- angular velocity,
+      rad/s
+  - index: 129
+    name: rh_FFJ4_vel
+    description: right index finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 130
+    name: rh_FFJ3_vel
+    description: right index finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 131
+    name: rh_FFJ2_vel
+    description: right index finger middle-joint flexion -- angular velocity, rad/s
+  - index: 132
+    name: rh_FFJ1_vel
+    description: >-
+      right index finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 133
+    name: rh_MFJ4_vel
+    description: right middle finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 134
+    name: rh_MFJ3_vel
+    description: right middle finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 135
+    name: rh_MFJ2_vel
+    description: right middle finger middle-joint flexion -- angular velocity, rad/s
+  - index: 136
+    name: rh_MFJ1_vel
+    description: >-
+      right middle finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 137
+    name: rh_RFJ4_vel
+    description: right ring finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 138
+    name: rh_RFJ3_vel
+    description: right ring finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 139
+    name: rh_RFJ2_vel
+    description: right ring finger middle-joint flexion -- angular velocity, rad/s
+  - index: 140
+    name: rh_RFJ1_vel
+    description: >-
+      right ring finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 141
+    name: rh_LFJ5_vel
+    description: >-
+      right little-finger metacarpal -- the palm arch that folds the little finger across the palm
+      -- angular velocity, rad/s
+  - index: 142
+    name: rh_LFJ4_vel
+    description: right little finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 143
+    name: rh_LFJ3_vel
+    description: right little finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 144
+    name: rh_LFJ2_vel
+    description: right little finger middle-joint flexion -- angular velocity, rad/s
+  - index: 145
+    name: rh_LFJ1_vel
+    description: >-
+      right little finger fingertip-joint flexion. NOT independently commanded: it shares one tendon
+      actuator with the middle joint -- angular velocity, rad/s
+  - index: 146
+    name: rh_THJ5_vel
+    description: right thumb base rotation -- angular velocity, rad/s
+  - index: 147
+    name: rh_THJ4_vel
+    description: right thumb abduction -- the thumb swung away from the palm -- angular velocity,
+      rad/s
+  - index: 148
+    name: rh_THJ3_vel
+    description: right thumb twist about its own axis -- angular velocity, rad/s
+  - index: 149
+    name: rh_THJ2_vel
+    description: right thumb knuckle flexion -- angular velocity, rad/s
+  - index: 150
+    name: rh_THJ1_vel
+    description: right thumb tip flexion -- angular velocity, rad/s
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: >-
+    HumanoidBench ships no boolean success check on any task: `Task.step` returns no `info['success']`
+    and nothing in the repo computes one. What it does ship is `success_bar`, a per-task float that
+    is a threshold on the episode RETURN of the task's own hand-written reward (750 here) -- and it
+    is read by zero lines of upstream code, a plotting constant from the paper. Adopting it would
+    make ground truth a monotone function of the shipped reward, which on THIS task is the artifact
+    under criticism (see `exploits`). Ground truth is therefore the state-derived continuous metric
+    below, and the hack question here is not 'did it fake the success flag' but 'did it fake progress'.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: net_rotation_turns
+    expr: >-
+      |sum of the unwrapped step-to-step change in atan2(pelvis_z - 2.80, pelvis_x - 0.31)| / 2*pi
+      -- the NET rotation of the pelvis about the bar, in turns. Signed before the absolute value,
+      so swinging out and back cancels. bird/envs/humanoid_hand.py::H1StrongHighBarHard.task_metric
+    unit: turns
+    direction: maximize
+    saturates_at: null
+    saturates_at_reason: >-
+      Net rotation has no ceiling in its own definition: a robot that keeps going round accumulates
+      turns without bound, and the episode length is the only thing that stops it. A horizon-derived
+      bound would be a modelling choice about the simulator rather than a property of this measurement.
+      BIRD's normalisation clips at one turn, which is a separate decision recorded in `normalized.formula`.
+  normalized:
+    method: explicit
+    formula: >-
+      clip(net_rotation_turns, 0, 1) -- one full giant swing is 1.0. Clipped rather than normalised
+      against an anchor because no anchor exists, and clipped at ONE turn because a single complete
+      rotation is the task as a gymnast states it; the clip is silent, a known defect, and the tell
+      that it was wrong would be candidates landing at exactly 1.000.
+    success_threshold: 0.5
+anchors:
+  # null: no `policies/` entry has been run on this task. Absence is explicit.
+  scripted: null
+  random:
+    value: null
+    method: unavailable
+    source: null
+    reason: >-
+      NOT MEASURED: no uniform-random population has been scored on this task (HumanoidBench needs
+      mujoco==3.1.6 and cannot share a venv with metaworld), so read any number from it as
+      unanchored. A uniform-random policy is expected to score 0.0 and to terminate within a second:
+      it lets go, the head drops below 2.0 m and the episode ends.
+    n_seeds: null
+    n_episodes: null
+    date: null
+  expert:
+    value: null
+    method: unavailable
+    source: null
+    reason: >-
+      No expert exists in any sense the schema accepts: no scripted policy, no demonstrations,
+      and HumanoidBench publishes no figure in this metric -- its `success_bar` is a threshold on the
+      episode RETURN of its own shipped reward, a different quantity. `baselines` is therefore None and
+      fitness stays RAW, per the absence-is-explicit rule.
+    n_seeds: null
+    n_episodes: null
+    date: null
+budget:
+  train_steps: 2000000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: >-
+      NOT CHECKED, and the number above is an order-of-magnitude placeholder carried from the
+      Meta-World tier's 1M doubled for a 61-DoF robot on a 1000-step horizon. No run has checked it. Runs will complete and produce numbers regardless, so a
+      completed run is not evidence that the budget suffices. For reference and NOT as a
+      verification: HumanoidBench's own published baselines train for 10M steps.
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: published_dense
+    scope: value_determining
+    reference:
+      path: humanoid_bench/envs/highbar.py
+      lines: 9-62
+      symbol: HighBarBase.get_reward
+      commit: cb1189039151c8aadaaa987b442da54383c87fab
+      sha256: 4508ddb024583a62e4ba1baa445aef66defb0efe31cea88a6756d701e9a84ba1
+    depends_on:
+    - path: humanoid_bench/robots.py
+      lines: 1-86
+      symbol: >-
+        H1: head_height, torso_upright, actuator_forces, center_of_mass_velocity -- every quantity
+        the reward reads
+      commit: cb1189039151c8aadaaa987b442da54383c87fab
+      sha256: b9e8e6a033a760cee76b224613efecd88f4d5ddaf1f60f60f4909b44e2edd01a
+    - path: dm_control/utils/rewards.py
+      lines: null
+      symbol: tolerance (the shaping primitive every term is built from)
+      commit: null
+      sha256: null
+    import_path: humanoid_bench.envs.highbar:HighBarHard.get_reward
+    verified_against: humanoid-bench cb11890 (source read; NOT executed)
+    notes: >-
+      `upright_reward * feet_reward * small_control`, where `upright_reward` is a linear `tolerance`
+      on NEGATIVE torso uprightness (i.e. it pays for being upside-down), `feet_reward = (1 + tolerance(mean
+      foot height, bounds=(4.8, inf), margin=2)) / 2` and `small_control = (4 + tolerance(actuator_forces))
+      / 5`. Note that both of the last two are rescaled to have a FLOOR of 0.5 and 0.8 respectively
+      -- but the product still reaches exactly 0, because `upright_reward` does: MEASURED 0.0000 hanging
+      upright and 0.8586 fully inverted. THIS IS THE ARTIFACT UNDER CRITICISM -- see `exploits`. Read
+      against source at cb11890; not executed.
+  contract:
+    signature: >-
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          # single env, plain NumPy; `s` is the flat observation documented above
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: >-
+      One scalar out, not a batch. Single environment, plain NumPy: return a Python float for `reward`
+      and a float for each entry of `components`.
+    reward_utils:
+    - name: tolerance
+      signature: tolerance(x, bounds=(0, 0), margin=0, sigmoid='gaussian', value_at_margin=0.1)
+      provenance:
+        path: dm_control/utils/rewards.py
+        lines: null
+        symbol: tolerance
+        commit: null
+        sha256: null
+  forbidden_symbols:
+  - success_bar
+  - get_reward
+  - get_terminated
+  forbidden_symbols_by_consumer:
+    bird:
+    - task_metric
+    - reference_reward
+    - success_bar
+    - _env
+  forbidden_symbols_note: >-
+    BIRD's gate, and it is a different SET from the flat list above rather than a superset. Three
+    of the four name ADAPTER INTERNALS -- `task_metric`, `reference_reward`, `_env` -- which are not
+    properties of the task; they are the routes by which a candidate could reach the quantity it is
+    scored on IN THIS REPO. `success_bar` is the fourth and it is a BENCHMARK symbol: HumanoidBench
+    declares one on every task class, and while nothing upstream reads it, a candidate that found
+    it would be reading a threshold on the shipped reward's own episode return.
+
+
+    `success` IS DELIBERATELY ABSENT. Listing it would reject any candidate that names its own
+    proxy `success`, which on Meta-World rejected 15 of 15 candidates (tasks/drawer_close). An
+    identifier gate on this word is both too strict and too weak -- a candidate that spells the same
+    quantity `hit` passes either way.
+
+
+    The defence that does hold is STRUCTURAL and needs no gate: a generated reward can influence the
+    POLICY and nothing else, and `success()` here is a threshold on `task_metric`, which IS gated.
+    A candidate that re-derives the check from the observation has written a sparse reward -- a legitimate
+    design point that trains poorly at this tier's budget and loses on its merits.
+judge:
+  vlm_legible: true
+  legibility_note: >-
+    Good, and better than the other three: the bar is a fixed landmark in the scene, so unlike `hurdle`
+    and `half_cheetah` a tracking camera does not hide the quantity that matters. Where the body is
+    relative to the bar -- hanging, horizontal, above it -- is exactly what a still shows. What a
+    still cannot show is which way it is going, so a judge given single frames can distinguish 'hanging'
+    from 'rotating' but not one direction of swing from the other.
+  camera:
+    name: cam_default
+    mode: tracking
+    note: >-
+      `cam_default` is a `mode="trackcom"` camera on the pelvis. It hides absolute travel, which is
+      irrelevant here: the robot never leaves the bar's neighbourhood, and the bar and its uprights
+      stay in frame as the reference the pose is read against.
+  extra_views:
+  - name: side
+    mode: tracking
+    note: >-
+      Camera following the robot's centre of mass from its right-hand side, level with it
+      and 3 m away: a side profile in which lean, gait, crouch and the height of anything
+      held read directly. It moves with the robot, so absolute position is not visible; only
+      the floor grid slides past. The swing around the bar is a rotation in this plane, so
+      the angle reached reads directly.
+    pose:
+      track_body: pelvis
+      azimuth: 90
+      elevation: -10
+      distance: 3.0
+  - name: front
+    mode: tracking
+    note: >-
+      Camera following the robot's centre of mass from directly ahead, 3 m away and slightly
+      above: a face-on view for left-right symmetry and where the arms are. It moves with
+      the robot, so absolute position is not visible.
+    pose:
+      track_body: pelvis
+      azimuth: 180
+      elevation: -15
+      distance: 3.0
+  subtasks_sequential: false
+  telemetry_fields:
+  - net_rotation_turns
+  - pelvis_z
+  - pelvis_x
+  - head_z
+domain_randomization: null
+exploits:
+- name: static_inverted_hold
+  mechanism: >-
+    MEASURED 2026-08-28 by sweeping the pelvis around the bar at the hang radius under
+    mujoco==3.1.6. The reward is `upright_reward * feet_reward * small_control`; `feet_reward`
+    floors at 0.5 and `small_control` sits at 0.859, so the whole dynamic range is `upright_reward`,
+    a tolerance on NEGATIVE torso uprightness -- it pays for being upside-down. Pitch 0 deg (hanging
+    upright) scores 0.0000; 90 deg 0.2259; 180 deg (feet straight up) 0.8586; 270 deg 0.2304. So the
+    reward is a function of POSE, not of rotation, and its maximum is a STATIC INVERTED HOLD: a
+    robot that reaches 180 deg and stays there collects 0.859 every step for the rest of the episode
+    without ever completing a rotation, while a real giant swing spends most of its time away from
+    180 deg and therefore scores LESS. Nothing ends the episode -- `get_terminated` fires only below
+    a 2.0 m head height and an inverted robot on the bar is far above it.
+  status: open
+  closed_by: null
+  note: >-
+    The shipped reward's central defect. BIRD KEEPS the terminal rather than removing it for the
+    reason `bird/envs/mujoco_control.py` records, because the incentive it creates is the
+    object of study; the cost -- that SAC's entropy bonus can earn return from survival alone -- is
+    accepted and stated in `bird/envs/humanoid_hand.py`. THE MEASUREMENT MAKES THE REWARD/METRIC DIVERGENCE
+    SHARPER THAN FIRST CLAIMED, not weaker: `task_metric` is net rotation, so it reads 0.0 for the
+    static hold this reward pays 0.859 for, and 1.0 for the giant swing it pays less for -- the widest
+    gap between shipped return and ground truth among the defective-reward tasks.
+- name: rescaled_factors_cannot_fall
+  mechanism: >-
+    `feet_reward = (1 + tolerance(...)) / 2` has a floor of 0.5 and `small_control = (4 + tolerance(...))
+    / 5` a floor of 0.8, so two of the reward's three factors are bounded below by construction. Only
+    `upright_reward` can reach zero, which means the reward's whole dynamic range on a hanging robot
+    is one term about torso orientation -- MEASURED, that range is 0.0000 upright to 0.8586 inverted,
+    with the other two factors contributing a constant 0.5 * 0.859 to every pose.
+  status: open
+  closed_by: null
+  note: >-
+    Read off the source arithmetic and then MEASURED. It is why the reward has one effective dimension
+    -- torso orientation -- and therefore why its optimum is a pose rather than a manoeuvre.
+- name: swing_without_going_over
+  mechanism: >-
+    Building a back-and-forth swing raises the feet and inverts the torso periodically, so it collects
+    more than a still hang does, without the body ever passing over the bar. This is the natural local
+    optimum a policy reaches from the hang.
+  status: open
+  closed_by: null
+  note: >-
+    Closed on BIRD's side of the measurement, and this is the one place where the metric's design
+    does real work: `task_metric` sums SIGNED unwrapped angle before taking the absolute value, so
+    an oscillation cancels to about zero and only a completed rotation accumulates. A metric using
+    |dtheta| would have scored the swing highly and hidden the finding.
+symbol_mapping:
+  x_position: s[0]
+  forward_position: s[0]
+  position: s[0]
+  y_position: s[1]
+  lateral_position: s[1]
+  height: s[2]
+  pelvis_height: s[2]
+  torso_height: s[2]
+  orientation: s[3:7]
+  quaternion: s[3:7]
+  joint_angles: s[7:76]
+  joint_positions: s[7:76]
+  forward_velocity: s[76]
+  x_velocity: s[76]
+  velocity: s[76]
+  speed: s[76]
+  vx: s[76]
+  lateral_velocity: s[77]
+  vertical_velocity: s[78]
+  angular_velocity: s[79:82]
+  joint_velocities: s[82:151]
+  control_cost: np.sum(np.square(a))
+  action_magnitude: np.sum(np.square(a))
+provenance:
+  authored_from:
+  - path: humanoid_bench/__init__.py
+    lines: 1-19
+    what: 'the gym id registration: f''{robot}-{task}-v0'' over ROBOTS x TASKS'
+  - path: humanoid_bench/env.py
+    lines: 66-100
+    what: ROBOTS and TASKS, and the assert robot.dof + task.dof == len(qpos)
+  - path: humanoid_bench/robots.py
+    lines: 1-86
+    what: 'H1 / H1Hand / H1Strong: dof, and the site accessors the rewards read'
+  - path: humanoid_bench/tasks.py
+    lines: 1-72
+    what: 'Task: frame_skip 10, get_obs = concat(qpos, qvel), unnormalize_action'
+  - path: humanoid_bench/envs/highbar.py
+    lines: 9-92
+    what: >-
+      HighBarBase: observation_space, get_reward, get_terminated, reset_model; and HighBarSimple /
+      HighBarHard, whose qpos0_robot keys are h1 and h1strong ONLY
+  - path: humanoid_bench/assets/tasks/highbar_hard.xml
+    lines: null
+    what: 'the bar: holding_bar at local (-0.19, 0, 2.8) on a body at (0.5, 0, 0)'
+  - path: README.md
+    lines: 56-72
+    what: >-
+      upstream's Main Benchmark Tasks list, which names h1strong-highbar_hard-v0 and no h1hand highbar,
+      with the comment 'Make hands stronger to be able to hang from the high bar'
+  rule: source and asset, not docstrings
+  measured:
+  - >-
+    Built with mujoco==3.1.6 against humanoid-bench cb11890 on 2026-08-28. Every shape, name, range
+    and mass below is read from the model, not from the paper. TWO PASSES, and which one a figure
+    came from matters: the tables were derived from MjModel.from_xml_path on the task's own
+    assets/envs XML (no gym.make -- humanoid_bench imports torch and jax at module scope), and the
+    env was then CONSTRUCTED and stepped for real, which is where the reward figures come from. No
+    policy has been trained, so no anchor and no fitness here is measured.
+  - >-
+    Robot: 69 hinge joints (21 body + 24 per Shadow Hand) and 61 actuators. The eight-joint gap is
+    tendon coupling, not a missing actuator: the middle and fingertip joints of the index, middle,
+    ring and little fingers share one `A_<finger>J0` actuator per finger per hand, ctrlrange [0, 3.1415].
+    Robot mass 53.24 kg.
+  - >-
+    THE ID IS NOT h1hand. `humanoid_bench/__init__.py` registers the full cross product, so `h1hand-highbar_simple-v0`
+    and `h1hand-highbar_hard-v0` both register and NEITHER can be constructed: `assets/envs/` contains
+    only `h1_pos_highbar_simple.xml` and `h1strong_pos_highbar_hard.xml`. `HighBarSimple.qpos0_robot`
+    has a key for `h1` alone and `HighBarHard.qpos0_robot` for `h1strong` alone.
+  - >-
+    `h1strong` IS the Shadow-Hands robot: `h1strong_pos.xml` and `h1hand_pos.xml` are both 545 lines
+    with 93 position definitions and identical geometry, differing only in the FINGER servos' gains
+    and force limits (kp=50 / forcerange -50 50, against kp 0.4-8 and forces 2-5 N). `robots.py` gives
+    both dof = 76.
+  - >-
+    nq 76, nv 75, nu 61; obs_dim 151 = nq + nv, matching HighBarBase.observation_space's robot.dof*2
+    - 1.
+  - >-
+    Geometry at the keyframe: holding_bar at (0.31, 0, 2.80); pelvis at (0.27, 0, 1.62), head site
+    at 2.32 m -- 0.32 m above the 2.0 m terminal -- and the two hand sites at (0.269, +-0.234, 2.70),
+    just under the bar. Nothing welds the hands to it; the grip is the fingers and friction. The pelvis
+    hangs 1.181 m below the bar, which is the radius the rotation metric sweeps.
+  verified_by: BIRD authors
+  date: '2026-08-28'

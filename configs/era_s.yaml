@@ -1,0 +1,18 @@
+# ERA-S: the supervised recipe of "A Bird's-Eye View of Iterative Reward Design"
+# (Section 4.3).
+#
+# ERA-U (configs/era_u.yaml) with one key flipped: candidates are ranked by the
+# environment's own signal (evaluate.fitness.source: native) instead of the VLM judge's
+# completion rating. `native` resolves per task (bird/native_signal.py): the benchmark's
+# success flag where it has one (Meta-World), otherwise the return of its reference reward
+# (Gym MuJoCo, Assistax, HumanoidBench). No further search was done for ERA-S.
+#
+#   uv run python3 bird.py --diff era_u era_s     # -> evaluate.fitness.source (and name)
+#
+# The paper's matched protocol: scripts/paper_cell.py.
+extends: era_u.yaml
+name: era_s
+
+evaluate:
+  fitness:
+    source: native

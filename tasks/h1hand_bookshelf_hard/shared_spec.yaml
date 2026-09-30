@@ -1,0 +1,2173 @@
+# h1hand_bookshelf_hard -- HumanoidBench `h1hand-bookshelf_hard-v0` on the Unitree H1 with two Shadow Hands.
+#
+# DERIVED from the h1hand_walk spec
+# (robot block spliced, 12 scene joint(s) and 21 tail dim(s) generated from the target model), after scripts/derive_humanoid_facts.py confirmed
+# h1hand/bookshelf_hard's own model carries the identical robot: the same 61 actuators
+# and the same 76+75 qpos/qvel robot block. The observation table below is
+# therefore the target model's fact, not a resemblance to another task's.
+#
+# Everything task-specific -- the prose, the scene, the reward reference, the
+# metric and the exploits -- was authored per task and read off upstream's
+# source; see `provenance.measured`.
+#
+# The adapter is `bird/envs/humanoid_hand.py`; read its module docstring first.
+schema_version: 1
+id: h1hand_bookshelf_hard
+env:
+  env_id: h1hand-bookshelf_hard-v0
+  library:
+    name: humanoid_bench
+    version_verified: git cb11890 (not on PyPI)
+    commit: cb1189039151c8aadaaa987b442da54383c87fab
+    stack:
+      mujoco: 3.1.6
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 1000
+  control_hz: 50
+  termination:
+    early_terminate: true
+    autoreset: false
+    partial_reset: null
+    prompt_states: 'Three ways to end early: the pelvis drops below 0.58 m (a fall); the CURRENT object
+      -- the one the reward is asking about -- falls below 0.5 m (dropping the workpiece); or all five
+      placements are done, which is the success terminal.'
+  reset:
+    kind: stochastic
+    mechanism: adapter_draws
+    entry:
+      path: bird/envs/humanoid_hand.py
+      lines: 3221-3233
+      symbol: H1HandBookshelfHard._task_reset
+    rng_note: Base `uniform(size=160)` at 942, then `permutation` of the five spots (2974), then `choice`
+      of five ids without replacement (2975-2976) -- upstream's order (bookshelf.py:213, 218). The ghost
+      markers' positions and tints are a function of those two draws (`_paint_targets`, 2945-2963), not
+      draws of their own.
+    draws:
+    - role: agent_pose
+      quantity: robot_keyframe_noise
+      fields:
+      - s.pelvis_pos
+      - s.pelvis_quat
+      - s.joint_angles
+      distribution:
+        family: uniform
+        text: 'keyframe `qpos0` + U(-0.01, 0.01) added independently to every one of the 160 position
+          coordinates (metres on the pelvis position, radians on the 69 hinges; `_randomness = 0.01`,
+          line 968, upstream''s `DEFAULT_RANDOMNESS`). The four pelvis quaternion components are perturbed
+          componentwise and then renormalised by `set_state`''s `mj_forward`, so all four move. No literal
+          box: keyframe plus noise.'
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: 962-963
+      basis: read
+      note: 'Read against upstream HumanoidBench @ cb11890 (not vendored in refs/, not installed; read
+        from a checkout of that commit) -- humanoid_bench is neither installed nor vendored, so nothing
+        in this block is MEASURED: `humanoid_bench/env.py:64` `DEFAULT_RANDOMNESS = 0.01`; `env.py:229-242`
+        `HumanoidEnv.reset_model` is `mj_resetDataKeyframe`, then `uniform(-r, r, size=nq)` added to qpos
+        with qvel untouched, then the task''s own `reset_model`.'
+    - role: object_pose
+      quantity: shelf_objects_noise
+      fields:
+      - s.book_a_pose
+      - s.book_b_pose
+      - s.book_c_pose
+      - s.book_d_pose
+      - s.book_e_pose
+      - s.trophy_pose
+      - s.book_flat_pose
+      - s.soda_can_pose
+      - s.book_thick_pose
+      - s.chalk_pose
+      - s.snow_globe_pose
+      - s.headphone_pose
+      distribution:
+        family: uniform
+        text: the SAME base draw as the robot's -- `rng.uniform(-0.01, 0.01, size=n_q)` covers all qpos
+          coordinates, scene joints included -- applied to all twelve loose objects' seven pose coordinates
+          each, about their keyframe shelf positions, chosen or not. Free-body quaternions are perturbed
+          componentwise and renormalised by `mj_forward`, so all four components move.
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: 962-963
+      basis: read
+      note: 'Ten of the twelve object quaternions are written `0 0 0 0` in the keyframe text of `h1hand_pos_bookshelf_hard.xml`
+        (all but `book_flat` and `headphone`). MuJoCo''s compiler normalises them to the identity in `model.key_qpos`
+        (checked under mujoco 3.1.6, the adapter''s pin, in a throwaway venv: the compiled keyframe reads
+        1 0 0 0), so `_init_qpos` (line 816) holds the identity and the jitter is about it -- not a random
+        direction on the 3-sphere, which is what adding noise to a literal zero quaternion and normalising
+        would give.'
+    - role: scene_selection
+      quantity: chosen_objects
+      fields:
+      - s.task_objects
+      distribution:
+        family: other
+        text: '5 of the 12 signed body indices [-24, -13] drawn WITHOUT replacement, kept in draw order
+          (an ordered 5-subset: 12!/7! = 95,040 equiprobable outcomes); index i names the free body whose
+          qpos block starts at 76 + 7(i + 24). Upstream: `np.random.choice(np.arange(-24, -12), 5, replace=False)`,
+          bookshelf.py:218-220. Carried in the tail; the counter walks it.'
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: 3226-3227
+      basis: read
+    - role: goal
+      quantity: placement_order
+      fields:
+      - s.placement_goals
+      distribution:
+        family: permutation
+        text: 'the five fixed spots `_BOOKSHELF_GOALS` (2860-2861) in a uniformly random order (120 equiprobable
+          orders); slot k is the k-th chosen object''s target, so every one of the 15 tail entries moves
+          while the SET of spots never does. Upstream: `np.random.permutation(self.placement_goals)`,
+          bookshelf.py:213.'
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: '3225'
+      basis: read
+    constants:
+    - role: agent_velocity
+      quantity: robot_velocities
+      value: 0 in every velocity coordinate -- `qvel` is the keyframe's, copied unperturbed (line 943),
+        and the single `<key>` in `assets/envs/h1hand_pos_bookshelf_hard.xml` declares `qpos` only, so
+        MuJoCo's `key_qvel` is zeros (read in the cb11890 clone).
+      fields:
+      - s.pelvis_linvel
+      - s.pelvis_angvel
+      - s.joint_velocities
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: '964'
+      basis: read
+    - role: object_velocity
+      quantity: shelf_object_velocities
+      value: '0 -- all twelve objects'' six velocities each start at rest: the keyframe carries no qvel
+        and the hook writes none.'
+      fields:
+      - s.book_a_vel
+      - s.book_b_vel
+      - s.book_c_vel
+      - s.book_d_vel
+      - s.book_e_vel
+      - s.trophy_vel
+      - s.book_flat_vel
+      - s.soda_can_vel
+      - s.book_thick_vel
+      - s.chalk_vel
+      - s.snow_globe_vel
+      - s.headphone_vel
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: '964'
+      basis: read
+    - role: goal
+      quantity: bookshelf_stage
+      value: 0 -- the placement counter starts at the first chosen object. Carried in the tail.
+      fields:
+      - bookshelf_stage
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: '3229'
+      basis: read
+    - role: goal
+      quantity: spot_coordinates
+      value: fixed -- the five spots are (0.75, -0.25, 1.55), (0.8, 0.05, 0.95), (0.8, -0.25, 0.95), (0.85,
+        0.05, 0.35), (0.85, -0.25, 0.35) m every episode; only their assignment to the chosen objects
+        is drawn (the `placement_order` draw).
+      source:
+        path: bird/envs/humanoid_hand.py
+        lines: 3100-3101
+      basis: read
+    stochastic_transitions: null
+    upstream_divergence: 'DISTRIBUTION differs, not only the RNG: `HumanoidEnv.__init__` (`env.py:206-209`)
+      forces `randomness = 0` when the task is BookshelfHard (or BookshelfSimple/Kitchen/Cube), so upstream
+      applies NO keyframe perturbation here -- robot and all twelve objects start at the keyframe exactly.
+      This adapter''s class-level `_randomness = 0.01` (968, overridden only by HighBar) applies the +/-0.01
+      jitter anyway, to all 160 qpos entries, so BIRD''s initial distribution is wider than upstream''s.
+      Separately, upstream draws the spot permutation and the object choice from the GLOBAL `np.random`
+      (`BookshelfBase.reset_model`, bookshelf.py:202-221); the adapter draws from the episode Generator.
+      Dressing (ghost-marker positions and order tints) is replayed from the draw on both sides.'
+    prompt_states: Each episode picks FIVE of them at random and assigns each a target spot from a shuffled
+      list of five shelf positions
+    prompt_field: l_task
+    prompt_omits:
+    - agent_pose
+    - object_pose
+  spaces:
+    obs_dim: 328
+    action_dim: 61
+    action_low: -1.0
+    action_high: 1.0
+    action_semantics: Sixty-one position targets, each in [-1, 1]. -1 and +1 are the two ends of that
+      actuator's OWN range, so the same number means a different angle at different joints. These are
+      targets for a position servo, not torques.
+    action_fields:
+    - name: left_hip_yaw
+      low: -1.0
+      high: 1.0
+      description: 'left hip yaw -- the whole leg rotated about the vertical axis. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.43, 0.43] rad'
+    - name: left_hip_roll
+      low: -1.0
+      high: 1.0
+      description: 'left hip roll -- the leg swung out sideways from the body. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator''s own range, [-0.43, 0.43] rad'
+    - name: left_hip_pitch
+      low: -1.0
+      high: 1.0
+      description: 'left hip pitch -- the leg swung forwards or backwards. A POSITION TARGET: -1 and +1
+        are the two ends of this actuator''s own range, [-3.14, 2.53] rad'
+    - name: left_knee
+      low: -1.0
+      high: 1.0
+      description: 'left knee flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-0.26, 2.05] rad'
+    - name: left_ankle
+      low: -1.0
+      high: 1.0
+      description: 'left ankle pitch -- the foot tipped toes-up or toes-down. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator''s own range, [-0.87, 0.52] rad'
+    - name: right_hip_yaw
+      low: -1.0
+      high: 1.0
+      description: 'right hip yaw -- the whole leg rotated about the vertical axis. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.43, 0.43] rad'
+    - name: right_hip_roll
+      low: -1.0
+      high: 1.0
+      description: 'right hip roll -- the leg swung out sideways from the body. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-0.43, 0.43] rad'
+    - name: right_hip_pitch
+      low: -1.0
+      high: 1.0
+      description: 'right hip pitch -- the leg swung forwards or backwards. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator''s own range, [-3.14, 2.53] rad'
+    - name: right_knee
+      low: -1.0
+      high: 1.0
+      description: 'right knee flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-0.26, 2.05] rad'
+    - name: right_ankle
+      low: -1.0
+      high: 1.0
+      description: 'right ankle pitch -- the foot tipped toes-up or toes-down. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator''s own range, [-0.87, 0.52] rad'
+    - name: torso
+      low: -1.0
+      high: 1.0
+      description: 'torso yaw -- the upper body twisted about the vertical axis. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-2.35, 2.35] rad'
+    - name: left_shoulder_pitch
+      low: -1.0
+      high: 1.0
+      description: 'left shoulder pitch -- the arm raised forwards or backwards. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-2.87, 2.87] rad'
+    - name: left_shoulder_roll
+      low: -1.0
+      high: 1.0
+      description: 'left shoulder roll -- the arm raised out sideways. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator''s own range, [-0.34, 3.11] rad'
+    - name: left_shoulder_yaw
+      low: -1.0
+      high: 1.0
+      description: 'left shoulder yaw -- the upper arm rotated about its own axis. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-1.3, 4.45] rad'
+    - name: left_elbow
+      low: -1.0
+      high: 1.0
+      description: 'left elbow flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-1.25, 2.61] rad'
+    - name: left_wrist_yaw
+      low: -1.0
+      high: 1.0
+      description: 'left wrist yaw -- the hand rotated about the forearm axis. A POSITION TARGET: -1 and
+        +1 are the two ends of this actuator''s own range, [-0.15, 1.57] rad'
+    - name: right_shoulder_pitch
+      low: -1.0
+      high: 1.0
+      description: 'right shoulder pitch -- the arm raised forwards or backwards. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-2.87, 2.87] rad'
+    - name: right_shoulder_roll
+      low: -1.0
+      high: 1.0
+      description: 'right shoulder roll -- the arm raised out sideways. A POSITION TARGET: -1 and +1 are
+        the two ends of this actuator''s own range, [-3.11, 0.34] rad'
+    - name: right_shoulder_yaw
+      low: -1.0
+      high: 1.0
+      description: 'right shoulder yaw -- the upper arm rotated about its own axis. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-4.45, 1.3] rad'
+    - name: right_elbow
+      low: -1.0
+      high: 1.0
+      description: 'right elbow flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-1.25, 2.61] rad'
+    - name: right_wrist_yaw
+      low: -1.0
+      high: 1.0
+      description: 'right wrist yaw -- the hand rotated about the forearm axis. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-0.15, 1.57] rad'
+    - name: lh_A_WRJ2
+      low: -1.0
+      high: 1.0
+      description: 'left wrist abduction -- the hand tilted sideways at the wrist. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.523599, 0.174533] rad'
+    - name: lh_A_WRJ1
+      low: -1.0
+      high: 1.0
+      description: 'left wrist flexion -- the hand bent up or down at the wrist. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-0.698132, 0.488692] rad'
+    - name: lh_A_THJ5
+      low: -1.0
+      high: 1.0
+      description: 'left thumb base rotation. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-1.0472, 1.0472] rad'
+    - name: lh_A_THJ4
+      low: -1.0
+      high: 1.0
+      description: 'left thumb abduction -- the thumb swung away from the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [0, 1.22173] rad'
+    - name: lh_A_THJ3
+      low: -1.0
+      high: 1.0
+      description: 'left thumb twist about its own axis. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [-0.20944, 0.20944] rad'
+    - name: lh_A_THJ2
+      low: -1.0
+      high: 1.0
+      description: 'left thumb knuckle flexion. A POSITION TARGET: -1 and +1 are the two ends of this
+        actuator''s own range, [-0.698132, 0.698132] rad'
+    - name: lh_A_THJ1
+      low: -1.0
+      high: 1.0
+      description: 'left thumb tip flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-0.261799, 1.5708] rad'
+    - name: lh_A_FFJ4
+      low: -1.0
+      high: 1.0
+      description: 'left index finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: lh_A_FFJ3
+      low: -1.0
+      high: 1.0
+      description: 'left index finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: lh_A_FFJ0
+      low: -1.0
+      high: 1.0
+      description: 'left index finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: lh_A_MFJ4
+      low: -1.0
+      high: 1.0
+      description: 'left middle finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: lh_A_MFJ3
+      low: -1.0
+      high: 1.0
+      description: 'left middle finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: lh_A_MFJ0
+      low: -1.0
+      high: 1.0
+      description: 'left middle finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: lh_A_RFJ4
+      low: -1.0
+      high: 1.0
+      description: 'left ring finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: lh_A_RFJ3
+      low: -1.0
+      high: 1.0
+      description: 'left ring finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: lh_A_RFJ0
+      low: -1.0
+      high: 1.0
+      description: 'left ring finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: lh_A_LFJ5
+      low: -1.0
+      high: 1.0
+      description: 'left little-finger metacarpal -- the palm arch that folds the little finger across
+        the palm. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s own range, [0, 0.785398]
+        rad'
+    - name: lh_A_LFJ4
+      low: -1.0
+      high: 1.0
+      description: 'left little finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: lh_A_LFJ3
+      low: -1.0
+      high: 1.0
+      description: 'left little finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: lh_A_LFJ0
+      low: -1.0
+      high: 1.0
+      description: 'left little finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: rh_A_WRJ2
+      low: -1.0
+      high: 1.0
+      description: 'right wrist abduction -- the hand tilted sideways at the wrist. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.523599, 0.174533] rad'
+    - name: rh_A_WRJ1
+      low: -1.0
+      high: 1.0
+      description: 'right wrist flexion -- the hand bent up or down at the wrist. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [-0.698132, 0.488692] rad'
+    - name: rh_A_THJ5
+      low: -1.0
+      high: 1.0
+      description: 'right thumb base rotation. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-1.0472, 1.0472] rad'
+    - name: rh_A_THJ4
+      low: -1.0
+      high: 1.0
+      description: 'right thumb abduction -- the thumb swung away from the palm. A POSITION TARGET: -1
+        and +1 are the two ends of this actuator''s own range, [0, 1.22173] rad'
+    - name: rh_A_THJ3
+      low: -1.0
+      high: 1.0
+      description: 'right thumb twist about its own axis. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [-0.20944, 0.20944] rad'
+    - name: rh_A_THJ2
+      low: -1.0
+      high: 1.0
+      description: 'right thumb knuckle flexion. A POSITION TARGET: -1 and +1 are the two ends of this
+        actuator''s own range, [-0.698132, 0.698132] rad'
+    - name: rh_A_THJ1
+      low: -1.0
+      high: 1.0
+      description: 'right thumb tip flexion. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s
+        own range, [-0.261799, 1.5708] rad'
+    - name: rh_A_FFJ4
+      low: -1.0
+      high: 1.0
+      description: 'right index finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: rh_A_FFJ3
+      low: -1.0
+      high: 1.0
+      description: 'right index finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: rh_A_FFJ0
+      low: -1.0
+      high: 1.0
+      description: 'right index finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: rh_A_MFJ4
+      low: -1.0
+      high: 1.0
+      description: 'right middle finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: rh_A_MFJ3
+      low: -1.0
+      high: 1.0
+      description: 'right middle finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: rh_A_MFJ0
+      low: -1.0
+      high: 1.0
+      description: 'right middle finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: rh_A_RFJ4
+      low: -1.0
+      high: 1.0
+      description: 'right ring finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: rh_A_RFJ3
+      low: -1.0
+      high: 1.0
+      description: 'right ring finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: rh_A_RFJ0
+      low: -1.0
+      high: 1.0
+      description: 'right ring finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+    - name: rh_A_LFJ5
+      low: -1.0
+      high: 1.0
+      description: 'right little-finger metacarpal -- the palm arch that folds the little finger across
+        the palm. A POSITION TARGET: -1 and +1 are the two ends of this actuator''s own range, [0, 0.785398]
+        rad'
+    - name: rh_A_LFJ4
+      low: -1.0
+      high: 1.0
+      description: 'right little finger abduction -- spread away from the middle finger. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.349066, 0.349066] rad'
+    - name: rh_A_LFJ3
+      low: -1.0
+      high: 1.0
+      description: 'right little finger knuckle flexion, where the finger meets the palm. A POSITION TARGET:
+        -1 and +1 are the two ends of this actuator''s own range, [-0.261799, 1.5708] rad'
+    - name: rh_A_LFJ0
+      low: -1.0
+      high: 1.0
+      description: 'right little finger curl -- ONE tendon actuator driving the middle and fingertip joints
+        together; there is no separate command for the tip. A POSITION TARGET: -1 and +1 are the two ends
+        of this actuator''s own range, [0, 3.1415] rad'
+description:
+  natural_language: 'Tidy a bookshelf to order: five of the twelve loose objects on it, chosen afresh
+    each episode, must each be moved to its own drawn spot -- one at a time, in the given order.'
+  l_task: Rearrange objects on a bookshelf, one at a time, in a prescribed order. The shelf ahead holds
+    twelve loose objects (five upright books, a flat book, a thick book, a trophy, a soda can, a chalk
+    stick, a snow globe and a pair of headphones). Each episode picks FIVE of them at random and assigns
+    each a target spot from a shuffled list of five shelf positions; the current object and its target
+    are the task's state, and only the current one counts -- moving a later object early earns nothing
+    until its turn. Placing the current object within 0.15 m of its spot advances to the next. Placing
+    all five ends the episode as a success; dropping the current object below 0.5 m, or collapsing, ends
+    it as a failure. Up to 1000 control steps at 50 Hz.
+  env_prose: 'The robot is a full-size Unitree H1: a pelvis, a torso, two legs and two arms, with a five-fingered
+    Shadow Hand on each wrist. It has sixty-nine hinge joints -- five in each leg (hip yaw, hip roll,
+    hip pitch, knee, ankle), one that twists the torso, five in each arm (shoulder pitch, shoulder roll,
+    shoulder yaw, elbow, wrist yaw) and twenty-four in each hand -- driven by sixty-one actuators. The
+    count differs because four joints per hand are not commanded separately: the middle and fingertip
+    joints of the index, middle, ring and little fingers share one tendon actuator each, so a single command
+    curls both. Every actuator is a POSITION servo -- the control signal names an angle for that joint
+    to move towards, it does not apply a torque directly, and the same numeric command means a different
+    angle at different joints because -1 and +1 are the two ends of each actuator''s own range. The pelvis
+    is unattached to anything, so the robot is free to translate in all three directions and to rotate
+    arbitrarily; it can and does fall over. The robot weighs about 53 kg. The ground is flat, infinite
+    and empty -- no obstacle, no target, no scenery. The episode ends early only if the pelvis drops below
+    0.2 m.'
+  scene: 'Flat ground and a two-tier bookshelf at x = 0.95: an upper shelf at 1.25 m holding five upright
+    books, a flat book and a soda can, and a lower shelf at 0.65 m holding a trophy, a thick book, chalk
+    and a snow globe, with headphones draped at 1.58 m. All twelve are free bodies. Five translucent colour-coded
+    ghosts mark the chosen objects'' target spots, tinted from pink to dark red in placement order.'
+  success_criterion_prose: null
+  full_source:
+    path: humanoid_bench/envs/basic_locomotion_envs.py
+    lines: 13-254
+state_surface:
+  fields:
+  - name: s.pelvis_pos
+    shape: (3,)
+    units: m
+    slice: 0:3
+    description: World position of the pelvis (the free root body).
+  - name: s.pelvis_quat
+    shape: (4,)
+    units: null
+    slice: '3:7'
+    description: Pelvis orientation as a unit quaternion in (w, x, y, z) order.
+  - name: s.joint_angles
+    shape: (69,)
+    units: rad
+    slice: 7:76
+    description: 'All sixty-nine hinge angles: twenty-one body joints then twenty-four in each Shadow
+      Hand. Individual names and ranges are in flat_fields.'
+  - name: s.book_a_pose
+    shape: (7,)
+    units: mixed
+    slice: 76:83
+    description: 'Free-body pose of the book_a: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.book_b_pose
+    shape: (7,)
+    units: mixed
+    slice: 83:90
+    description: 'Free-body pose of the book_b: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.book_c_pose
+    shape: (7,)
+    units: mixed
+    slice: 90:97
+    description: 'Free-body pose of the book_c: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.book_d_pose
+    shape: (7,)
+    units: mixed
+    slice: 97:104
+    description: 'Free-body pose of the book_d: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.book_e_pose
+    shape: (7,)
+    units: mixed
+    slice: 104:111
+    description: 'Free-body pose of the book_e: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.trophy_pose
+    shape: (7,)
+    units: mixed
+    slice: 111:118
+    description: 'Free-body pose of the trophy: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.book_flat_pose
+    shape: (7,)
+    units: mixed
+    slice: 118:125
+    description: 'Free-body pose of the book_flat: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.soda_can_pose
+    shape: (7,)
+    units: mixed
+    slice: 125:132
+    description: 'Free-body pose of the soda_can: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.book_thick_pose
+    shape: (7,)
+    units: mixed
+    slice: 132:139
+    description: 'Free-body pose of the book_thick: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.chalk_pose
+    shape: (7,)
+    units: mixed
+    slice: 139:146
+    description: 'Free-body pose of the chalk: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.snow_globe_pose
+    shape: (7,)
+    units: mixed
+    slice: 146:153
+    description: 'Free-body pose of the snow_globe: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.headphone_pose
+    shape: (7,)
+    units: mixed
+    slice: 153:160
+    description: 'Free-body pose of the headphone: three world positions then a (w, x, y, z) quaternion.'
+  - name: s.pelvis_linvel
+    shape: (3,)
+    units: m/s
+    slice: 160:163
+    description: Linear velocity of the pelvis in world axes.
+  - name: s.pelvis_angvel
+    shape: (3,)
+    units: rad/s
+    slice: 163:166
+    description: Angular velocity of the pelvis. NOTE three numbers where the orientation above is four
+      -- that is why the state has 160 positions and 147 velocities.
+  - name: s.joint_velocities
+    shape: (69,)
+    units: rad/s
+    slice: 166:235
+    description: The sixty-nine hinge velocities, in the same order as the angles.
+  - name: s.book_a_vel
+    shape: (6,)
+    units: mixed
+    slice: 235:241
+    description: Linear then angular velocity of the book_a.
+  - name: s.book_b_vel
+    shape: (6,)
+    units: mixed
+    slice: 241:247
+    description: Linear then angular velocity of the book_b.
+  - name: s.book_c_vel
+    shape: (6,)
+    units: mixed
+    slice: 247:253
+    description: Linear then angular velocity of the book_c.
+  - name: s.book_d_vel
+    shape: (6,)
+    units: mixed
+    slice: 253:259
+    description: Linear then angular velocity of the book_d.
+  - name: s.book_e_vel
+    shape: (6,)
+    units: mixed
+    slice: 259:265
+    description: Linear then angular velocity of the book_e.
+  - name: s.trophy_vel
+    shape: (6,)
+    units: mixed
+    slice: 265:271
+    description: Linear then angular velocity of the trophy.
+  - name: s.book_flat_vel
+    shape: (6,)
+    units: mixed
+    slice: 271:277
+    description: Linear then angular velocity of the book_flat.
+  - name: s.soda_can_vel
+    shape: (6,)
+    units: mixed
+    slice: 277:283
+    description: Linear then angular velocity of the soda_can.
+  - name: s.book_thick_vel
+    shape: (6,)
+    units: mixed
+    slice: 283:289
+    description: Linear then angular velocity of the book_thick.
+  - name: s.chalk_vel
+    shape: (6,)
+    units: mixed
+    slice: 289:295
+    description: Linear then angular velocity of the chalk.
+  - name: s.snow_globe_vel
+    shape: (6,)
+    units: mixed
+    slice: 295:301
+    description: Linear then angular velocity of the snow_globe.
+  - name: s.headphone_vel
+    shape: (6,)
+    units: mixed
+    slice: 301:307
+    description: Linear then angular velocity of the headphone.
+  - name: s.bookshelf_stage
+    shape: (1,)
+    units: null
+    slice: 307:308
+    description: 'The reward''s own placement counter, 0 at reset through 5 at total success (which terminates).
+      NOT simulator state: it lives on the task object, selects which object and goal every reward term
+      measures, and pays +100*index on each advance. Carried PRE-update (maze''s convention) so reference_reward
+      reproduces the bonuses at the states where upstream pays them.'
+  - name: s.task_objects
+    shape: (5,)
+    units: null
+    slice: 308:313
+    description: 'The five objects this episode asks to be moved, in placement order, as SIGNED BODY INDICES
+      (-24..-13, upstream''s own encoding: -24 is book_a through -13 the headphones; the object with id
+      i has its free-joint block at qpos[76 + 7*(i+24)] onward). Drawn without replacement at reset, constant
+      thereafter. Task state carried in the observation, not simulator state.'
+  - name: s.placement_goals
+    shape: (15,)
+    units: m
+    slice: 313:328
+    description: Where each of the five chosen objects must go, in placement order -- a shuffled assignment
+      of five fixed shelf spots, drawn at reset and constant thereafter. Task state carried in the observation;
+      the translucent ghost markers in the scene stand at these positions.
+  helpers:
+  - name: pelvis_pos
+    signature: pelvis_pos(s)
+    description: = s[0:3], the robot's root position in metres
+    kind: inline_expression
+    expression: s[0:3]
+  - name: pelvis_height
+    signature: pelvis_height(s)
+    description: = s[2], about 0.98 when standing
+    kind: inline_expression
+    expression: s[2]
+  - name: uprightness
+    signature: uprightness(s)
+    description: '= 1 - 2*(s[4]**2 + s[5]**2), the world-z component of the pelvis''s own z axis: +1 upright,
+      0 horizontal, -1 upside-down'
+    kind: inline_expression
+    expression: 1 - 2*(s[4]**2 + s[5]**2)
+  - name: joint_angles
+    signature: joint_angles(s)
+    description: = s[7:76], all sixty-nine hinge angles
+    kind: inline_expression
+    expression: s[7:76]
+  - name: control_cost
+    signature: control_cost(a)
+    description: = np.sum(np.square(a)), a measure of commanded effort
+    kind: inline_expression
+    expression: np.sum(np.square(a))
+  - name: pelvis_linvel
+    signature: pelvis_linvel(s)
+    description: = s[160:163], the pelvis's linear velocity in m/s
+    kind: inline_expression
+    expression: s[160:163]
+  - name: forward_velocity
+    signature: forward_velocity(s)
+    description: = s[160], the pelvis's forward (+x) velocity in m/s
+    kind: inline_expression
+    expression: s[160]
+  - name: joint_velocities
+    signature: joint_velocities(s)
+    description: = s[166:235], the sixty-nine hinge velocities in rad/s
+    kind: inline_expression
+    expression: s[166:235]
+  - name: bookshelf_stage
+    signature: bookshelf_stage(s)
+    description: = s[307], the reward's placement counter (0 at reset, 5 at total success)
+    kind: inline_expression
+    expression: s[307]
+  - name: task_objects
+    signature: task_objects(s)
+    description: = s[308:313], the five chosen objects' body indices in placement order
+    kind: inline_expression
+    expression: s[308:313]
+  - name: placement_goals
+    signature: placement_goals(s)
+    description: = s[313:328].reshape(5, 3), the five target positions in placement order
+    kind: inline_expression
+    expression: s[313:328].reshape(5, 3)
+  helpers_note: 'Every entry is an INLINE EXPRESSION, not a method: nothing of that name exists on the
+    adapter. HumanoidBench precomputes no booleans for a reward to call -- its own rewards read MuJoCo
+    site positions and actuator forces directly, none of which are in the observation -- so these are
+    slices of `s` that save the model counting the indices by hand.'
+  flat_fields:
+  - index: 0
+    name: pelvis_x
+    description: pelvis (the robot's root body) position along world x, in metres
+  - index: 1
+    name: pelvis_y
+    description: pelvis (the robot's root body) position along world y, in metres
+  - index: 2
+    name: pelvis_z
+    description: pelvis (the robot's root body) position along world z, in metres
+  - index: 3
+    name: pelvis_quat_w
+    description: pelvis orientation quaternion, w component (w, x, y, z order; the identity rotation --
+      upright, facing +x -- is (1, 0, 0, 0))
+  - index: 4
+    name: pelvis_quat_x
+    description: pelvis orientation quaternion, x component (w, x, y, z order; the identity rotation --
+      upright, facing +x -- is (1, 0, 0, 0))
+  - index: 5
+    name: pelvis_quat_y
+    description: pelvis orientation quaternion, y component (w, x, y, z order; the identity rotation --
+      upright, facing +x -- is (1, 0, 0, 0))
+  - index: 6
+    name: pelvis_quat_z
+    description: pelvis orientation quaternion, z component (w, x, y, z order; the identity rotation --
+      upright, facing +x -- is (1, 0, 0, 0))
+  - index: 7
+    name: left_hip_yaw
+    description: left hip yaw -- the whole leg rotated about the vertical axis, radians, joint range [-0.43,
+      0.43] rad
+  - index: 8
+    name: left_hip_roll
+    description: left hip roll -- the leg swung out sideways from the body, radians, joint range [-0.43,
+      0.43] rad
+  - index: 9
+    name: left_hip_pitch
+    description: left hip pitch -- the leg swung forwards or backwards, radians, joint range [-3.14, 2.53]
+      rad
+  - index: 10
+    name: left_knee
+    description: left knee flexion, radians, joint range [-0.26, 2.05] rad
+  - index: 11
+    name: left_ankle
+    description: left ankle pitch -- the foot tipped toes-up or toes-down, radians, joint range [-0.87,
+      0.52] rad
+  - index: 12
+    name: right_hip_yaw
+    description: right hip yaw -- the whole leg rotated about the vertical axis, radians, joint range
+      [-0.43, 0.43] rad
+  - index: 13
+    name: right_hip_roll
+    description: right hip roll -- the leg swung out sideways from the body, radians, joint range [-0.43,
+      0.43] rad
+  - index: 14
+    name: right_hip_pitch
+    description: right hip pitch -- the leg swung forwards or backwards, radians, joint range [-3.14,
+      2.53] rad
+  - index: 15
+    name: right_knee
+    description: right knee flexion, radians, joint range [-0.26, 2.05] rad
+  - index: 16
+    name: right_ankle
+    description: right ankle pitch -- the foot tipped toes-up or toes-down, radians, joint range [-0.87,
+      0.52] rad
+  - index: 17
+    name: torso
+    description: torso yaw -- the upper body twisted about the vertical axis, radians, joint range [-2.35,
+      2.35] rad
+  - index: 18
+    name: left_shoulder_pitch
+    description: left shoulder pitch -- the arm raised forwards or backwards, radians, joint range [-2.87,
+      2.87] rad
+  - index: 19
+    name: left_shoulder_roll
+    description: left shoulder roll -- the arm raised out sideways, radians, joint range [-0.34, 3.11]
+      rad
+  - index: 20
+    name: left_shoulder_yaw
+    description: left shoulder yaw -- the upper arm rotated about its own axis, radians, joint range [-1.3,
+      4.45] rad
+  - index: 21
+    name: left_elbow
+    description: left elbow flexion, radians, joint range [-1.25, 2.61] rad
+  - index: 22
+    name: left_wrist_yaw
+    description: left wrist yaw -- the hand rotated about the forearm axis, radians, joint range [-0.15,
+      1.57] rad
+  - index: 23
+    name: lh_WRJ2
+    description: left wrist abduction -- the hand tilted sideways at the wrist, radians, joint range [-0.523599,
+      0.174533] rad
+  - index: 24
+    name: lh_WRJ1
+    description: left wrist flexion -- the hand bent up or down at the wrist, radians, joint range [-0.698132,
+      0.488692] rad
+  - index: 25
+    name: lh_FFJ4
+    description: left index finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 26
+    name: lh_FFJ3
+    description: left index finger knuckle flexion, where the finger meets the palm, radians, joint range
+      [-0.261799, 1.5708] rad
+  - index: 27
+    name: lh_FFJ2
+    description: left index finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 28
+    name: lh_FFJ1
+    description: 'left index finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 29
+    name: lh_MFJ4
+    description: left middle finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 30
+    name: lh_MFJ3
+    description: left middle finger knuckle flexion, where the finger meets the palm, radians, joint range
+      [-0.261799, 1.5708] rad
+  - index: 31
+    name: lh_MFJ2
+    description: left middle finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 32
+    name: lh_MFJ1
+    description: 'left middle finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 33
+    name: lh_RFJ4
+    description: left ring finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 34
+    name: lh_RFJ3
+    description: left ring finger knuckle flexion, where the finger meets the palm, radians, joint range
+      [-0.261799, 1.5708] rad
+  - index: 35
+    name: lh_RFJ2
+    description: left ring finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 36
+    name: lh_RFJ1
+    description: 'left ring finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 37
+    name: lh_LFJ5
+    description: left little-finger metacarpal -- the palm arch that folds the little finger across the
+      palm, radians, joint range [0, 0.785398] rad
+  - index: 38
+    name: lh_LFJ4
+    description: left little finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 39
+    name: lh_LFJ3
+    description: left little finger knuckle flexion, where the finger meets the palm, radians, joint range
+      [-0.261799, 1.5708] rad
+  - index: 40
+    name: lh_LFJ2
+    description: left little finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 41
+    name: lh_LFJ1
+    description: 'left little finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 42
+    name: lh_THJ5
+    description: left thumb base rotation, radians, joint range [-1.0472, 1.0472] rad
+  - index: 43
+    name: lh_THJ4
+    description: left thumb abduction -- the thumb swung away from the palm, radians, joint range [0,
+      1.22173] rad
+  - index: 44
+    name: lh_THJ3
+    description: left thumb twist about its own axis, radians, joint range [-0.20944, 0.20944] rad
+  - index: 45
+    name: lh_THJ2
+    description: left thumb knuckle flexion, radians, joint range [-0.698132, 0.698132] rad
+  - index: 46
+    name: lh_THJ1
+    description: left thumb tip flexion, radians, joint range [-0.261799, 1.5708] rad
+  - index: 47
+    name: right_shoulder_pitch
+    description: right shoulder pitch -- the arm raised forwards or backwards, radians, joint range [-2.87,
+      2.87] rad
+  - index: 48
+    name: right_shoulder_roll
+    description: right shoulder roll -- the arm raised out sideways, radians, joint range [-3.11, 0.34]
+      rad
+  - index: 49
+    name: right_shoulder_yaw
+    description: right shoulder yaw -- the upper arm rotated about its own axis, radians, joint range
+      [-4.45, 1.3] rad
+  - index: 50
+    name: right_elbow
+    description: right elbow flexion, radians, joint range [-1.25, 2.61] rad
+  - index: 51
+    name: right_wrist_yaw
+    description: right wrist yaw -- the hand rotated about the forearm axis, radians, joint range [-0.15,
+      1.57] rad
+  - index: 52
+    name: rh_WRJ2
+    description: right wrist abduction -- the hand tilted sideways at the wrist, radians, joint range
+      [-0.523599, 0.174533] rad
+  - index: 53
+    name: rh_WRJ1
+    description: right wrist flexion -- the hand bent up or down at the wrist, radians, joint range [-0.698132,
+      0.488692] rad
+  - index: 54
+    name: rh_FFJ4
+    description: right index finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 55
+    name: rh_FFJ3
+    description: right index finger knuckle flexion, where the finger meets the palm, radians, joint range
+      [-0.261799, 1.5708] rad
+  - index: 56
+    name: rh_FFJ2
+    description: right index finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 57
+    name: rh_FFJ1
+    description: 'right index finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 58
+    name: rh_MFJ4
+    description: right middle finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 59
+    name: rh_MFJ3
+    description: right middle finger knuckle flexion, where the finger meets the palm, radians, joint
+      range [-0.261799, 1.5708] rad
+  - index: 60
+    name: rh_MFJ2
+    description: right middle finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 61
+    name: rh_MFJ1
+    description: 'right middle finger fingertip-joint flexion. NOT independently commanded: it shares
+      one tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 62
+    name: rh_RFJ4
+    description: right ring finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 63
+    name: rh_RFJ3
+    description: right ring finger knuckle flexion, where the finger meets the palm, radians, joint range
+      [-0.261799, 1.5708] rad
+  - index: 64
+    name: rh_RFJ2
+    description: right ring finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 65
+    name: rh_RFJ1
+    description: 'right ring finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 66
+    name: rh_LFJ5
+    description: right little-finger metacarpal -- the palm arch that folds the little finger across the
+      palm, radians, joint range [0, 0.785398] rad
+  - index: 67
+    name: rh_LFJ4
+    description: right little finger abduction -- spread away from the middle finger, radians, joint range
+      [-0.349066, 0.349066] rad
+  - index: 68
+    name: rh_LFJ3
+    description: right little finger knuckle flexion, where the finger meets the palm, radians, joint
+      range [-0.261799, 1.5708] rad
+  - index: 69
+    name: rh_LFJ2
+    description: right little finger middle-joint flexion, radians, joint range [0, 1.5708] rad
+  - index: 70
+    name: rh_LFJ1
+    description: 'right little finger fingertip-joint flexion. NOT independently commanded: it shares
+      one tendon actuator with the middle joint, radians, joint range [0, 1.5708] rad'
+  - index: 71
+    name: rh_THJ5
+    description: right thumb base rotation, radians, joint range [-1.0472, 1.0472] rad
+  - index: 72
+    name: rh_THJ4
+    description: right thumb abduction -- the thumb swung away from the palm, radians, joint range [0,
+      1.22173] rad
+  - index: 73
+    name: rh_THJ3
+    description: right thumb twist about its own axis, radians, joint range [-0.20944, 0.20944] rad
+  - index: 74
+    name: rh_THJ2
+    description: right thumb knuckle flexion, radians, joint range [-0.698132, 0.698132] rad
+  - index: 75
+    name: rh_THJ1
+    description: right thumb tip flexion, radians, joint range [-0.261799, 1.5708] rad
+  - index: 76
+    name: book_a_x
+    description: book_a position along world x, in metres
+  - index: 77
+    name: book_a_y
+    description: book_a position along world y, in metres
+  - index: 78
+    name: book_a_z
+    description: book_a position along world z, in metres
+  - index: 79
+    name: book_a_quat_w
+    description: book_a orientation quaternion, w component (w, x, y, z order)
+  - index: 80
+    name: book_a_quat_x
+    description: book_a orientation quaternion, x component (w, x, y, z order)
+  - index: 81
+    name: book_a_quat_y
+    description: book_a orientation quaternion, y component (w, x, y, z order)
+  - index: 82
+    name: book_a_quat_z
+    description: book_a orientation quaternion, z component (w, x, y, z order)
+  - index: 83
+    name: book_b_x
+    description: book_b position along world x, in metres
+  - index: 84
+    name: book_b_y
+    description: book_b position along world y, in metres
+  - index: 85
+    name: book_b_z
+    description: book_b position along world z, in metres
+  - index: 86
+    name: book_b_quat_w
+    description: book_b orientation quaternion, w component (w, x, y, z order)
+  - index: 87
+    name: book_b_quat_x
+    description: book_b orientation quaternion, x component (w, x, y, z order)
+  - index: 88
+    name: book_b_quat_y
+    description: book_b orientation quaternion, y component (w, x, y, z order)
+  - index: 89
+    name: book_b_quat_z
+    description: book_b orientation quaternion, z component (w, x, y, z order)
+  - index: 90
+    name: book_c_x
+    description: book_c position along world x, in metres
+  - index: 91
+    name: book_c_y
+    description: book_c position along world y, in metres
+  - index: 92
+    name: book_c_z
+    description: book_c position along world z, in metres
+  - index: 93
+    name: book_c_quat_w
+    description: book_c orientation quaternion, w component (w, x, y, z order)
+  - index: 94
+    name: book_c_quat_x
+    description: book_c orientation quaternion, x component (w, x, y, z order)
+  - index: 95
+    name: book_c_quat_y
+    description: book_c orientation quaternion, y component (w, x, y, z order)
+  - index: 96
+    name: book_c_quat_z
+    description: book_c orientation quaternion, z component (w, x, y, z order)
+  - index: 97
+    name: book_d_x
+    description: book_d position along world x, in metres
+  - index: 98
+    name: book_d_y
+    description: book_d position along world y, in metres
+  - index: 99
+    name: book_d_z
+    description: book_d position along world z, in metres
+  - index: 100
+    name: book_d_quat_w
+    description: book_d orientation quaternion, w component (w, x, y, z order)
+  - index: 101
+    name: book_d_quat_x
+    description: book_d orientation quaternion, x component (w, x, y, z order)
+  - index: 102
+    name: book_d_quat_y
+    description: book_d orientation quaternion, y component (w, x, y, z order)
+  - index: 103
+    name: book_d_quat_z
+    description: book_d orientation quaternion, z component (w, x, y, z order)
+  - index: 104
+    name: book_e_x
+    description: book_e position along world x, in metres
+  - index: 105
+    name: book_e_y
+    description: book_e position along world y, in metres
+  - index: 106
+    name: book_e_z
+    description: book_e position along world z, in metres
+  - index: 107
+    name: book_e_quat_w
+    description: book_e orientation quaternion, w component (w, x, y, z order)
+  - index: 108
+    name: book_e_quat_x
+    description: book_e orientation quaternion, x component (w, x, y, z order)
+  - index: 109
+    name: book_e_quat_y
+    description: book_e orientation quaternion, y component (w, x, y, z order)
+  - index: 110
+    name: book_e_quat_z
+    description: book_e orientation quaternion, z component (w, x, y, z order)
+  - index: 111
+    name: trophy_x
+    description: trophy position along world x, in metres
+  - index: 112
+    name: trophy_y
+    description: trophy position along world y, in metres
+  - index: 113
+    name: trophy_z
+    description: trophy position along world z, in metres
+  - index: 114
+    name: trophy_quat_w
+    description: trophy orientation quaternion, w component (w, x, y, z order)
+  - index: 115
+    name: trophy_quat_x
+    description: trophy orientation quaternion, x component (w, x, y, z order)
+  - index: 116
+    name: trophy_quat_y
+    description: trophy orientation quaternion, y component (w, x, y, z order)
+  - index: 117
+    name: trophy_quat_z
+    description: trophy orientation quaternion, z component (w, x, y, z order)
+  - index: 118
+    name: book_flat_x
+    description: book_flat position along world x, in metres
+  - index: 119
+    name: book_flat_y
+    description: book_flat position along world y, in metres
+  - index: 120
+    name: book_flat_z
+    description: book_flat position along world z, in metres
+  - index: 121
+    name: book_flat_quat_w
+    description: book_flat orientation quaternion, w component (w, x, y, z order)
+  - index: 122
+    name: book_flat_quat_x
+    description: book_flat orientation quaternion, x component (w, x, y, z order)
+  - index: 123
+    name: book_flat_quat_y
+    description: book_flat orientation quaternion, y component (w, x, y, z order)
+  - index: 124
+    name: book_flat_quat_z
+    description: book_flat orientation quaternion, z component (w, x, y, z order)
+  - index: 125
+    name: soda_can_x
+    description: soda_can position along world x, in metres
+  - index: 126
+    name: soda_can_y
+    description: soda_can position along world y, in metres
+  - index: 127
+    name: soda_can_z
+    description: soda_can position along world z, in metres
+  - index: 128
+    name: soda_can_quat_w
+    description: soda_can orientation quaternion, w component (w, x, y, z order)
+  - index: 129
+    name: soda_can_quat_x
+    description: soda_can orientation quaternion, x component (w, x, y, z order)
+  - index: 130
+    name: soda_can_quat_y
+    description: soda_can orientation quaternion, y component (w, x, y, z order)
+  - index: 131
+    name: soda_can_quat_z
+    description: soda_can orientation quaternion, z component (w, x, y, z order)
+  - index: 132
+    name: book_thick_x
+    description: book_thick position along world x, in metres
+  - index: 133
+    name: book_thick_y
+    description: book_thick position along world y, in metres
+  - index: 134
+    name: book_thick_z
+    description: book_thick position along world z, in metres
+  - index: 135
+    name: book_thick_quat_w
+    description: book_thick orientation quaternion, w component (w, x, y, z order)
+  - index: 136
+    name: book_thick_quat_x
+    description: book_thick orientation quaternion, x component (w, x, y, z order)
+  - index: 137
+    name: book_thick_quat_y
+    description: book_thick orientation quaternion, y component (w, x, y, z order)
+  - index: 138
+    name: book_thick_quat_z
+    description: book_thick orientation quaternion, z component (w, x, y, z order)
+  - index: 139
+    name: chalk_x
+    description: chalk position along world x, in metres
+  - index: 140
+    name: chalk_y
+    description: chalk position along world y, in metres
+  - index: 141
+    name: chalk_z
+    description: chalk position along world z, in metres
+  - index: 142
+    name: chalk_quat_w
+    description: chalk orientation quaternion, w component (w, x, y, z order)
+  - index: 143
+    name: chalk_quat_x
+    description: chalk orientation quaternion, x component (w, x, y, z order)
+  - index: 144
+    name: chalk_quat_y
+    description: chalk orientation quaternion, y component (w, x, y, z order)
+  - index: 145
+    name: chalk_quat_z
+    description: chalk orientation quaternion, z component (w, x, y, z order)
+  - index: 146
+    name: snow_globe_x
+    description: snow_globe position along world x, in metres
+  - index: 147
+    name: snow_globe_y
+    description: snow_globe position along world y, in metres
+  - index: 148
+    name: snow_globe_z
+    description: snow_globe position along world z, in metres
+  - index: 149
+    name: snow_globe_quat_w
+    description: snow_globe orientation quaternion, w component (w, x, y, z order)
+  - index: 150
+    name: snow_globe_quat_x
+    description: snow_globe orientation quaternion, x component (w, x, y, z order)
+  - index: 151
+    name: snow_globe_quat_y
+    description: snow_globe orientation quaternion, y component (w, x, y, z order)
+  - index: 152
+    name: snow_globe_quat_z
+    description: snow_globe orientation quaternion, z component (w, x, y, z order)
+  - index: 153
+    name: headphone_x
+    description: headphone position along world x, in metres
+  - index: 154
+    name: headphone_y
+    description: headphone position along world y, in metres
+  - index: 155
+    name: headphone_z
+    description: headphone position along world z, in metres
+  - index: 156
+    name: headphone_quat_w
+    description: headphone orientation quaternion, w component (w, x, y, z order)
+  - index: 157
+    name: headphone_quat_x
+    description: headphone orientation quaternion, x component (w, x, y, z order)
+  - index: 158
+    name: headphone_quat_y
+    description: headphone orientation quaternion, y component (w, x, y, z order)
+  - index: 159
+    name: headphone_quat_z
+    description: headphone orientation quaternion, z component (w, x, y, z order)
+  - index: 160
+    name: pelvis_vx
+    description: pelvis linear velocity along world x, in m/s
+  - index: 161
+    name: pelvis_vy
+    description: pelvis linear velocity along world y, in m/s
+  - index: 162
+    name: pelvis_vz
+    description: pelvis linear velocity along world z, in m/s
+  - index: 163
+    name: pelvis_wx
+    description: pelvis angular velocity about world x, in rad/s
+  - index: 164
+    name: pelvis_wy
+    description: pelvis angular velocity about world y, in rad/s
+  - index: 165
+    name: pelvis_wz
+    description: pelvis angular velocity about world z, in rad/s
+  - index: 166
+    name: left_hip_yaw_vel
+    description: left hip yaw -- the whole leg rotated about the vertical axis -- angular velocity, rad/s
+  - index: 167
+    name: left_hip_roll_vel
+    description: left hip roll -- the leg swung out sideways from the body -- angular velocity, rad/s
+  - index: 168
+    name: left_hip_pitch_vel
+    description: left hip pitch -- the leg swung forwards or backwards -- angular velocity, rad/s
+  - index: 169
+    name: left_knee_vel
+    description: left knee flexion -- angular velocity, rad/s
+  - index: 170
+    name: left_ankle_vel
+    description: left ankle pitch -- the foot tipped toes-up or toes-down -- angular velocity, rad/s
+  - index: 171
+    name: right_hip_yaw_vel
+    description: right hip yaw -- the whole leg rotated about the vertical axis -- angular velocity, rad/s
+  - index: 172
+    name: right_hip_roll_vel
+    description: right hip roll -- the leg swung out sideways from the body -- angular velocity, rad/s
+  - index: 173
+    name: right_hip_pitch_vel
+    description: right hip pitch -- the leg swung forwards or backwards -- angular velocity, rad/s
+  - index: 174
+    name: right_knee_vel
+    description: right knee flexion -- angular velocity, rad/s
+  - index: 175
+    name: right_ankle_vel
+    description: right ankle pitch -- the foot tipped toes-up or toes-down -- angular velocity, rad/s
+  - index: 176
+    name: torso_vel
+    description: torso yaw -- the upper body twisted about the vertical axis -- angular velocity, rad/s
+  - index: 177
+    name: left_shoulder_pitch_vel
+    description: left shoulder pitch -- the arm raised forwards or backwards -- angular velocity, rad/s
+  - index: 178
+    name: left_shoulder_roll_vel
+    description: left shoulder roll -- the arm raised out sideways -- angular velocity, rad/s
+  - index: 179
+    name: left_shoulder_yaw_vel
+    description: left shoulder yaw -- the upper arm rotated about its own axis -- angular velocity, rad/s
+  - index: 180
+    name: left_elbow_vel
+    description: left elbow flexion -- angular velocity, rad/s
+  - index: 181
+    name: left_wrist_yaw_vel
+    description: left wrist yaw -- the hand rotated about the forearm axis -- angular velocity, rad/s
+  - index: 182
+    name: lh_WRJ2_vel
+    description: left wrist abduction -- the hand tilted sideways at the wrist -- angular velocity, rad/s
+  - index: 183
+    name: lh_WRJ1_vel
+    description: left wrist flexion -- the hand bent up or down at the wrist -- angular velocity, rad/s
+  - index: 184
+    name: lh_FFJ4_vel
+    description: left index finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 185
+    name: lh_FFJ3_vel
+    description: left index finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 186
+    name: lh_FFJ2_vel
+    description: left index finger middle-joint flexion -- angular velocity, rad/s
+  - index: 187
+    name: lh_FFJ1_vel
+    description: 'left index finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 188
+    name: lh_MFJ4_vel
+    description: left middle finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 189
+    name: lh_MFJ3_vel
+    description: left middle finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 190
+    name: lh_MFJ2_vel
+    description: left middle finger middle-joint flexion -- angular velocity, rad/s
+  - index: 191
+    name: lh_MFJ1_vel
+    description: 'left middle finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 192
+    name: lh_RFJ4_vel
+    description: left ring finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 193
+    name: lh_RFJ3_vel
+    description: left ring finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 194
+    name: lh_RFJ2_vel
+    description: left ring finger middle-joint flexion -- angular velocity, rad/s
+  - index: 195
+    name: lh_RFJ1_vel
+    description: 'left ring finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 196
+    name: lh_LFJ5_vel
+    description: left little-finger metacarpal -- the palm arch that folds the little finger across the
+      palm -- angular velocity, rad/s
+  - index: 197
+    name: lh_LFJ4_vel
+    description: left little finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 198
+    name: lh_LFJ3_vel
+    description: left little finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 199
+    name: lh_LFJ2_vel
+    description: left little finger middle-joint flexion -- angular velocity, rad/s
+  - index: 200
+    name: lh_LFJ1_vel
+    description: 'left little finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 201
+    name: lh_THJ5_vel
+    description: left thumb base rotation -- angular velocity, rad/s
+  - index: 202
+    name: lh_THJ4_vel
+    description: left thumb abduction -- the thumb swung away from the palm -- angular velocity, rad/s
+  - index: 203
+    name: lh_THJ3_vel
+    description: left thumb twist about its own axis -- angular velocity, rad/s
+  - index: 204
+    name: lh_THJ2_vel
+    description: left thumb knuckle flexion -- angular velocity, rad/s
+  - index: 205
+    name: lh_THJ1_vel
+    description: left thumb tip flexion -- angular velocity, rad/s
+  - index: 206
+    name: right_shoulder_pitch_vel
+    description: right shoulder pitch -- the arm raised forwards or backwards -- angular velocity, rad/s
+  - index: 207
+    name: right_shoulder_roll_vel
+    description: right shoulder roll -- the arm raised out sideways -- angular velocity, rad/s
+  - index: 208
+    name: right_shoulder_yaw_vel
+    description: right shoulder yaw -- the upper arm rotated about its own axis -- angular velocity, rad/s
+  - index: 209
+    name: right_elbow_vel
+    description: right elbow flexion -- angular velocity, rad/s
+  - index: 210
+    name: right_wrist_yaw_vel
+    description: right wrist yaw -- the hand rotated about the forearm axis -- angular velocity, rad/s
+  - index: 211
+    name: rh_WRJ2_vel
+    description: right wrist abduction -- the hand tilted sideways at the wrist -- angular velocity, rad/s
+  - index: 212
+    name: rh_WRJ1_vel
+    description: right wrist flexion -- the hand bent up or down at the wrist -- angular velocity, rad/s
+  - index: 213
+    name: rh_FFJ4_vel
+    description: right index finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 214
+    name: rh_FFJ3_vel
+    description: right index finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 215
+    name: rh_FFJ2_vel
+    description: right index finger middle-joint flexion -- angular velocity, rad/s
+  - index: 216
+    name: rh_FFJ1_vel
+    description: 'right index finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 217
+    name: rh_MFJ4_vel
+    description: right middle finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 218
+    name: rh_MFJ3_vel
+    description: right middle finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 219
+    name: rh_MFJ2_vel
+    description: right middle finger middle-joint flexion -- angular velocity, rad/s
+  - index: 220
+    name: rh_MFJ1_vel
+    description: 'right middle finger fingertip-joint flexion. NOT independently commanded: it shares
+      one tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 221
+    name: rh_RFJ4_vel
+    description: right ring finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 222
+    name: rh_RFJ3_vel
+    description: right ring finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 223
+    name: rh_RFJ2_vel
+    description: right ring finger middle-joint flexion -- angular velocity, rad/s
+  - index: 224
+    name: rh_RFJ1_vel
+    description: 'right ring finger fingertip-joint flexion. NOT independently commanded: it shares one
+      tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 225
+    name: rh_LFJ5_vel
+    description: right little-finger metacarpal -- the palm arch that folds the little finger across the
+      palm -- angular velocity, rad/s
+  - index: 226
+    name: rh_LFJ4_vel
+    description: right little finger abduction -- spread away from the middle finger -- angular velocity,
+      rad/s
+  - index: 227
+    name: rh_LFJ3_vel
+    description: right little finger knuckle flexion, where the finger meets the palm -- angular velocity,
+      rad/s
+  - index: 228
+    name: rh_LFJ2_vel
+    description: right little finger middle-joint flexion -- angular velocity, rad/s
+  - index: 229
+    name: rh_LFJ1_vel
+    description: 'right little finger fingertip-joint flexion. NOT independently commanded: it shares
+      one tendon actuator with the middle joint -- angular velocity, rad/s'
+  - index: 230
+    name: rh_THJ5_vel
+    description: right thumb base rotation -- angular velocity, rad/s
+  - index: 231
+    name: rh_THJ4_vel
+    description: right thumb abduction -- the thumb swung away from the palm -- angular velocity, rad/s
+  - index: 232
+    name: rh_THJ3_vel
+    description: right thumb twist about its own axis -- angular velocity, rad/s
+  - index: 233
+    name: rh_THJ2_vel
+    description: right thumb knuckle flexion -- angular velocity, rad/s
+  - index: 234
+    name: rh_THJ1_vel
+    description: right thumb tip flexion -- angular velocity, rad/s
+  - index: 235
+    name: book_a_vx
+    description: book_a linear velocity along world x, in m/s
+  - index: 236
+    name: book_a_vy
+    description: book_a linear velocity along world y, in m/s
+  - index: 237
+    name: book_a_vz
+    description: book_a linear velocity along world z, in m/s
+  - index: 238
+    name: book_a_wx
+    description: book_a angular velocity about world x, in rad/s
+  - index: 239
+    name: book_a_wy
+    description: book_a angular velocity about world y, in rad/s
+  - index: 240
+    name: book_a_wz
+    description: book_a angular velocity about world z, in rad/s
+  - index: 241
+    name: book_b_vx
+    description: book_b linear velocity along world x, in m/s
+  - index: 242
+    name: book_b_vy
+    description: book_b linear velocity along world y, in m/s
+  - index: 243
+    name: book_b_vz
+    description: book_b linear velocity along world z, in m/s
+  - index: 244
+    name: book_b_wx
+    description: book_b angular velocity about world x, in rad/s
+  - index: 245
+    name: book_b_wy
+    description: book_b angular velocity about world y, in rad/s
+  - index: 246
+    name: book_b_wz
+    description: book_b angular velocity about world z, in rad/s
+  - index: 247
+    name: book_c_vx
+    description: book_c linear velocity along world x, in m/s
+  - index: 248
+    name: book_c_vy
+    description: book_c linear velocity along world y, in m/s
+  - index: 249
+    name: book_c_vz
+    description: book_c linear velocity along world z, in m/s
+  - index: 250
+    name: book_c_wx
+    description: book_c angular velocity about world x, in rad/s
+  - index: 251
+    name: book_c_wy
+    description: book_c angular velocity about world y, in rad/s
+  - index: 252
+    name: book_c_wz
+    description: book_c angular velocity about world z, in rad/s
+  - index: 253
+    name: book_d_vx
+    description: book_d linear velocity along world x, in m/s
+  - index: 254
+    name: book_d_vy
+    description: book_d linear velocity along world y, in m/s
+  - index: 255
+    name: book_d_vz
+    description: book_d linear velocity along world z, in m/s
+  - index: 256
+    name: book_d_wx
+    description: book_d angular velocity about world x, in rad/s
+  - index: 257
+    name: book_d_wy
+    description: book_d angular velocity about world y, in rad/s
+  - index: 258
+    name: book_d_wz
+    description: book_d angular velocity about world z, in rad/s
+  - index: 259
+    name: book_e_vx
+    description: book_e linear velocity along world x, in m/s
+  - index: 260
+    name: book_e_vy
+    description: book_e linear velocity along world y, in m/s
+  - index: 261
+    name: book_e_vz
+    description: book_e linear velocity along world z, in m/s
+  - index: 262
+    name: book_e_wx
+    description: book_e angular velocity about world x, in rad/s
+  - index: 263
+    name: book_e_wy
+    description: book_e angular velocity about world y, in rad/s
+  - index: 264
+    name: book_e_wz
+    description: book_e angular velocity about world z, in rad/s
+  - index: 265
+    name: trophy_vx
+    description: trophy linear velocity along world x, in m/s
+  - index: 266
+    name: trophy_vy
+    description: trophy linear velocity along world y, in m/s
+  - index: 267
+    name: trophy_vz
+    description: trophy linear velocity along world z, in m/s
+  - index: 268
+    name: trophy_wx
+    description: trophy angular velocity about world x, in rad/s
+  - index: 269
+    name: trophy_wy
+    description: trophy angular velocity about world y, in rad/s
+  - index: 270
+    name: trophy_wz
+    description: trophy angular velocity about world z, in rad/s
+  - index: 271
+    name: book_flat_vx
+    description: book_flat linear velocity along world x, in m/s
+  - index: 272
+    name: book_flat_vy
+    description: book_flat linear velocity along world y, in m/s
+  - index: 273
+    name: book_flat_vz
+    description: book_flat linear velocity along world z, in m/s
+  - index: 274
+    name: book_flat_wx
+    description: book_flat angular velocity about world x, in rad/s
+  - index: 275
+    name: book_flat_wy
+    description: book_flat angular velocity about world y, in rad/s
+  - index: 276
+    name: book_flat_wz
+    description: book_flat angular velocity about world z, in rad/s
+  - index: 277
+    name: soda_can_vx
+    description: soda_can linear velocity along world x, in m/s
+  - index: 278
+    name: soda_can_vy
+    description: soda_can linear velocity along world y, in m/s
+  - index: 279
+    name: soda_can_vz
+    description: soda_can linear velocity along world z, in m/s
+  - index: 280
+    name: soda_can_wx
+    description: soda_can angular velocity about world x, in rad/s
+  - index: 281
+    name: soda_can_wy
+    description: soda_can angular velocity about world y, in rad/s
+  - index: 282
+    name: soda_can_wz
+    description: soda_can angular velocity about world z, in rad/s
+  - index: 283
+    name: book_thick_vx
+    description: book_thick linear velocity along world x, in m/s
+  - index: 284
+    name: book_thick_vy
+    description: book_thick linear velocity along world y, in m/s
+  - index: 285
+    name: book_thick_vz
+    description: book_thick linear velocity along world z, in m/s
+  - index: 286
+    name: book_thick_wx
+    description: book_thick angular velocity about world x, in rad/s
+  - index: 287
+    name: book_thick_wy
+    description: book_thick angular velocity about world y, in rad/s
+  - index: 288
+    name: book_thick_wz
+    description: book_thick angular velocity about world z, in rad/s
+  - index: 289
+    name: chalk_vx
+    description: chalk linear velocity along world x, in m/s
+  - index: 290
+    name: chalk_vy
+    description: chalk linear velocity along world y, in m/s
+  - index: 291
+    name: chalk_vz
+    description: chalk linear velocity along world z, in m/s
+  - index: 292
+    name: chalk_wx
+    description: chalk angular velocity about world x, in rad/s
+  - index: 293
+    name: chalk_wy
+    description: chalk angular velocity about world y, in rad/s
+  - index: 294
+    name: chalk_wz
+    description: chalk angular velocity about world z, in rad/s
+  - index: 295
+    name: snow_globe_vx
+    description: snow_globe linear velocity along world x, in m/s
+  - index: 296
+    name: snow_globe_vy
+    description: snow_globe linear velocity along world y, in m/s
+  - index: 297
+    name: snow_globe_vz
+    description: snow_globe linear velocity along world z, in m/s
+  - index: 298
+    name: snow_globe_wx
+    description: snow_globe angular velocity about world x, in rad/s
+  - index: 299
+    name: snow_globe_wy
+    description: snow_globe angular velocity about world y, in rad/s
+  - index: 300
+    name: snow_globe_wz
+    description: snow_globe angular velocity about world z, in rad/s
+  - index: 301
+    name: headphone_vx
+    description: headphone linear velocity along world x, in m/s
+  - index: 302
+    name: headphone_vy
+    description: headphone linear velocity along world y, in m/s
+  - index: 303
+    name: headphone_vz
+    description: headphone linear velocity along world z, in m/s
+  - index: 304
+    name: headphone_wx
+    description: headphone angular velocity about world x, in rad/s
+  - index: 305
+    name: headphone_wy
+    description: headphone angular velocity about world y, in rad/s
+  - index: 306
+    name: headphone_wz
+    description: headphone angular velocity about world z, in rad/s
+  - index: 307
+    name: bookshelf_stage
+    description: 'the reward''s placement counter: 0 until the first chosen object is placed, 5 when all
+      five are (which ends the episode as a success). Never goes back down within an episode -- a placed
+      object later knocked off its spot stays counted.'
+  - index: 308
+    name: task_object_1
+    description: 'first object to place: its body index, -24 (book_a) .. -13 (headphone) -- see the group
+      note for the index-to-object table'
+  - index: 309
+    name: task_object_2
+    description: second object to place, same encoding
+  - index: 310
+    name: task_object_3
+    description: third object to place, same encoding
+  - index: 311
+    name: task_object_4
+    description: fourth object to place, same encoding
+  - index: 312
+    name: task_object_5
+    description: fifth object to place, same encoding
+  - index: 313
+    name: goal_1_x
+    description: first placement's target, world x in metres
+  - index: 314
+    name: goal_1_y
+    description: first placement's target, world y in metres
+  - index: 315
+    name: goal_1_z
+    description: first placement's target, world z in metres
+  - index: 316
+    name: goal_2_x
+    description: second placement's target, world x in metres
+  - index: 317
+    name: goal_2_y
+    description: second placement's target, world y in metres
+  - index: 318
+    name: goal_2_z
+    description: second placement's target, world z in metres
+  - index: 319
+    name: goal_3_x
+    description: third placement's target, world x in metres
+  - index: 320
+    name: goal_3_y
+    description: third placement's target, world y in metres
+  - index: 321
+    name: goal_3_z
+    description: third placement's target, world z in metres
+  - index: 322
+    name: goal_4_x
+    description: fourth placement's target, world x in metres
+  - index: 323
+    name: goal_4_y
+    description: fourth placement's target, world y in metres
+  - index: 324
+    name: goal_4_z
+    description: fourth placement's target, world z in metres
+  - index: 325
+    name: goal_5_x
+    description: fifth placement's target, world x in metres
+  - index: 326
+    name: goal_5_y
+    description: fifth placement's target, world y in metres
+  - index: 327
+    name: goal_5_z
+    description: fifth placement's target, world z in metres
+discrete_success:
+  kind: discrete
+  no_discrete_success_because: null
+  shipped:
+    expr: task_index == 5 -- the reward's own placement counter having advanced past all five objects.
+      The same counter is the `success` key in the info dict and one of the three clauses of BookshelfBase.get_terminated.
+    provenance:
+      path: humanoid_bench/envs/bookshelf.py
+      lines: 128-200
+      symbol: BookshelfBase.get_reward / BookshelfBase.get_terminated
+      commit: cb1189039151c8aadaaa987b442da54383c87fab
+      sha256: 7abd58f56702bed99c71b6a0699934c4f88af4e7bbac703f93431d689e074f36
+    sound: false
+    unsoundness: 'The 0.15 m placement test is instantaneous on the object''s centre with no settledness
+      conjunct: an object THROWN through its target volume advances the counter in transit (push''s fly-through,
+      recorded there too), and with five advances chained, five lucky arcs are formally a success while
+      every object ends on the floor.'
+    reimplementation:
+      repo: bird
+      module: bird.envs.humanoid_hand
+      symbol: H1HandBookshelfHard._success_flag
+      verified_against: 'Source-read transcription: the carried placement counter (s[307]) at its terminal
+        value 5 -- the same counter upstream''s get_terminated reads; the adapter advances it with upstream''s
+        OWN get_reward on the restored state, so the flag cannot drift from the code it mirrors. NOT resolved
+        by name from this file; recorded so the artifact names where the check lives.'
+  hardened:
+    module: null
+    symbol: hardened_success
+    status: pending
+    tightened: null
+    added_conjuncts: null
+    not_tightened_because: null
+    pending_plan: 'PLAN, not an implemented oracle: add a settledness conjunct per placement (object linear
+      speed below a threshold while inside the 0.15 m radius) -- the same conjunct the push spec plans
+      for the same fly-through defect -- and consider a stays-placed conjunct, since upstream''s counter
+      keeps a placement whose object is later knocked to the floor.'
+    conservatism: 'A per-step counter cannot express "the robot did the placing": an object that slides
+      into its spot off a collision counts the same as one set down deliberately, and one placed then
+      knocked away stays counted.'
+    invariant: hardened <= shipped
+continuous_success:
+  raw:
+    name: bookshelf_placements_fraction
+    expr: '(placements completed, in order) / 5, recomputed from the states: the five chosen object ids
+      and their goals ride in the observation tail (s[308:313], s[313:328]), each id naming a free body
+      whose position is at qpos[76 + 7k : 76 + 7k + 3] for k = id + 24, and the counter advances when
+      the CURRENT object''s centre comes within 0.15 m of its goal -- upstream''s own advance radius,
+      task structure since the counter''s terminal value is the success terminal. bird/envs/humanoid_hand.py::H1HandBookshelfHard.task_metric'
+    unit: fraction of the five ordered placements completed
+    direction: maximize
+    saturates_at: 1.0
+  normalized:
+    method: explicit
+    formula: identity -- the raw metric is already a fraction in [0, 1]
+    success_threshold: 0.2
+anchors:
+  # null: no `policies/` entry has been run on this task. Absence is explicit.
+  scripted: null
+  random:
+    value: null
+    method: unavailable
+    source: null
+    reason: 'NOT MEASURED: no uniform-random population has been scored on this task, so read any number
+      from it as unanchored. A uniform-random policy is expected to score ~0.0: random position targets
+      take a 61-DoF humanoid to the floor within a couple of seconds, mean forward displacement stays
+      around zero, and the pelvis terminal at 0.2 m ends the episode early.'
+    n_seeds: null
+    n_episodes: null
+    date: null
+  expert:
+    value: null
+    method: unavailable
+    source: null
+    reason: 'No expert exists in any sense the schema accepts: no scripted policy, no demonstrations,
+      and HumanoidBench publishes no figure in this metric -- its `success_bar` is a threshold on the
+      episode RETURN of its own shipped reward, a different quantity. `baselines` is therefore None and
+      fitness stays RAW, per the absence-is-explicit rule.'
+    n_seeds: null
+    n_episodes: null
+    date: null
+  published:
+    fasttd3:
+      value: 723.02
+      unit: hb_episode_return
+      algo: FastTD3
+      n_runs: 3
+      std: 17.12
+      env_steps: 19200000
+      success_bar: 2000.0
+      success_bar_source: humanoid-bench @ cb11890 (this spec's pinned commit), humanoid_bench/envs/bookshelf.py:100
+        (`BookshelfBase.success_bar = 2000`; `BookshelfHard`, :253, declares none of its own).
+      source: 'FastTD3 (Seo et al., arXiv:2505.22642v3), Figure 9 (Appendix A.1, p. 12), the h1hand_bookshelf_hard
+        panel: mean episode return across 3 runs, shaded band mean +/- std. The value is the final point
+        of the authors'' released plotting data behind that figure (data/humanoidbench_result.json @ 77922d0
+        in younggyoseo/FastTD3, committed 2025-09-21), key h1hand_bookshelf_hard; std is half the released
+        band width (return_min/return_max are exactly mean -/+ std).'
+      note: A published BASELINE in HB episode-return units -- not this spec's task_metric and not an
+        in-repo expert; never use it to normalise fitness. It is an end-of-training evaluation point of
+        the paper's own training run, not a separately evaluated frozen policy. Below the task's 2000
+        success bar. The released log runs past Figure 9's 10,800 s x-limit (final point at 16,312 s /
+        19.2M steps; ~653 at the visible end).
+      date: '2026-09-02'
+budget:
+  train_steps: 2000000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: NOT CHECKED. The 2,000,000 steps above is inherited from the h1hand locomotion tier and is
+      a placeholder, as it is for every task in the tier -- and with 84 scene DoF this is the largest
+      model in the tier, so expect the placeholder to be furthest from the truth here.
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: published_dense
+    scope: value_determining
+    reference:
+      path: humanoid_bench/envs/bookshelf.py
+      lines: 128-188
+      symbol: BookshelfBase.get_reward
+      commit: cb1189039151c8aadaaa987b442da54383c87fab
+      sha256: 7abd58f56702bed99c71b6a0699934c4f88af4e7bbac703f93431d689e074f36
+    depends_on:
+    - path: humanoid_bench/robots.py
+      lines: 1-86
+      symbol: 'H1: head_height, torso_upright, actuator_forces, center_of_mass_velocity -- every quantity
+        the reward reads'
+      commit: cb1189039151c8aadaaa987b442da54383c87fab
+      sha256: b9e8e6a033a760cee76b224613efecd88f4d5ddaf1f60f60f4909b44e2edd01a
+    - path: dm_control/utils/rewards.py
+      lines: null
+      symbol: tolerance (the shaping primitive every term is built from)
+      commit: null
+      sha256: null
+    import_path: humanoid_bench.envs.bookshelf:BookshelfBase.get_reward
+    verified_against: humanoid-bench cb11890 (source read; NOT executed)
+    notes: '`0.2 * (stand_reward * small_control) + 0.4 * tolerance(obj_goal_dist, bounds=(0, 0.15), margin=1)
+      + 0.4 * exp(-min(hand-to-object distance))`, plus a one-off `+100 * index` on each placement. Everything
+      is measured against the CURRENT object only -- `bookshelf_objects[task_index]` -- and that list,
+      the shuffled goals and the counter all live on the task object in Python, which is why this adapter
+      carries a 21-slot observation tail. `BookshelfHard` is `fixed = False`: the base class with the
+      choice and permutation actually drawn.'
+  contract:
+    signature: "def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:\n    # single env,\
+      \ plain NumPy; `s` is the flat observation documented above"
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, not a batch. Single environment, plain NumPy: return a Python float for
+      `reward` and a float for each entry of `components`.'
+    reward_utils:
+    - name: tolerance
+      signature: tolerance(x, bounds=(0, 0), margin=0, sigmoid='gaussian', value_at_margin=0.1)
+      provenance:
+        path: dm_control/utils/rewards.py
+        lines: null
+        symbol: tolerance
+        commit: null
+        sha256: null
+  forbidden_symbols:
+  - success_bar
+  - get_reward
+  - get_terminated
+  forbidden_symbols_by_consumer:
+    bird:
+    - task_metric
+    - reference_reward
+    - success_bar
+    - _env
+  forbidden_symbols_note: 'The same gate as the other h1hand specs, for the same reasons: three of the
+    four BIRD entries name ADAPTER INTERNALS -- the routes to the quantity a candidate is scored on in
+    this repo -- and `success_bar` is the benchmark symbol nothing upstream reads but a candidate could
+    find, a threshold on the shipped reward''s own episode return. `success` is DELIBERATELY ABSENT --
+    listing it rejects candidates that name their OWN proxy
+    `success` (15 of 15 on Meta-World, tasks/drawer_close); the defence that holds is structural, because
+    `success()` here is a threshold on `task_metric`, which IS gated.'
+judge:
+  vlm_legible: true
+  legibility_note: The colour-coded ghost markers are real model geometry (translucent twins at the target
+    spots, tinted in placement order), so unlike most of the tier the OBJECTIVE is visible in a frame
+    -- but which object is CURRENT is a counter with no marker, the twelve objects are small at shelf
+    distance, and occlusion by the shelf boards is constant. Expect a judge to read tidiness, not order.
+  camera:
+    name: cam_hand_visible
+    mode: tracking
+    note: '`cam_hand_visible` is the task''s own camera, framing the hands and the shelf face.'
+  extra_views:
+  - name: side
+    mode: tracking
+    note: 'Camera following the robot''s centre of mass from its right-hand side, level with it and 3
+      m away: a side profile in which lean, gait, crouch and the height of anything held read directly.
+      It moves with the robot, so absolute position is not visible; only the floor grid slides past. An
+      object carried from the table to the shelf reads as displacement in profile.'
+    pose:
+      track_body: pelvis
+      azimuth: 90
+      elevation: -10
+      distance: 3.0
+  - name: overhead
+    mode: tracking
+    note: 'Camera following the robot''s centre of mass from 4 m directly above: the robot and everything
+      within about two metres of it seen in plan, for where it is relative to nearby objects and which
+      way it is heading. Height and posture do not read from here.'
+    pose:
+      track_body: pelvis
+      azimuth: 90
+      elevation: -80
+      distance: 4.0
+  subtasks_sequential: false
+  telemetry_fields:
+  - bookshelf_stage
+  - pelvis_z
+domain_randomization: null
+exploits:
+- name: hover_hand_income
+  mechanism: '`0.4 * exp(-min(left_hand_dist, right_hand_dist))` pays per step for a hand being NEAR the
+    current object, moving nothing -- a robot that parks a palm against the current book collects ~0.4
+    per step for the whole episode, on top of the 0.2 posture floor and whatever the proximity term pays
+    at spawn. Waiting out the episode beside the shelf clears several hundred return without one placement.'
+  status: open
+  closed_by: null
+  note: Arithmetic from the source, not observed in a rollout. The metric counts completed
+    placements only, so the hoverer reads exactly 0.0.
+- name: proximity_term_is_partly_prepaid
+  mechanism: '`tolerance(obj_goal_dist, bounds=(0, 0.15), margin=1)` pays partial credit from a metre
+    out, and the shelf is compact: the chosen object typically SPAWNS 0.3-1.2 m from its drawn goal, so
+    a fraction of the 0.4-weighted term is paid at reset for free, before any behaviour. How large a fraction
+    depends on the episode''s draw, which also makes raw returns incomparable across episodes.'
+  status: open
+  closed_by: null
+  note: Geometry from the keyframe (object spawns) against the five goal positions in reset_model, not
+    observed in a rollout. The metric pays nothing short of the 0.15 m radius.
+- name: fly_through_placement
+  mechanism: 'The 0.15 m advance test is instantaneous on the object''s centre -- an object thrown through
+    its target volume banks the +100*k and the counter moves on while the object lands on the floor. Dropping
+    a PLACED object afterwards is also free: only the current object''s height is guarded by the terminal.'
+  status: open
+  closed_by: null
+  note: 'Arithmetic from the source, not observed in a rollout. The metric''s advance test
+    is upstream''s own (task structure, the same argument push makes for its terminal radius), so a fly-through
+    advances the metric too: the honest reading is that the TASK accepts a throw, and the disagreement
+    to watch is placed-then- knocked-off, which the counter keeps and a tidiness reading would not.'
+symbol_mapping:
+  x_position: s[0]
+  forward_position: s[0]
+  position: s[0]
+  y_position: s[1]
+  lateral_position: s[1]
+  height: s[2]
+  pelvis_height: s[2]
+  torso_height: s[2]
+  orientation: s[3:7]
+  quaternion: s[3:7]
+  joint_angles: s[7:76]
+  joint_positions: s[7:76]
+  forward_velocity: s[160]
+  x_velocity: s[160]
+  velocity: s[160]
+  speed: s[160]
+  vx: s[160]
+  lateral_velocity: s[161]
+  vertical_velocity: s[162]
+  angular_velocity: s[163:166]
+  joint_velocities: s[166:235]
+  control_cost: np.sum(np.square(a))
+  action_magnitude: np.sum(np.square(a))
+  bookshelf_stage: s[307]
+  stage: s[307]
+  task_index: s[307]
+  task_objects: s[308:313]
+  placement_goals: s[313:328].reshape(5, 3)
+  object_positions: s[76:160].reshape(12, 7)[:, 0:3]
+  object_quats: s[76:160].reshape(12, 7)[:, 3:7]
+provenance:
+  authored_from:
+  - path: humanoid_bench/__init__.py
+    lines: 1-19
+    what: 'the gym id registration: f''{robot}-{task}-v0'' over ROBOTS x TASKS'
+  - path: humanoid_bench/env.py
+    lines: 66-100
+    what: ROBOTS and TASKS, and the assert robot.dof + task.dof == len(qpos)
+  - path: humanoid_bench/robots.py
+    lines: 1-86
+    what: 'H1 / H1Hand: dof, and the site accessors the reward reads'
+  - path: humanoid_bench/tasks.py
+    lines: 1-75
+    what: 'Task: frame_skip 10, default get_obs = concat(qpos, qvel), unnormalize_action'
+  - path: humanoid_bench/envs/basic_locomotion_envs.py
+    lines: 21-97
+    what: 'Walk: qpos0_robot for h1hand, _move_speed 1, success_bar 700, get_reward, get_terminated'
+  - path: humanoid_bench/assets/envs/h1hand_pos_walk.xml
+    lines: null
+    what: the composed model -- nq 76, nv 75, nu 61, keyframe, and no scenery at all
+  rule: source and asset, not docstrings
+  measured:
+  - 'Built with mujoco==3.3.0 against humanoid-bench cb11890 on 2026-09-01. STATIC READ ONLY: the observation
+    and actuator tables are the target model''s own, read from MjModel.from_xml_path on h1hand_pos_bookshelf_hard.xml
+    (nq=160, nv=147: twelve free objects at qposadr 76 + 7k in the order book_a..book_e, trophy, book_flat,
+    soda_can, book_thick, chalk, snow_globe, headphone), robot block confirmed identical to the h1hand_walk
+    donor by scripts/derive_humanoid_facts.py. The env has NOT been constructed or stepped: no reward-at-reset
+    figure, no step-purity run, no frame, no anchor.'
+  - The five goal positions ([0.75, -0.25, 1.55], [0.8, 0.05, 0.95], [0.8, -0.25, 0.95], [0.85, 0.05,
+    0.35], [0.85, -0.25, 0.35]), the 0.15 m advance radius, the +100*index bonuses, the negative body
+    indexing (ids -24..-13, destination-marker twins at -12..-1) and the ghost-marker colouring read from
+    humanoid_bench/envs/bookshelf.py at sha256 7abd58f56702bed99c71b6a0699934c4f88af4e7bbac703f93431d689e074f36.
+  - 'ONE DELIBERATE DIVERGENCE: upstream draws the five objects (np.random.choice) and the goal permutation
+    (np.random.permutation) from the GLOBAL np.random, so its own episodes are not reproducible from a
+    seed; this adapter draws both from ctx.rng. The destination ghosts'' positions and colours are restored
+    from the carried tail on every restore, so a rendered frame is a pure function of the state -- maze''s
+    marker argument.'
+  verified_by: BIRD authors
+  date: '2026-09-01'

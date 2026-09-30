@@ -1,0 +1,66 @@
+# Text2Reward (zero-shot) on Meta-World -- Xie et al., "Text2Reward: Reward Shaping
+# with Language Models for Reinforcement Learning", ICLR 2024, arXiv 2309.11489 v3.
+# Code: https://github.com/xlang-ai/text2reward (run_metaworld/)
+#
+# text2reward_zeroshot.yaml on the paper's Meta-World benchmark, which has its own
+# prompt (class abstraction, reward template, symbol table), SAC and 1M steps. It is
+# also the baseline CARD compares against (CARD Fig. 3). A run supplies the task as a
+# PAIR of overrides, -s problem.env_id=... and -s problem.task_description=..., with
+# T2R's instruction for that task (metaworld_exp.py:6-17; the leading space on
+# sweep-into is upstream's):
+#   mt50_door-unlock-v3        "Unlock the door by rotating the lock counter-clockwise."
+#   mt10_drawer-open-v3        "Open a drawer by its handle."
+#   mt50_handle-press-side-v3  "Press a handle down sideways."
+#   mt50_handle-press-v3       "Press a handle down."
+#   mt50_sweep-into-v3         " Sweep a puck from the initial position into a hole."
+#   mt10_window-open-v3        "Push and open a sliding window by its handle."
+# T2R runs a continuous reset distribution; BIRD's Meta-World uses 50 fixed points.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: text2reward_zeroshot.yaml
+name: metaworld_text2reward_zeroshot
+
+# --- generate ----------------------------------------------------------------
+
+generate:
+  context:
+    env_spec: t2r_class_abstraction   # Meta-World abstraction verbatim (MetaworldPrompt.py:14-26)
+    include_reward_recipe_hints: t2r_metaworld  # 3-item template (MetaworldPrompt.py:8-12)
+
+  output:
+    signature: t2r_compute_dense_reward  # MetaworldPrompt.py:32 verbatim; required by this env_spec
+
+  postprocess:
+    symbol_mapping: t2r_metaworld_global  # one table for all Meta-World tasks (metaworld_exp.py:19-27)
+
+# --- train -------------------------------------------------------------------
+
+train:
+  algorithm: sac                      # run_metaworld/sac.py, no PPO path; ‡ Stable-Baselines3 (sac.py:9)
+  env_steps: 1000000                  # run_metaworld/run_zero_shot.sh:4; CARD Table 9 agrees
+  n_parallel_envs: 8                  # --train_num 8 (run_zero_shot.sh:3); execution profiles override it
+  seeds_per_candidate: 5              # † paper 5 seeds (Fig. 2, experiments.tex:65); code 1 (run_zero_shot.sh:4)
+
+  # T2R's SAC block: sac.py:132-134, T2R's tab:hyper_sac (appendix.tex:23-34) and
+  # CARD's tab:sac_params all agree. Not inherited (the parent is PPO's point); not
+  # a profile key, so it survives --profile full.
+  hyperparameters:
+    policy_kwargs:
+      net_arch: [256, 256, 256]       # sac.py:132; appendix.tex:30, :32
+    batch_size: 512                   # sac.py:133; appendix.tex:31
+    gamma: 0.99                       # sac.py:133; appendix.tex:23
+    target_update_interval: 2         # sac.py:133; appendix.tex:24
+    learning_rate: 0.0003             # sac.py:134; appendix.tex:25
+    tau: 0.005                        # sac.py:134; appendix.tex:27
+    learning_starts: 4000             # sac.py:134; appendix.tex:29
+    ent_coef: 'auto_0.1'              # sac.py:134; appendix.tex:33, initial temperature 0.1
+    train_freq: 1                     # appendix.tex:26; SB3's default (sac.py passes none)
+    gradient_steps: 1                 # appendix.tex:28; SB3's default
+
+# --- evaluate ----------------------------------------------------------------
+
+evaluate:
+  checkpoint_eval_episodes: 10        # ‡ n_eval_episodes=10, hardcoded (run_metaworld/sac.py:128)

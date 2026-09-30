@@ -1,0 +1,15 @@
+# Secret scanning for commits: gitleaks' default rules plus prefixes it does not know.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "openrouter-api-key"
+description = "OpenRouter API key"
+regex = '''\b(sk-or(-v\d+)?-[a-f0-9]{64})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["sk-or"]
+
+[[rules]]
+id = "generic-sk-key"
+description = "API key with an sk- prefix followed by 20 or more characters"
+regex = '''\b(sk-[a-zA-Z0-9_\-]{20,})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = ["sk-"]

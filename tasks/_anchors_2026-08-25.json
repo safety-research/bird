@@ -1,0 +1,107 @@
+{
+  "date": "2026-08-25",
+  "n_episodes": 30,
+  "seed": 0,
+  "tasks": {
+    "button_press_topdown": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.8730666666666667,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "door_open": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.059800000000000006,
+        "any_step_episode_fraction": 0.9666666666666667
+      }
+    },
+    "drawer_close": {
+      "random": {
+        "per_step_fraction": 0.15106666666666665,
+        "any_step_episode_fraction": 0.26666666666666666
+      },
+      "expert": {
+        "per_step_fraction": 0.8453999999999999,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "drawer_open": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.8251999999999999,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "peg_insert_side": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.5346666666666666,
+        "any_step_episode_fraction": 0.8333333333333334
+      }
+    },
+    "pick_place": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.8943333333333334,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "push": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.5802666666666667,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "reach": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.8908666666666666,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "window_close": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.8429333333333333,
+        "any_step_episode_fraction": 1.0
+      }
+    },
+    "window_open": {
+      "random": {
+        "per_step_fraction": 0.0,
+        "any_step_episode_fraction": 0.0
+      },
+      "expert": {
+        "per_step_fraction": 0.8312666666666667,
+        "any_step_episode_fraction": 1.0
+      }
+    }
+  }
+}

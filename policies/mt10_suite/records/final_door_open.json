@@ -1,0 +1,248 @@
+{
+ "summary": {
+  "task": "door_open",
+  "n": 25,
+  "mean_metric": 0.7196,
+  "min_metric": 0.482,
+  "any_step": 1.0,
+  "params": {
+   "d_tol": 0.016,
+   "hold_d": 0.05,
+   "k": 14.0,
+   "n_close": 8,
+   "press_z": 0.05,
+   "pull_tol": 0.022,
+   "standoff": 0.06,
+   "xy_tol": 0.01,
+   "z_grasp": 0.02,
+   "z_hover": 0.06
+  }
+ },
+ "rows": [
+  {
+   "task": "door_open",
+   "seed": 0,
+   "steps": 500,
+   "metric": 0.738,
+   "success_any": true,
+   "inside_frac": 0.738,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 1,
+   "steps": 500,
+   "metric": 0.74,
+   "success_any": true,
+   "inside_frac": 0.74,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 2,
+   "steps": 500,
+   "metric": 0.746,
+   "success_any": true,
+   "inside_frac": 0.746,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 3,
+   "steps": 500,
+   "metric": 0.746,
+   "success_any": true,
+   "inside_frac": 0.746,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 4,
+   "steps": 500,
+   "metric": 0.742,
+   "success_any": true,
+   "inside_frac": 0.742,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 5,
+   "steps": 500,
+   "metric": 0.766,
+   "success_any": true,
+   "inside_frac": 0.766,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 6,
+   "steps": 500,
+   "metric": 0.746,
+   "success_any": true,
+   "inside_frac": 0.746,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 7,
+   "steps": 500,
+   "metric": 0.746,
+   "success_any": true,
+   "inside_frac": 0.746,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 8,
+   "steps": 500,
+   "metric": 0.752,
+   "success_any": true,
+   "inside_frac": 0.752,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 9,
+   "steps": 500,
+   "metric": 0.742,
+   "success_any": true,
+   "inside_frac": 0.742,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 10,
+   "steps": 500,
+   "metric": 0.742,
+   "success_any": true,
+   "inside_frac": 0.742,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 11,
+   "steps": 500,
+   "metric": 0.748,
+   "success_any": true,
+   "inside_frac": 0.748,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 12,
+   "steps": 500,
+   "metric": 0.748,
+   "success_any": true,
+   "inside_frac": 0.748,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 13,
+   "steps": 500,
+   "metric": 0.754,
+   "success_any": true,
+   "inside_frac": 0.754,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 14,
+   "steps": 500,
+   "metric": 0.752,
+   "success_any": true,
+   "inside_frac": 0.752,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 15,
+   "steps": 500,
+   "metric": 0.54,
+   "success_any": true,
+   "inside_frac": 0.54,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 16,
+   "steps": 500,
+   "metric": 0.748,
+   "success_any": true,
+   "inside_frac": 0.748,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 17,
+   "steps": 500,
+   "metric": 0.482,
+   "success_any": true,
+   "inside_frac": 0.482,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 18,
+   "steps": 500,
+   "metric": 0.754,
+   "success_any": true,
+   "inside_frac": 0.754,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 19,
+   "steps": 500,
+   "metric": 0.506,
+   "success_any": true,
+   "inside_frac": 0.506,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 20,
+   "steps": 500,
+   "metric": 0.754,
+   "success_any": true,
+   "inside_frac": 0.754,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 21,
+   "steps": 500,
+   "metric": 0.768,
+   "success_any": true,
+   "inside_frac": 0.768,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 22,
+   "steps": 500,
+   "metric": 0.742,
+   "success_any": true,
+   "inside_frac": 0.742,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 23,
+   "steps": 500,
+   "metric": 0.748,
+   "success_any": true,
+   "inside_frac": 0.748,
+   "last_phase": "hold"
+  },
+  {
+   "task": "door_open",
+   "seed": 24,
+   "steps": 500,
+   "metric": 0.74,
+   "success_any": true,
+   "inside_frac": 0.74,
+   "last_phase": "hold"
+  }
+ ]
+}

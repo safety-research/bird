@@ -1,0 +1,23 @@
+# rda_judge: a parent in the hill-climb's inheritance chain, not a row of the paper's
+# hill-climb table.
+#
+# RDA (configs/methods/rda.yaml) with two selection changes. RDA's candidate pools were as
+# good as Eureka's, but its selection was worse:
+#   - a continuous [0, 1] judge score instead of the 3-point rubric, under which 40% of
+#     MT10 rounds ended in an exact tie at the top;
+#   - the final round's winner as the run's answer instead of the cross-round argmax of VLM
+#     scores, since scores from different rounds are different judging contexts.
+# Nothing in the loop reads a ground-truth metric, so pruning stays off.
+
+extends: ../methods/rda.yaml
+name: rda_judge
+
+generate:
+  n_candidates: 8                     # the matched protocol's width (K = 8)
+
+evaluate:
+  feedback:
+    score_scale: "[0,1]"              # RDA §4.2 / Fig. 2; App. 7.3 rubric is 3-point (rda.yaml †)
+
+select:
+  final_artifact: chain_end

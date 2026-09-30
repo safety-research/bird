@@ -1,0 +1,133 @@
+# DrEureka -- Ma, Liang, Wang, Wang et al., "DrEureka: Language Model Guided
+# Sim-To-Real Transfer", RSS 2024, arXiv 2406.01967.
+# Code: https://github.com/eureka-research/DrEureka
+#
+# Eureka with a safety instruction appended to the task description, followed by
+# two one-shot programs: RAPP sweeps physics parameters around the resulting
+# policy to find the range it still survives, and the LLM then writes 16
+# domain-randomization configurations inside that range. None of the 16 is ranked
+# in simulation; all of them go to the real robot.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value.
+# Not in the paper's method comparison, so scripts/paper_cell.py has no cell for it.
+
+extends: eureka.yaml
+name: dreureka
+
+# --- models and loop ----------------------------------------------------------
+
+problem:
+  # l_task only; l_safety is generate.context.safety_instruction (Eq. 6).
+  # Paper App. Prompt 2, first sentence; the 2.0 m/s target is also rapp.py:25.
+  task_description: >-
+    To make the go1 quadruped run forward with a velocity of exactly 2.0 m/s in
+    the positive x direction of the global coordinate frame.
+
+  search_space: [reward, dr]          # paper §IV: reward first (Alg. 1), then DR (Eq. 7)
+  search_space_mode: staged           # two programs in sequence, RAPP between them
+
+llm:
+  generator:
+    model: gpt-4-0125-preview         # eureka/cfg/config.yaml:12, same for both stages
+
+loop:
+  n_iterations: 5                     # eureka/cfg/config.yaml:16; §V p.5 keeps Eureka's values
+  n_restarts: 1                       # ‡ one eureka.py run feeds rapp.py (README "Usage")
+
+# --- pre-loop phases ----------------------------------------------------------
+# The release runs these after the reward search, on its best policy (Alg. 2).
+# Here they run first: RAPP sweeps the env's default policy (policy_ref: null).
+pre: [rapp, dr_generation]            # paper §IV-C (RAPP), §IV-D (DR generation)
+
+# --- generate -----------------------------------------------------------------
+# BIRD deviation: co_design.dr_config also makes each reward prompt ask for a DR
+# block and trains the candidate under it; the release trains stage 1 DR-off.
+# † signature example: inline in paper App. Prompt 1; code moves it (eureka.py:49, :53).
+
+generate:
+  n_candidates: 16                    # eureka/cfg/config.yaml:17; paper agrees (§V p.5)
+
+  context:
+    include_safety_instruction: true  # paper §IV-B, Eq. 6; the key of this method
+    include_reward_engineering_tips: true
+                                      # † code edits Eureka's tip prompts (code_output_tip.txt,
+                                      # code_feedback.txt); BIRD sends Eureka's unedited
+    # l_safety, verbatim: paper App. Prompt 2, second sentence onward.
+    safety_instruction: >-
+      The policy will be trained in simulation and deployed in the real world,
+      so the policy should be as steady and stable as possible with minimal
+      action rate. Specifically, as it's running, the torso should remain near
+      a z position of 0.34, and the orientation should be perpendicular to
+      gravity. Also, the legs should move smoothly and avoid the DOF limits.
+
+  # DR generation shows the model no environment source (dr_eureka/prompts/).
+  # BIRD asks one completion for all 16; the release samples 16 separately (dr_eureka.py:65).
+  co_design:
+    dr_config: true                   # Eq. 7 / §IV-D; also turns on stage-1 DR (see above)
+    dr_prior: rapp                    # bounds from the RAPP sweep; §V ablates default_sim_ranges, none
+    dr_n_configs: 16                  # dr_eureka/cfg/config.yaml:16 `sample: 16`, drawn once
+
+# --- train --------------------------------------------------------------------
+
+train:
+  # 1000 iterations x 4096 envs x 24 steps, derived from code (the paper is silent):
+  # scripts/train.py:106, legged_robot_config.py:8, go1_gym_learn/ppo/__init__.py:52.
+  env_steps: 98304000
+  n_parallel_envs: 4096
+
+  seeds_per_candidate: 1              # † paper 3 seeds per DR config (§V p.6); code 1 (train.py:116).
+                                      # Both are for stage 2, which BIRD never trains.
+  failure_detection: stdout_grep      # "running"/"Traceback": eureka.py:167, utils/misc.py:36
+
+  domain_randomization:
+    mode: generated                   # † release: stage 2 only (dr_eureka.py:146), stage 1 DR-off
+                                      # (eureka.py:162); BIRD applies it in stage 1
+    params: {}                        # empty: the ranges come from dr_generation
+
+final_retrain:
+  enabled: false                      # DrEureka's eureka.py drops Eureka's num_eval retrain
+
+# --- evaluate / select: inherited from eureka.yaml ----------------------------
+# consecutive_successes is here the velocity score exp(-(2.0 - v_x)^2 / 0.25)
+# (eureka_reward_template.py:15-19), not a success rate. DR generation ranks none
+# of its 16 configs (§IV-D).
+
+# --- update -------------------------------------------------------------------
+
+update:
+  co_evolve:
+    dr_config: true                   # the output is a (reward, DR) pair; no stage reads this key
+
+# --- pre/post phase settings --------------------------------------------------
+
+rapp:
+  enabled: true                       # paper §IV-C, Alg. 2
+
+  # The 13 forward_locomotion parameters in release order (dr_eureka/rapp.py:128-141).
+  # IsaacGym names: no BIRD env declares their ranges, so the sweep skips all 13.
+  parameters:
+    - friction_range
+    - restitution_range
+    - added_mass_range
+    - com_displacement_range
+    - motor_strength_range
+    - Kp_factor_range
+    - Kd_factor_range
+    - dof_stiffness_range
+    - dof_damping_range
+    - dof_friction_range
+    - dof_armature_range
+    - push_vel_xy_range                # magnitude added to the robot's xy velocity
+    - gravity_range                    # added to each dim of [0, 0, -9.8]
+
+  policy: incumbent_best              # Alg. 2's pi_initial; unreachable from a pre-phase
+  # Unit differs: the release's 100 are sim steps of one rollout; BIRD runs 100
+  # rollouts and keeps a value at success rate >= 0.5.
+  rollouts_per_value: 100             # env yaml play_iterations: 100, via rapp.py:100
+  success_criterion: forward_locomotion_success
+                                      # names rapp.py:20-35's check; recorded, not applied
+
+# Paper: 16 unranked policies for hardware. BIRD trains none of the 16 configs,
+# so real_world_eval only writes a deployment manifest (status: not_run).
+post: [real_world_eval]

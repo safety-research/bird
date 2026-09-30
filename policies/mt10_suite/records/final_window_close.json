@@ -1,0 +1,248 @@
+{
+ "summary": {
+  "task": "window_close",
+  "n": 25,
+  "mean_metric": 0.8627,
+  "min_metric": 0.856,
+  "any_step": 1.0,
+  "params": {
+   "d_tol": 0.016,
+   "hold_d": 0.05,
+   "k": 14.0,
+   "n_close": 8,
+   "press_z": 0.05,
+   "pull_tol": 0.022,
+   "standoff": 0.06,
+   "xy_tol": 0.01,
+   "z_grasp": 0.02,
+   "z_hover": 0.06
+  }
+ },
+ "rows": [
+  {
+   "task": "window_close",
+   "seed": 0,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 1,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 2,
+   "steps": 500,
+   "metric": 0.864,
+   "success_any": true,
+   "inside_frac": 0.864,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 3,
+   "steps": 500,
+   "metric": 0.856,
+   "success_any": true,
+   "inside_frac": 0.856,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 4,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 5,
+   "steps": 500,
+   "metric": 0.862,
+   "success_any": true,
+   "inside_frac": 0.862,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 6,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 7,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 8,
+   "steps": 500,
+   "metric": 0.872,
+   "success_any": true,
+   "inside_frac": 0.872,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 9,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 10,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 11,
+   "steps": 500,
+   "metric": 0.864,
+   "success_any": true,
+   "inside_frac": 0.864,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 12,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 13,
+   "steps": 500,
+   "metric": 0.872,
+   "success_any": true,
+   "inside_frac": 0.872,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 14,
+   "steps": 500,
+   "metric": 0.87,
+   "success_any": true,
+   "inside_frac": 0.87,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 15,
+   "steps": 500,
+   "metric": 0.868,
+   "success_any": true,
+   "inside_frac": 0.868,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 16,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 17,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 18,
+   "steps": 500,
+   "metric": 0.872,
+   "success_any": true,
+   "inside_frac": 0.872,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 19,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 20,
+   "steps": 500,
+   "metric": 0.872,
+   "success_any": true,
+   "inside_frac": 0.872,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 21,
+   "steps": 500,
+   "metric": 0.866,
+   "success_any": true,
+   "inside_frac": 0.866,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 22,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 23,
+   "steps": 500,
+   "metric": 0.858,
+   "success_any": true,
+   "inside_frac": 0.858,
+   "last_phase": "push"
+  },
+  {
+   "task": "window_close",
+   "seed": 24,
+   "steps": 500,
+   "metric": 0.864,
+   "success_any": true,
+   "inside_frac": 0.864,
+   "last_phase": "push"
+  }
+ ]
+}

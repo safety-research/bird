@@ -1,0 +1,369 @@
+schema_version: 1
+id: hopper_hop
+env:
+  env_id: Hopper-v5
+  library:
+    name: mujoco
+    version_verified: 3.3.0
+    commit: null
+    stack:
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 1000
+  control_hz: 125
+  termination:
+    early_terminate: true
+    autoreset: false
+    partial_reset: null
+    prompt_states: Falling over ends the episode.
+  reset:
+    kind: stochastic
+    mechanism: library_reseeded
+    n_instances: null
+    instance_seed: null
+    entry:
+      path: bird/envs/gym_mujoco.py
+      symbol: GymMujoco._reset
+      lines: '1368-1381'
+    rng_note: 'One draw from the episode Generator -- int(rng.integers(2 ** 31 - 1)) in GymMujoco._reset, the entry above -- is
+      passed to gymnasium Env.reset(seed=), which reseeds the wheel np_random before MujocoEnv.reset
+      calls mj_resetData and reset_model (gymnasium/envs/mujoco/mujoco_env.py:174-178); every draw
+      below is then made by that reseeded np_random in reset_model order: qpos, qvel. The row _reset
+      returns is the raw concat(qpos, qvel) (12 entries), NOT the 11-entry gymnasium observation the
+      prose and state_surface describe, so fields are a:b slices of that row. This adapter has no DR
+      axes (dr_parameters is empty), so no draw precedes _reset at any DR setting.'
+    draws:
+      - role: agent_pose
+        quantity: qpos
+        fields: ['0:6']
+        distribution:
+          family: uniform
+          text: 'init_qpos (the model qpos0: root x 0, root z 1.25 m, torso angle 0, thigh 0, leg 0, foot
+            0) + U(-0.005, 0.005) independently on each of the 6 coordinates, so the torso starts
+            between 1.245 and 1.255 m and every angle within 5 mrad of zero. The scale is the v5
+            default reset_noise_scale 5e-3 (hopper_v5.py:175); the adapter passes no override.
+            Keyframe plus noise, so no low/high box.'
+        source:
+          path: gymnasium/envs/mujoco/hopper_v5.py
+          lines: '326-328'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_hopper_hop built with ctx {},
+          reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns 0-5
+          all move; column 1 spanned [1.2454, 1.2544], the others [-0.005, 0.005].'
+      - role: agent_velocity
+        quantity: qvel
+        fields: ['6:7', '7:8', '8:9', '9:10', '10:11', '11:12']
+        distribution:
+          family: uniform
+          text: 'init_qvel (zeros) + U(-0.005, 0.005) independently on each of the 6 generalised
+            velocities (x m/s, z m/s, torso rad/s, then three joint rad/s).'
+          low: [-0.005, -0.005, -0.005, -0.005, -0.005, -0.005]
+          high: [0.005, 0.005, 0.005, 0.005, 0.005, 0.005]
+        source:
+          path: gymnasium/envs/mujoco/hopper_v5.py
+          lines: '329-331'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_hopper_hop built with ctx {},
+          reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns 6-11
+          all move within [-0.005, 0.005].'
+    constants:
+      - role: goal
+        quantity: goal
+        value: 'none -- forward_displacement is states[-1, 0] - states[0, 0], the final root x minus the
+          root x at reset, so the reset x jitter cancels; no target or marker exists in the scene'
+        source:
+          path: bird/envs/gym_mujoco.py
+          lines: '260-262'
+        basis: read
+    stochastic_transitions: null
+    upstream_divergence: null
+    prompt_states: 'stands upright on flat ground'
+    prompt_field: natural_language
+    prompt_omits: [agent_pose, agent_velocity]
+  spaces:
+    obs_dim: 11
+    action_dim: 3
+    action_low: -1.0
+    action_high: 1.0
+    action_semantics: Torques on the hip, knee and ankle joints, each in [-1, 1].
+description:
+  natural_language: |-
+    A planar one-legged "hopper" — a two-dimensional robot made of a torso and a single
+    leg with three torque-controlled joints (thigh, leg and foot) — stands upright on
+    flat ground. Make it hop forward, in the +x direction, as far as it can without
+    falling over: drive the three joints into a rhythmic hopping gait that carries the
+    robot along +x while keeping the torso high and near-vertical. The episode ends the
+    moment the robot falls — torso too low or pitched too far — so covering distance
+    requires staying up. The further the robot has travelled along +x when the episode
+    ends, the better.
+  scene: |-
+    - Body: a planar robot constrained to the x-z plane: a torso atop a single leg with
+      three actuated hinge joints — thigh, leg and foot. The root has three unactuated
+      degrees of freedom: x position, z position (height) and torso pitch angle.
+    - Observation: an (11,) float array — 5 position entries followed by 6 velocity
+      entries. obs[0] is the torso height, obs[1] the torso pitch angle, and obs[2:5]
+      the [thigh, leg, foot] joint angles. obs[5] is the forward (x) velocity, obs[6]
+      the vertical (z) velocity, obs[7] the torso pitch angular velocity, and obs[8:11]
+      the three joint angular velocities. The env clips all six velocity entries to
+      [-10, 10] before they reach the observation — hopping-gait joint velocities do
+      hit that bound, so treat +/-10 as saturation, not a physical limit. The root's
+      absolute x position is deliberately excluded from the observation; it is
+      provided on `s` instead.
+    - Control: 3 torques, one per joint in the order [thigh, leg, foot], each clipped
+      to [-1, 1].
+    - Timing: one control step holds the torques for 4 simulator substeps of 0.002 s,
+      so dt = 0.008 s per control step; the episode is at most 1000 steps (8 s).
+    - Termination: the env's default terminate_when_unhealthy=True is in force — the
+      episode ends early the moment the robot stops being healthy. Healthy means:
+      torso height obs[0] > 0.7 m, torso angle |obs[1]| < 0.2 rad, and every entry of
+      the simulator's internal state (the obs[1:] quantities BEFORE velocity clipping)
+      finite and inside (-100, 100). `s.is_healthy` recomputes this from the
+      observation: exact for the height, angle and joint-angle clauses — the falls
+      that actually end hopping episodes — but the velocity part of the range check
+      runs on unclipped values the +/-10-saturated observation cannot see, so that
+      (rare) termination is not detectable from obs.
+    - Convention: +x is forward, +z is up. Forward progress means increasing x while
+      staying healthy.
+  success_criterion_prose: null
+  full_source:
+    path: gymnasium/envs/mujoco/hopper_v5.py
+    lines: null
+state_surface:
+  fields:
+  - name: s.x_position
+    shape: scalar
+    units: null
+    description: world x of the torso, metres; grows as it hops forward (from the simulator —
+      deliberately NOT in the observation)
+    source: null
+  - name: s.x_velocity
+    shape: scalar
+    units: null
+    description: forward velocity averaged over the last control step, m/s; positive means hopping
+      along +x
+    source: null
+  - name: s.z_height
+    shape: scalar
+    units: null
+    description: torso height, metres (obs[0]); below 0.7 the episode ends
+    source: null
+  - name: s.torso_angle
+    shape: scalar
+    units: null
+    description: torso pitch angle, radians (obs[1]); beyond +/-0.2 the episode ends
+    source: null
+  - name: s.joint_angles
+    shape: (3,)
+    units: null
+    description: angles of [thigh, leg, foot], radians (obs[2:5])
+    source: null
+  - name: s.z_velocity
+    shape: scalar
+    units: null
+    description: vertical velocity of the torso, m/s (obs[6], saturates at +/-10)
+    source: null
+  - name: s.torso_angvel
+    shape: scalar
+    units: null
+    description: torso pitch angular velocity, rad/s (obs[7], saturates at +/-10)
+    source: null
+  - name: s.joint_velocities
+    shape: (3,)
+    units: null
+    description: angular velocities of [thigh, leg, foot], rad/s (obs[8:11], each saturates at
+      +/-10 — hopping gaits do hit this bound)
+    source: null
+  - name: s.obs
+    shape: (11,)
+    units: null
+    description: 'the raw observation: 5 position entries then 6 velocity entries, velocities
+      clipped to [-10, 10] (s.x_velocity above is the unclipped simulator value; obs[5] is its
+      clipped counterpart)'
+    source: null
+  - name: action
+    shape: (3,)
+    units: null
+    description: the torques applied this step, order [thigh, leg, foot], each in [-1, 1]
+    source: null
+  helpers: []
+  helpers_note: |-
+    The one precomputed quantity is `s.is_healthy` — the env's default healthy check
+    recomputed from the current observation (exact for the height/angle fall modes;
+    see the state table for the one velocity-clip caveat). Everything else hopping
+    plausibly wants — forward position and speed, height, posture, joint state — is
+    already a named field of `s` above and a direct function of those.
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: Gymnasium's control envs ship no discrete success check and no
+    info['success']; there is no shipped success check to game and nothing for a hardened oracle to
+    tighten. Ground truth is the continuous success metric in continuous_success.raw.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: forward_displacement
+    expr: final x - x at reset (`bird/envs/gym_mujoco.py::_fit_forward_displacement`)
+    unit: m
+    direction: maximize
+    saturates_at: null
+    saturates_at_reason: 'No ceiling in the metric''s definition: it is a net displacement in
+      metres with no clamp, so its supremum is whatever the physics and the horizon allow rather
+      than anything the metric asserts. A horizon x max-speed figure would be a modelling choice
+      about the simulator, not a property of this measurement, so it is not recorded as one.'
+  normalized:
+    method: anchors
+    formula: null
+    success_threshold: 0.9
+anchors:
+  # null: no `policies/` entry has been run on this task. Absence is explicit.
+  scripted: null
+  random:
+    value: -0.027
+    method: random_policy
+    source: 'Random baseline over n=12
+      episodes of action_space.sample() on seeds 0-11, same fitness function as training. sigma 0.055.'
+    n_seeds: 12
+    n_episodes: 12
+    reason: null
+    date: '2026-08-20'
+  expert:
+    value: 13.9278
+    method: trained_policy
+    source: >-
+      MEASURED 2026-08-28 by `scripts/train_expert.py`: PPO (sb3) trained for 1,001,472 env steps on
+      `env.reference_reward` -- the adapter's own hand-written reward, NOT `task_metric`, which
+      would be optimising the evaluation metric -- then rolled out with deterministic actions for 30
+      evaluation episodes per seed and scored by `task_metric`, i.e. `continuous_success.raw`
+      (forward_displacement, metres travelled), the same quantity the `random` anchor above reports.
+      Seeds 0/1/2 scored 12.3235 / 13.9278 / 7.4059. Engine: mujoco 3.3.0 / gymnasium 1.3.0 /
+      stable-baselines3 2.9.0 -- BIRD's own pinned stack and the version this spec declares, so the
+      expert side needs no engine caveat; the `random` side may still carry one (see
+      `tasks/SOURCE.md`). The value recorded is the MAX (seed 1), which
+      makes it a FLOOR ON THE CEILING and not an expectation: a trained policy is whatever its run
+      reached, so this anchor may move UP if a better one is trained and must never be read as the
+      benchmark's own answer the way a `scripted_policy` anchor is. `any_step_episode_fraction` was
+      0.0 on all three seeds -- the discrete success check never fired even for this policy -- so no
+      any-step expert is claimed. Note this pair stays FLAT and unlabelled, so
+      `bird/envs/spec.py::baselines_of` still refuses it and fitness on this task stays RAW; filling
+      this anchor records the measurement and does not switch normalisation on. The measurement's
+      own confidence interval is deliberately NOT reproduced here: `measure_anchors.interval` clamps
+      to [0, 1] as though the metric were a fraction, and on a raw-valued metric that returns lo >
+      hi (or hi = 1.0 below the mean), so only the per-seed means are sound. The trained policies
+      are not distributed with this repository.
+    n_seeds: 3
+    n_episodes: 30
+    date: '2026-08-28'
+budget:
+  train_steps: 300000
+  learning_verified:
+    verified: true
+    reward_used: simple_correct
+    algo: sb3 PPO
+    seeds: 1
+    result: 12.23 m vs random -0.027 +/- 0.055 m, pass bar >= 0.97; PASS first attempt, 555 s
+      wall-clock.
+    date: '2026-08-20'
+  saturates_at: null
+reward:
+  human:
+    kind: published_dense
+    scope: value_determining
+    reference:
+      path: gymnasium/envs/mujoco/hopper_v5.py
+      lines: 283-302
+      symbol: HopperEnv._get_rew
+      commit: null
+      sha256: 723d00eb50ed68428c1cc4733495c5894a57ff86e8fc9a06fa952611518c13f7
+    depends_on: []
+    import_path: null
+    verified_against: gymnasium 1.3.0 (mujoco 3.3.0)
+    notes: forward velocity + healthy (alive) bonus - ctrl cost. Verified against source; whole-file sha256
+      from the installed wheel (the artifact the adapter runs against), commit null for that reason. Self-contained
+      — no shared shaping helpers, hence the empty depends_on.
+  contract:
+    signature: |-
+      MAX_REWARD = <float>   # tight upper bound on `reward` below
+
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          """
+          Args:
+            s:      frozen state namespace, fields documented above; no env handle
+            action: (3,) float array, the action applied this step
+          Returns:
+            reward:     a single float in [0, MAX_REWARD]
+            components: dict mapping term name -> float
+          """
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, not a batch: a single Python float for reward and for each component.
+      Single environment, plain NumPy.'
+    reward_utils: []
+  forbidden_symbols: []
+judge:
+  vlm_legible: true
+  legibility_note: Hopping vs standing vs fallen are all readable; absolute distance travelled
+    is not (tracking camera, no landmarks).
+  camera:
+    name: track
+    mode: tracking
+    note: 'Verified in the env asset 2026-08-24: <camera name="track" mode="trackcom" pos="0 -3
+      -0.25" xyaxes="1 0 0 0 0 1"/> — a follow camera. A tracking camera hides absolute progress,
+      so frames alone cannot show distance travelled.'
+  subtasks_sequential: false
+  telemetry_fields:
+  - x_position
+  - x_velocity
+  - z_height
+domain_randomization:
+  # Multiplicative scales
+  # on the arrays bird/envs/gym_mujoco.py captures at construction, nominal 1.0; the
+  # adapter's _GYM_AXES table says what each writes. Only axes with a mechanical path on
+  # THIS model are declared (no fluid on a legged model, no collider on Reacher).
+  parameters:
+    body_mass_scale:
+    - 0.25
+    - 4.0
+    torso_mass_scale:
+    - 0.5
+    - 4.0
+    contact_friction_scale:
+    - 0.1
+    - 4.0
+    gravity_scale:
+    - 0.7
+    - 1.3
+    motor_strength_scale:
+    - 0.5
+    - 2.0
+    joint_damping_scale:
+    - 0.1
+    - 5.0
+  nominal:
+    body_mass_scale: 1.0
+    torso_mass_scale: 1.0
+    contact_friction_scale: 1.0
+    gravity_scale: 1.0
+    motor_strength_scale: 1.0
+    joint_damping_scale: 1.0
+exploits: []
+symbol_mapping: null
+provenance:
+  authored_from:
+  - path: bird/envs/gym_mujoco.py
+    lines: null
+    what: '`_fit_forward_displacement`, the ground-truth fitness (`_FITNESSES["forward_displacement"]`, selected by
+      `continuous_success.raw.name`)'
+  - path: gymnasium/envs/mujoco/hopper_v5.py
+    lines: null
+    what: 'gymnasium 1.3.0 env source: spaces, cameras, built-in reward'
+  rule: source, not docstrings
+  measured:
+  - Random baseline -0.027 +/- 0.055 m (n=12); trained 12.23 m at 300k.
+  - 'Early termination: episodes end at the first fall (z below ~0.7 m), so trajectory lengths
+    vary.'
+  verified_by: BIRD authors
+  date: '2026-08-24'

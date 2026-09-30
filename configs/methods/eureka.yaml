@@ -1,0 +1,135 @@
+# Eureka -- Ma et al., "Eureka: Human-Level Reward Design via Coding Large
+# Language Models", ICLR 2024, arXiv 2310.12931.
+# Code: https://github.com/eureka-research/Eureka (eureka.py and cfg/config.yaml
+# are under its eureka/; *.tex and appendix: lines are the arXiv LaTeX source).
+#
+# An LLM writes 16 reward functions independently from the environment source and
+# the task description; each is trained with PPO and scored on the task's fitness
+# metric. The best is quoted back with per-component statistics of its training
+# curves and the LLM rewrites it, for five iterations; the best reward overall is
+# then retrained on five seeds. The released config is a demo (1 iteration, 3
+# samples); this file pins the paper's values.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value.
+# The matched protocol of the paper's experiments: scripts/paper_cell.py.
+
+extends: zeroshot.yaml
+name: eureka
+
+# --- models and loop -------------------------------------------------------
+
+llm:
+  generator:
+    model: gpt-4-0314                 # paper "GPT-4"; snapshot from cfg/config.yaml:12
+    temperature: 1.0                  # ‡ paper silent; cfg/config.yaml:13
+
+loop:
+  n_iterations: 5                     # † paper 5 (§3.2, method.tex:74);
+                                      #   code 1 (cfg/config.yaml:17)
+  n_restarts: 5                       # independent runs per task (§3.2, method.tex:74)
+  carry: [best_reward, dialogue]
+  on_total_failure: continue          # an all-failed round still uses up an iteration (eureka.py:280-286)
+
+# --- generate --------------------------------------------------------------
+
+generate:
+  n_candidates: 16                    # † paper 16 (§3.2, method.tex:74);
+                                      #   code 3 (cfg/config.yaml:18)
+  sampling_mode: iid_parallel
+  sampling:
+    chunk_size: 4                     # requests in batches of 4 (eureka.py:82)
+  parent_source: iteration_best       # each round's best is the parent, even if worse (eureka.py:330-335)
+
+  context:
+    env_spec: full_source             # BIRD renders the whole adapter class, not Eureka's obs-only
+                                      #   trim (App. D, appendix:202; eureka.py:41, :58)
+    include_parent_code: true         # the previous best reward is quoted back
+    include_numeric_reflection: true  # per-component training statistics (policy_feedback.txt)
+    include_reward_engineering_tips: true
+                                      # code_feedback.txt and code_output_tip.txt (eureka.py:57, :268-269)
+
+  history_mode: last_iteration        # 4-message window: system, task, best reply, feedback (App. D; eureka.py:330-335)
+  history_max_turns: 2                # one (assistant, user) pair, i.e. upstream's window
+
+  output:
+    format: component_dict_return     # returns (total, dict of named components)
+  parse:
+    patterns:                         # eureka.py:127-133's five extraction patterns, in order
+      - '```python(.*?)```'
+      - '```(.*?)```'
+      - '"""(.*?)"""'
+      - '""(.*?)""'
+      - '"(.*?)"'
+    max_retries: 0                    # an unparseable sample forfeits its slot
+
+# --- verify ----------------------------------------------------------------
+
+verify:
+  enabled: false                      # no verification stage: a runtime failure scores failure_value
+  quality_screen: none
+  on_failure: record_neg_inf
+
+# --- train -----------------------------------------------------------------
+
+train:
+  algorithm: ppo
+  env_steps: 393216000                # ‡ 3000 iters (cfg/config.yaml:19) x 16384 envs x 8 steps, ShadowHand;
+                                      #   the paper gives no length (experiments.tex:34, appendix:210)
+  n_parallel_envs: 16384              # ‡ paper silent; ShadowHandGPT.yaml:31 numEnvs
+  seeds_per_candidate: 1
+  checkpoint_interval: 10             # BIRD default; checkpoints feed the numeric reflection
+
+final_retrain:
+  enabled: true                       # the returned reward is retrained on 5 seeds (eureka.py:348-352)
+  n_seeds: 5                          # "5 PPO runs" (appendix:210); num_eval: 5 (cfg/config.yaml:20)
+  env_steps: 2621440000               # ‡ task default, 20000 epochs x 16384 x 8 (ShadowHandGPTPPO.yaml:18);
+                                      #   the paper states the rule, no number (appendix:210)
+
+# --- evaluate --------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: native                    # the env's own logged metric, as upstream (eureka.py:255-256)
+    metric: consecutive_successes     # upstream's log key for the task fitness F (eureka.py:255-256)
+    checkpoint_aggregation: max_over_training_epochs
+                                      # † paper max over 10 checkpoints (experiments.tex:34);
+                                      #   code max over every epoch (eureka.py:253), pinned
+  feedback:
+    numeric_reflection: true
+    granularity: per_component        # statistics for each reward component
+    metric_alias: task_score          # the metric is shown as "task_score" (eureka.py:255-263)
+    state_selection_scalar: false     # the selection score is never named (eureka.py:250-267)
+    analyzer: none                    # no second LLM: the reflection is built from training scalars
+
+  similarity:
+    metric: pearson_curve             # † paper per-transition (App. B, appendix:327);
+                                      #   code per-epoch curves (eureka.py:243-246), pinned
+    reference: gt_reward
+    role: report                      # logged, never used to select
+
+# --- select ----------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # np.argmax(successes) (eureka.py:289)
+  tie_break: first                    # np.argmax returns the lowest index
+  scope: within_iteration             # parent = this round's winner, ungated (eureka.py:330-335);
+                                      #   `cumulative` would gate it on the global best
+  final_artifact: global_best         # the run returns the best overall (eureka.py:292-300)
+  failure_value: -10000.0             # ‡ DUMMY_FAILURE (eureka.py:65)
+  significance: none
+
+# --- update ----------------------------------------------------------------
+
+update:
+  topology: single_parent_hillclimb   # one survivor, no crossover
+  operator: reflect_and_mutate
+  winner:
+    action: become_parent
+  loser:
+    action: discard
+  prompt:
+    mode: sliding_window              # the 4-message window, kept by overwriting
+    assistant_content: raw_response   # the best sample's full reply, prose included (eureka.py:331, :335)
+
+post: [final_retrain]

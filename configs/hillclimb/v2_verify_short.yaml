@@ -1,0 +1,14 @@
+# Hill-climb configuration 4 (v2_verify_short): v2_verify's 24 trainings in two rounds,
+# [16,8]: one wide exploration round and one refinement round, the fewest sequential rounds.
+# Tests whether a cheap fixed taper is enough before any adaptivity is credited.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=2.
+
+extends: v2_verify.yaml
+name: v2_verify_short
+
+loop:
+  n_iterations: 2
+
+generate:
+  n_candidates: 16
+  candidate_schedule_values: [16, 8]

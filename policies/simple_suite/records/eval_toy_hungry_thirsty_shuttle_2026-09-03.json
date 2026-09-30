@@ -1,0 +1,220 @@
+{
+ "schema": "bird-policy-eval-v1",
+ "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+ "env_id": "toy_hungry_thirsty",
+ "unit": "bird_task_metric",
+ "commit": "9632d65",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-03",
+ "params": null,
+ "summary": {
+  "n": 25,
+  "mean": 0.594,
+  "min": 0.43333333333333335,
+  "max": 0.9,
+  "successes": 25
+ },
+ "rows": [
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 0,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.5833333333333334,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 1,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.7,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 2,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.7166666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 3,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.6166666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 4,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.8166666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 5,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.43333333333333335,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 6,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.55,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 7,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.48333333333333334,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 8,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.7,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 9,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.5,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 10,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.9,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 11,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.5833333333333334,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 12,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.7,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 13,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.4666666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 14,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.6666666666666666,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 15,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.48333333333333334,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 16,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.4666666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 17,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.5,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 18,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.55,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 19,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.6166666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 20,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.45,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 21,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.6333333333333333,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 22,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.4666666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 23,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.7166666666666667,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_hungry_thirsty_shuttle",
+   "seed": 24,
+   "steps": 60,
+   "terminated_early": false,
+   "metric": 0.55,
+   "success": true
+  }
+ ]
+}

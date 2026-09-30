@@ -1,0 +1,652 @@
+# BIRD default config: every key BIRD accepts, with its default value.
+#
+# A method config is read as a diff against this file, so the defaults describe
+# the most degenerate sensible search: sample one reward, train it, stop. Write
+# a new config with `extends:` and override only what the method changes.
+# Allowed values and types live in bird/schema.py; tests/test_schema_coverage.py
+# keeps the two files in sync in both directions.
+#
+# §0 is the loop controller; §1-§6 are the six stages of one iteration
+# (generate, verify, train, evaluate, select, update). "Ours" marks a knob no
+# paper pins. † = paper and released code disagree (both given); ‡ = paper
+# silent, code supplies the value.
+
+name: _default
+seed: 0
+profile: null                         # set by the loader from --profile, never by a config file
+
+# --- §0 problem, models and loop ----------------------------------------------
+
+problem:
+  env_id: toy_reacher
+  task_id: null                       # task spec id (tasks/<id>/); null = derived from env_id
+  task_description: null              # null = the spec's description.l_task; a string overrides it
+  horizon: null                       # episode length in training and evaluation; null = the env's
+                                      #   own. It may shorten the env's horizon, never lengthen it
+  instruction_modality: text          # text | text+image | video
+  search_space: [reward]              # + observation (LIMEN) | + dr (DrEureka)
+  search_space_mode: joint            # joint | staged. Descriptive only: read by no stage
+  reward_representation: free_form_code # descriptive only; see generate.output.format
+  fitness_access: ground_truth_metric # ground_truth_metric | success_indicator | none
+                                      #   | demonstrations (a solution policy's rollouts only)
+
+llm:
+  # `provider` picks the client that runs the call (mock runs offline); `model` records
+  # the paper's model. Method configs keep mock; the dev/full profiles swap in real ones.
+  generator:
+    provider: mock                    # mock | anthropic | openai | fixed
+    model: mock-generator
+    temperature: 1.0
+    reasoning_effort: none            # none | low | medium | high
+    modality: text                    # text | vlm
+    program: null                     # provider fixed only: path of the program returned every call
+  evaluator:
+    provider: mock
+    model: mock-evaluator
+    temperature: 0.0
+    modality: text
+  max_context_tokens: 128000
+  prompt_caching: true                # transport only: changes the bill, never what the model reads
+  max_concurrent_requests: 8          # transport only: a fixed ceiling on round-trips in flight
+                                      #   per call; 8 leaves headroom on the key's shared rate limit
+
+loop:
+  n_iterations: 1
+  n_restarts: 1                       # independent runs of the whole loop
+  termination: fixed_iterations       # every published method uses this
+  termination_cfg:
+    patience: null
+    min_delta: 0.0
+    target_fitness: null
+  # Passes of generate..evaluate that make up ONE iteration; §5-§6 run once over their
+  # union. [] = one pass. Entry: {llm: n, crossover: n, when: always | no_archive} (R*).
+  waves: []
+  carry: []                           # state that survives an iteration; the rest is dropped
+  on_total_failure: continue          # retry_iteration | abort | continue (skip §5-§6)
+                                      #   | continue_after_update (still run §6; RF-Agent's tree)
+  max_iteration_retries: 3
+  max_parallel_trainings: auto
+  resume_from: null                   # null | auto | auto_degraded. A sentinel, never a path;
+                                      #   non-null also turns on checkpoint writing
+  # An ordered progression of skills, gated stage by stage (ours; no paper uses it).
+  # Not generate.decomposition, whose subtasks are concurrent aspects of one task.
+  curriculum:
+    enabled: false
+    author: subtask_list              # subtask_list (orders RDA's decomposition) | llm_reviewed
+    author_max_rounds: 3
+    gate: fixed_budget                # fixed_budget | vlm_ensemble
+    gate_votes: 3
+    gate_threshold: 0.7
+    stage_patience: null              # null = loop.n_iterations // n_stages
+    on_stall: resplit                 # resplit | advance | abort
+    regression_check: false
+    regression_tolerance: 0.15
+
+budget:                               # null = uncapped
+  max_policy_trainings: null
+  max_llm_calls: null
+  max_gpu_hours: null
+
+pre: []                               # phases before the loop (e.g. rapp)
+post: []                              # phases after it (e.g. final_retrain)
+
+# --- §1 generate --------------------------------------------------------------
+
+generate:
+  reward_language: numpy              # numpy | jax | torch (fasttd3/sb3 only). A science knob:
+                                      #   jax rewards are a separate population from numpy ones
+  n_candidates: 1                     # rewards sampled per iteration (the maximum under `explicit`)
+  candidate_schedule: constant        # constant | explicit (a count per iteration, below)
+  candidate_schedule_values: []       # `explicit` only: one int > 0 per iteration
+  sampling_mode: iid_parallel         # iid_parallel | sequential_conditioned | distinct_prompts
+                                      #   | personas | tree_actions | evolutionary_operators
+  sampling:
+    chunk_size: 4                     # samples per API call
+  parent_source: none                 # none | global_best | iteration_best | latest | top_k
+                                      #   | archive_sample | archive_island_cohort | uct_leaf
+                                      #   | puct_leaf
+  n_parents: 1                        # >1 enables crossover-style prompts
+  crossover_rate: 0.0                 # per-offspring P(crossover) (REvolve §3.2, p.5);
+                                      #   read only by sampling_mode evolutionary_operators
+
+  # RF-Agent's search tree (MCTS over rewards). Read only by parent_source uct_leaf /
+  # puct_leaf, sampling_mode tree_actions and update.topology search_tree.
+  tree:
+    horizon_trainings: null           # Alg. 1's N: horizon of the lambda and backup-decay
+                                      #   schedules; required by uct_leaf / puct_leaf
+    uct_lambda0: 0.0                  # lambda_0, the weight of the exploration terms (Eq. 2)
+    uct_lambda_final: 0.0             # lambda decays linearly to this. † paper 0 (Alg. 1 line 8);
+                                      #   code 0.1 (rfagent_algo.py:117,778)
+    max_depth: null                   # uct_leaf expands at this depth; null = uncapped.
+                                      #   ‡ paper silent; code 16 (config_rf_agent.yaml:18)
+    group_size: [2, 2]                # inclusive range of nodes a crossover_elite or
+                                      #   different_thought prompt shows. RF-Agent [2, 4] (tex:829)
+    elite_size: 1                     # elite set = top-N tree nodes by score.
+                                      #   ‡ paper silent (tex:199); code 10 (rfagent_algo.py:128)
+    path_window: 1                    # ancestors a path_reasoning prompt shows. † paper k in [2,4]
+                                      #   (tex:201,829); code a fixed 4 (rfagent_algo.py:131)
+  # R*'s LLM-free crossover: part of each population is bred from parents instead of
+  # asked of the LLM. Inert by default.
+  crossover:
+    n: 0                              # of n_candidates, how many are crossover children.
+                                      #   R* 4 of 16 (App. A p.12), a 3:1 ratio
+    operator: none                    # none | module_insert
+    parent_selection: none            # none | softmax_fitness
+    temperature: 1.0                  # softmax temperature. Ours: R* states none
+    backfill_failures: false          # replace failed LLM samples with crossover children
+                                      #   ("No extra API calls", App. A p.12)
+
+  # R*'s parameter alignment: fit each reward's own numbers to preference segments
+  # voted on by LLM-written critics.
+  alignment:
+    method: none                      # none | bradley_terry_segments
+    labeller: none                    # none | critic_population_vote
+    critics: 0                        # LLM critics (charged calls). R* 5 (App. A p.12)
+    vote_ladder: []                   # votes required, strictest first. R* [5, 4, 3]
+    min_segment_len: 5                # R* App. A "at least 5". † §4.3 says "greater than 5"
+    target_segments: 20               # R* 20 (App. A p.12)
+    max_pairs: 0                      # 0 = every pair in the store. Ours: R* gives no number
+    iterations: 0                     # R* 1000 (App. A p.12)
+    train_fraction: 0.7               # R* 70/30 (App. A p.12)
+    learning_rate: 0.01               # Ours: R* names no optimiser or step size
+    tunable: none                     # none | float_literals: which numbers are fitted. Ours
+
+  actions: {}                         # tree_actions only: counts per RF-Agent action, summing to
+                                      #   n_candidates. RF-Agent {2, 2, 2, 1, 1} (tex:829)
+  generator_backend: llm              # llm | exhaustive_enumeration
+  search_grid: {}                     # exhaustive_enumeration only (Singh 2009)
+
+  context:                            # what the generator's prompt contains
+    env_spec: full_source             # how the env is shown. full_source renders the adapter class,
+                                      #   not Eureka's observation-only trim
+    strip_existing_reward: true       # hide the env's own reward from the LLM; keep true
+    include_safety_instruction: false
+    safety_instruction: null
+    include_task_decomposition: false
+    include_curriculum_stage: false   # show the current curriculum stage
+    include_reward_recipe_hints: false # true (BIRD's paraphrase) | t2r_metaworld | t2r_panda
+                                      #   (the published templates, byte for byte)
+    include_reward_engineering_tips: false # Eureka's code_feedback + code_output_tip blocks
+    include_parent_code: false
+    include_parent_thought: false     # a "Design Idea:" line above each parent's code (RF-Agent)
+    include_numeric_reflection: false
+    include_behavioural_analysis: false
+    include_human_feedback: false
+    include_failure_traces: false
+    include_archive_elites: false
+    shuffle_sections: false
+    system_prompt: null               # non-null replaces the system message verbatim. Ours
+    guidance: null                    # non-null adds a free-text GUIDANCE section. Ours
+    reflection_guidance: null         # non-null replaces Eureka's feedback-analysis block,
+                                      #   else is appended after the feedback. Ours
+
+  history_mode: none                  # none | last_iteration | cumulative_append | full_dialogue
+                                      #   | rolling_summary
+  stage_history_modes: []             # per-LLM-call override of history_mode; [] = all use it
+  history_max_turns: 4
+  history_max_tokens: 64000
+
+  fewshot:
+    enabled: false
+    k: 3
+    retriever: semantic_similarity    # semantic_similarity | random | fixed
+    corpus: null                      # a path, or "self" (this run's own past winners)
+
+  decomposition:                      # split the task into subtasks scored side by side (RDA)
+    enabled: false
+    n_subtasks: auto
+    reward_must_map_to_subtasks: false
+    guidance: null                    # extra instruction for the subtask prompt. Ours
+
+  output:
+    format: component_dict_return     # component_dict_return | component_dict_plus_weights
+                                      #   | scalar_only | template_params
+    edit_mode: full_rewrite           # full_rewrite | diff | weights_only
+    signature: compute_reward_state_action_next
+                                      # the signature line the prompt pins; the t2r_/card_ values
+                                      #   are those releases' lines, verbatim
+    two_stage_nl_then_code: false     # an English design first, then the code (L2R)
+    design_thought: none              # none | inline_brace: a {one-sentence idea} before the code
+    forbid_helper_functions: false
+
+  parse:
+    patterns:                         # regexes tried in order to extract the code
+      - '```python(.*?)```'
+      - '```(.*?)```'
+      - '"""(.*?)"""'
+    max_retries: 0                    # re-queries when nothing parses; at 0 the sample is lost
+
+  postprocess:
+    symbol_mapping: null              # a dict, or a symbol table: per_task | t2r_metaworld_global
+
+  co_design:
+    observation_fn: false             # also generate the policy's observation (LIMEN)
+    observation_max_dim: 512
+    dr_config: false                  # also generate domain randomization (DrEureka)
+    dr_prior: none                    # none | default_sim_ranges | rapp
+    dr_n_configs: 16
+
+# --- §2 verify ----------------------------------------------------------------
+# Validity checks (does the code run?) and quality screens (is it worth training?)
+# are separate blocks on purpose.
+
+verify:
+  enabled: false
+  static_checks: [signature_parse, ast_syntax]
+  forbidden_symbols: null             # null = the task spec's list; [] forbids nothing
+  dynamic_checks: [execution_smoke, output_shape, finite_values]
+  smoke_test_steps: 1
+  timeout_s: 60
+  check_order: declared               # declared | staged (cheapest first, stop at first failure)
+  stage_timeouts_s: {}                # per-check override of timeout_s
+  human_confirm_before_execute: false # a human approves code before it runs (L2R)
+  on_failure: record_neg_inf          # discard | record_neg_inf | resample_with_trace
+                                      #   | resample_blind | teach_next_iteration | degrade
+  max_repair_attempts: 0              # 0 = uncapped (safety limit 100, then on_exhaustion)
+  on_exhaustion: record_and_continue  # record_and_continue | abort_run | teach_next_iteration
+  repairs_count_against_budget: true
+
+  dedup:
+    method: none                      # none | ast_hash | embedding | epic_distance
+    threshold: 0.0
+
+  quality_screen: none                # none | tac | cascade | tpe | epic | starc
+                                      #   | policy_rank_corr | demo_margin | complexity_cap
+
+  alignment_filter:                   # Gran Turismo's trajectory-alignment filter (TAC)
+    enabled: false
+    metric: trajectory_alignment_coefficient
+    preference_dataset: D_pref
+    keep_top_n: 5
+    subtraj_len: 64
+
+  cascade:                            # LIMEN's short-budget filter
+    enabled: false
+    short_budget_steps: 1000000
+    short_budget_fraction: null       # null = use short_budget_steps; a float in (0, 1]
+                                      #   sizes the screen as a fraction of train.env_steps
+    min_success_threshold: 0.03
+
+  # The demonstration verifier (quality_screen demo_margin; ours): before training,
+  # each reward re-scores rollouts of expert, noised-expert and random policies and
+  # must pay them in that order. It reads rollouts only, never the task metric.
+  demo_screen:
+    policies: [expert, expert_noise:0.3, expert_noise:0.6, random]
+    episodes: 2                       # per policy per candidate; seeded
+    keep: all                         # which passers train: all | fraction | top_k | adaptive
+                                      #   | skip_all (none: the screen is the whole evaluation)
+    keep_fraction: 0.75               # `fraction`: ceil(fraction x passers)
+    keep_top_k: 4                     # `top_k`
+    keep_cfg:                         # `adaptive`: k starts at cap, shrinks toward floor on a stall
+      cap: 8
+      floor: 2
+      patience: 2
+      decay: 0.5
+      min_spread: 0.05
+    reject_nonpositive_margin: true   # screen a reward that pays random >= the expert
+    max_reward_error_rate: 0.05       # screen a reward that raises on more steps than this
+
+  complexity_cap:                     # quality_screen complexity_cap: a hard size budget. Ours
+    max_components: 0                 # returned reward-dict entries; 0 = off
+    max_ast_nodes: 0                  # AST nodes of the reward function; 0 = off
+
+  tpe:                                # CARD's Trajectory Preference Evaluation
+    enabled: false
+    rule: pair_accuracy               # pair_accuracy | frac_above_max_failure | min_over_max
+    threshold: 0.8
+    discount: null                    # null = undiscounted mean per step (released code)
+    trajectories_per_iteration: 100   # rollouts collected into the store per iteration
+                                      #   (CARD's --trajectory_num); 0 = none dedicated
+    store: append_on_pass             # append_on_pass | append_always
+    on_failure: skip_training         # skip_training | train_anyway. † paper skips RL (§4.4);
+                                      #   code always trains (metaworld_exp_one_step.py:374)
+
+  llm_self_critique:
+    enabled: false                    # named as future work in RDA; implemented by nobody
+
+# --- §3 train -----------------------------------------------------------------
+
+train:
+  backend: mock                       # the learner that runs: mock | tabular | sb3 | fasttd3
+                                      #   | simba_v2 | assistax_ppo | none
+  algorithm: ppo                      # the paper's algorithm, kept as a citation even when
+                                      #   the backend cannot run it
+  architecture: mlp
+  hyperparameters: {}
+  reward_source: candidate            # candidate | reference (the env's own reward: the oracle
+                                      #   baseline; needs n_candidates 1)
+  hyperparameter_search: none         # none | grid | per_candidate_best (Singh 2009: fitness
+                                      #   is a max over a learner grid)
+  hyperparameter_grid: {}             # {param: [values]}, searched per candidate
+  env_steps: 20000
+  n_parallel_envs: 1                  # per backend: episodes per round (mock, tabular), worker
+                                      #   processes (fasttd3), fleet width (simba_v2); inert on sb3
+  seeds_per_candidate: 1              # inner-loop replicates per candidate
+  candidate_parallelism: sequential   # sequential | parallel (forked, bit-identical)
+
+  # LaRes: the round's candidates share one interaction budget and one buffer.
+  # `independent` (every other method) trains each candidate on its own.
+  interaction: independent            # independent | shared_population (same total steps)
+  interaction_allocator: uniform      # uniform | thompson_success (reads the env's success
+                                      #   flag: a ground-truth channel)
+  interaction_cfg:
+    slices_per_candidate: 5           # re-allocations per candidate; slice = env_steps / this
+    moment_samples: 4096              # buffer transitions sampled for elite_moments scaling
+    window: 200                       # episodes per arm in the Thompson window. LaRes sets it
+                                      #   per task (run.sh); 200 is drawer-open/window-open
+    prior_alpha: 1.0                  # Beta prior (App. B: "set to 1")
+    prior_beta: 1.0
+    skip_duplicates: true             # App. B: a member sampled twice in a round interacts once
+    shared_buffer: true               # one raw-transition ring per round, relabelled per arm
+
+  reward_scaling: none                # none | elite_moments (LaRes Eq. 3: match the elite's
+                                      #   reward mean and std)
+  elite_constraint:                   # LaRes Eq. 4: an L2 pull toward the elite's parameters
+    kind: none                        # none | l2_params
+    weight: 1.0                       # App. D: 1.0 on all tasks (sac.py:459 agrees)
+    apply_to: non_elite               # non_elite | all
+  init: from_scratch                  # the policy a candidate starts from: scratch, a warm start,
+                                      #   a replay buffer, a BC prior, or a fusion (ROSKA)
+  on_runtime_error: record            # record | repair (send the traceback back and retrain;
+                                      #   RF-Agent), bounded by verify.max_repair_attempts
+  secondary_buffer:
+    ratio: 0.2
+    size: 100000
+  # ROSKA's fused warm start (methodology.tex:69):
+  # theta = alpha * theta_best_prev + (1 - alpha) * theta_0.
+  fusion:
+    ratio_search: fixed               # fixed | sc_bo (Short-Cut Bayesian Optimisation over alpha)
+    alpha: 1.0                        # `fixed` only; 1.0 = warm_start_from_best, 0.0 = scratch
+    sc_bo:
+      init_points: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+      n_evaluations: 12               # J, including the initial points
+      probe_fraction: 0.0             # T_BO as a fraction of train.env_steps; 0 = off.
+                                      #   ROSKA 200/3000 epochs
+      post_probe_fraction: 0.0        # training after the search, same unit. ROSKA 300/3000
+    first_round_fraction: 0.0         # round 1's training, same unit. ROSKA 500/3000
+  winner_extension_fraction: 0.0      # extra training for the round's winner. ROSKA 2500/3000
+  # bc_prior (ours): start every candidate from a behaviour clone of the task's scripted
+  # policy (policies/). The scripted policy reaches training only, never a prompt.
+  bc_prior:
+    policy: auto                      # auto = the env's unique runnable policy, or a registry id
+    n_demos: 25
+    epochs: 400
+    success_margin: 25                # steps kept after an episode's first success
+    accept: success                   # which episodes are demos: success | any | metric_floor
+                                      #   | success_else_top | success_else_best
+    accept_min_metric: null           # metric_floor only: the task_metric floor
+    fallback_oversample: null         # success_else_top only: roll this x n_demos episodes
+    fallback_keep: null               # success_else_top only: clone this top fraction
+    fallback_min_metric: null         # success_else_best only: keep episodes above this
+    fallback_max_episodes: null       # success_else_best only: roll at most this x n_demos
+    clone_eval_episodes: 0            # evaluate the clone for this many episodes; 0 = off
+  # A keep-close term toward the policy the candidate started from (ours):
+  # kl_clone adds beta * KL to PPO's loss; kl_reward subtracts it from the reward.
+  anchor:
+    kind: none                        # none | kl_clone | kl_reward
+    schedule: adaptive                # fixed | adaptive (beta moves toward `target`)
+    beta: 5.0
+    target: 0.05                      # per-state divergence the adaptive schedule aims at
+    warmup_steps: 20480               # actor frozen while the critic fits
+    target_kl: 0.02                   # PPO's per-update early stop (kl_clone)
+    log_std_init: -1.4                # overrides the start policy's log-std; null keeps it
+    until_iteration: null             # anchor only iterations below this; null = every one
+    beta_min: 0.001                   # floor under the adaptive beta
+  pruning: none                       # early-stop rule: none | median_stop | successive_halving
+                                      #   | hyperband | plateau | successive_halving_pool
+  pruning_metric: own_reward          # what it watches: own_reward | task_metric (ground truth)
+                                      #   | demo_fraction (share of the random->expert gap; ours)
+  pruning_cfg:
+    patience: 4                       # plateau: stop once this many checkpoints beat nothing
+    min_delta: 0.02                   #   before them by more than min_delta x the curve's range,
+    min_checkpoints: 5                #   and at least this many checkpoints exist
+    ceiling: none                     # none | demo_return: no stop before ceiling_fraction
+                                      #   of the random->expert gap is closed. Ours
+    ceiling_fraction: 0.8
+    rung_fraction: 0.25               # successive_halving_pool: first rung's share of env_steps
+                                      #   (K=8, eta 2: 4.5 budgets in total)
+    eta: 2                            # successive_halving_pool: keep the top 1/eta per rung
+  reward_norm: none                   # none | running_std | clip; interacts badly with LLM weights
+  reference_policy:                   # a KL-style pull toward the demo policy, training reward only
+    enabled: false
+    beta: 0.1                         # per-step penalty beta x ||a - a_ref(s)||^2 / (2 sigma^2)
+    sigma: 0.5
+  checkpoint_selection: final         # the checkpoint that ships: final | best_by_reward
+                                      #   | best_own_return (ranked by own return, not task metric)
+  checkpoint_selection_cfg:
+    min_delta: 0.02                   # best_by_reward: restore only if the best beats the last
+                                      #   by > min_delta x the curve's range
+  checkpoint_interval: 10
+  timeout_s: 3600
+  failure_detection: exception        # exception | stdout_grep
+  # `epoch_scalars` adds the learner's per-epoch series (the input to
+  # evaluate.feedback.series_source training_epochs); no backend in this release fills it.
+  log: [fitness, reward_component_values]
+  domain_randomization:
+    mode: none                        # none | fixed_human | generated
+    params: {}
+
+# --- report protocol (post-loop phases) ---------------------------------------
+
+final_retrain:
+  enabled: false
+  n_seeds: 5
+  env_steps: null                     # null = train.env_steps. A method key: the paper's budget
+  max_env_steps: null                 # a profile's execution cap: null | int | same_as_train
+                                      #   (the launch-resolved train.env_steps)
+
+# RDA's alignment rate: a VLM rates videos of the final policy. A reported metric,
+# scored apart from evaluate.vlm (the paper pins different counts for the two).
+alignment_rate:
+  enabled: false
+  n_videos: 5                         # videos collected from the final policy
+  repeats: 1                          # VLM queries per video
+  images_per_query: 20                # frames sampled per query
+  scale: "[0,1]"                      # [0,1] | likert | binary
+  normalisation: divide_by_max        # divide_by_max | min_max | none
+
+# --- §4 evaluate --------------------------------------------------------------
+# Two outputs, configured apart: a scalar (fitness) for §5 and prose (feedback) for §6.
+
+evaluate:
+  rollouts_per_candidate: 3           # rollouts of each trained policy (the feedback pool)
+  checkpoint_eval_episodes: null      # episodes per training-curve checkpoint; null = the
+                                      #   backend's own (surrogates 4, 8 on the last row; sb3 3)
+  artifacts: [scalar_metrics]         # what the judge is shown; `videos` (pixels) needs
+                                      #   llm modality vlm and a rollout to render
+  fitness:
+    source: native                    # native = the benchmark's shipped success, else its shipped
+                                      #   reward's return, else refuse; never BIRD's task_metric
+    metric: task_success
+    reduction: per_step_fraction      # per_step_fraction (dense) | any_step_episode_fraction
+                                      #   (sparse, what benchmarks publish)
+    normalisation: none               # none | human_normalised | min_max
+    checkpoint_aggregation: final     # final | max_over_checkpoints | max_over_training_epochs
+                                      #   | auc | last_k_mean | iqm
+    seed_aggregation: mean            # mean | median | iqm | min
+  rejudge_incumbent: false            # re-score the incumbent's stored rollouts each round under
+                                      #   the current rubric (vlm_score only). Ours
+  feedback:
+    numeric_reflection: false
+    include_task_metric: true         # let the reflection show the ground-truth metric
+    metric_alias: null                # prompt-visible name for that curve (Eureka: "task_score")
+    state_selection_scalar: true      # label the selection scalar in the feedback; false =
+                                      #   Eureka's stats-only feedback
+    visual_analysis: false
+    granularity: scalar_only          # scalar_only | per_component | per_subtask
+    series_source: checkpoints        # checkpoints (held-out evaluations) | training_epochs
+                                      #   (Eureka's training log; no backend here fills it)
+    trajectory_examples: none         # none | best_and_worst | random_k | failures_only
+    trajectory_sample_interval: 10    # step stride of a verbalised rollout
+    analyzer: none                    # none | llm (the Auto MC-Reward axis)
+    score_scale: "[0,1]"              # [0,1] | likert | binary | staged | three_point
+                                      #   (RDA's 1.0/0.5/0.0 rubric, App. 7.3)
+    require_rationale: false
+    summarisation: none               # none | per_candidate | per_candidate_per_subtask
+
+  similarity:
+    metric: none                      # none | pearson_curve | epic | starc
+    reference: gt_reward              # gt_reward | previous_best | none
+    role: report                      # report | select | screen
+
+  preferences:
+    enabled: false
+    comparator: vlm                   # vlm | llm_on_vlm_captions | human
+    pairs: all_pairs                  # all_pairs | random_subset | tournament | active
+    aggregator: bradley_terry         # bradley_terry | elo | elo_raw | borda | copeland
+    allow_ties: false
+    clip_length_s: 15
+    fps: 10
+    max_video_s: 180
+    store_dataset: false
+    scope: within_iteration           # the ranking pool: within_iteration | cumulative (refit
+                                      #   over every stored individual; needs store_dataset)
+
+  vlm:
+    images_per_query: 20
+    repeats: 1
+    frame_policy: even                # even (one image per frame) | contact_sheet (one tiled image)
+    contact_sheet:                    # frame_policy contact_sheet only
+      cell_px: 96                     # per-cell width in pixels
+      grid: auto                      # auto = the squarest fit, else RxC
+      label_frames: true              # burn each frame's step index into its cell
+    judge_guidance: null              # extra text for the VLM judge's instructions. Ours
+
+  human:
+    mode: none                        # none | feedback_text | preference_labels | veto
+    queries_per_iteration: 1
+    applies_to: selected_only         # selected_only | all_candidates
+
+  # RF-Agent's two per-candidate LLM calls after training.
+  thought_alignment:
+    enabled: false                    # re-describe each reward's design idea from its code
+  self_verify:
+    enabled: false                    # score each reward against an imagined expert strategy;
+                                      #   a sibling softmax in uct_leaf (Eq. 2; ‡ rfagent_algo.py:78)
+    range: [-1, 1]                    # score bounds stated in the prompt, not clamped
+
+  skip_if_screened: false
+
+  screened_fitness: failure_value     # failure_value | screen_measurement (the rate the
+                                      #   rejecting screen measured, as LIMEN archives them)
+
+# --- §5 select ----------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # argmax_fitness | bradley_terry | pareto | map_elites_insert
+                                      #   | weighted_evidence | random | human | none
+  n_survivors: 1
+  scope: within_iteration             # the contest pool: within_iteration | cumulative
+  final_artifact: global_best         # global_best | chain_end | archive_best | all_survivors
+  failure_value: -10000.0             # a failed candidate's fitness; must lose every comparison.
+                                      #   RF-Agent 0.0 (‡ rfagent_algo.py:386)
+  tie_break: first                    # first | random | lowest_complexity | lowest_variance
+  significance: none                  # none | t_test | bootstrap_ci
+  allocation: uniform                 # uniform | successive_halving | bandit
+                                      #   | bayesian_experimental_design
+  require_improvement_over_incumbent: false
+  incumbent_simplicity_margin: 0.0    # a simpler (fewer AST nodes) challenger may trail by this. Ours
+  objectives: []                      # for rule pareto | weighted_evidence
+  retrain_before_select: false        # declared, not implemented: true is refused at load
+  human_override: false
+
+# --- §6 update ----------------------------------------------------------------
+
+update:
+  topology: single_parent_hillclimb   # single_parent_hillclimb | elitist_population | island
+                                      #   | island_lineage | archive_map_elites | search_tree
+  operator: none                      # none | reflect_and_mutate | crossover | archive_insert
+                                      #   | restart
+  winner:
+    action: become_parent             # become_parent | extend_then_become_parent
+                                      #   | insert_archive | both
+  loser:
+    action: discard                   # discard | store_as_negative_example | insert_archive
+                                      #   | add_to_preference_dataset | none
+  prompt:
+    mode: reset                       # append | replace | sliding_window | reset
+    assistant_content: reward_code    # the carried assistant turn: reward_code | raw_response
+                                      #   (Eureka) | nl_spec (the English design; GT)
+    max_length_tokens: 64000
+  feedback:
+    routing: fixed                    # fixed | tpe_verdict
+  elitism:
+    keep_global_best: true
+  rollback_if_worse: false            # no published method does this
+  archive:
+    enabled: false
+    descriptors: []
+    bins_per_descriptor: []
+    n_islands: 1
+    migration_interval: 20
+    migration_clock: island_generations # island_generations (LIMEN) | global_inserts
+    migration_rate: 0.0               # share of an island's population that migrates
+    population_size: 1                # per island; >1 needs a non-hillclimb topology
+    admission: truncate               # truncate | above_island_mean (REvolve §3.3)
+                                      #   | above_island_best
+    archive_size: null                # caps the parent-sampling pool (top-K cells), not the grid
+    parent_sampling: {}
+  tree:                               # search_tree backup (RF-Agent Eq. 3)
+    best_child_weight: 1.0            # eta, the max-child-Q weight. RF-Agent 0.7 (tex:829)
+    mean_weight: 0.0                  # weight of the backed-up mean x decay. † absent from
+                                      #   Eq. 3; code 0.15 (rfagent_algo.py:44)
+  memory:
+    trajectory_store: none            # none | append_on_pass | append_always
+  co_evolve:
+    subtasks: false
+    observation_fn: false             # the co-designed observation persists across iterations
+    dr_config: false
+  meta:
+    prompt_optimizer: none            # declared, not implemented: gepa | manual are refused
+  restart:
+    on_stagnation: false
+    patience: 3
+
+# --- pre/post phase settings --------------------------------------------------
+
+rapp:                                 # DrEureka's Reward-Aware Physics Prior
+  enabled: false
+  policy: incumbent_best
+  parameters: null                    # null = the task spec's DR axes; unknown axes are dropped
+  rollouts_per_value: 100
+  success_criterion: task_success
+
+# --- output -------------------------------------------------------------------
+# Observability only: no method behaves differently for being recorded, though
+# every key is still in Config.hash().
+
+output:
+  dir: runs                           # run root when the CLI has no --out
+  save_state_every_iteration: true
+  log_level: INFO                     # DEBUG | INFO | WARNING | ERROR
+
+  tracker: none                       # none | wandb
+  wandb:
+    project: bird
+    entity: null                      # null = the account default
+    group: null                       # null = this config's `name`
+    tags: []
+    mode: online                      # online | offline
+    log_videos: true
+    log_code: true
+    video_record: best_and_worst      # what reaches wandb; no broader than video.record
+
+  video:                              # `frames` are PNGs, the same images the VLM judge reads
+    enabled: true
+    record: all                       # what reaches disk: none | best | best_and_worst | all
+    format: frames                    # frames | gif | mp4
+    fps: 20
+    max_frames: 300
+    width: 320                        # per panel when n_views > 1
+    n_views: 1                        # viewpoints per frame; >1 adds the spec's judge.extra_views
+                                      #   beside the unchanged primary. Ours
+    timeout_s: 600                    # wall-clock cap on one recording call, a wedge
+                                      #   detector; null = no limit
+
+  trajectory_trace:                   # per-step claimed (components) vs measured (paid) reward
+    record: none                      # none | components | components+states
+    max_steps: 300                    # per-episode cap, strided evenly, never truncated
+
+  judge_trace:                        # what the (V)LM judge was shown (judgments/iterNN.jsonl)
+    record: inputs+frames             # none | inputs (prompts, frame provenance)
+                                      #   | inputs+frames (plus the PNGs and any contact sheet)

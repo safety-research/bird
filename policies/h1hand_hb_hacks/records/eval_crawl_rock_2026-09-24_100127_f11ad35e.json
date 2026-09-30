@@ -1,0 +1,1493 @@
+{
+ "schema": "bird-policy-eval-v2",
+ "policy": "h1hand_hb_hacks/crawl_rock",
+ "env_id": "h1hand_crawl",
+ "unit": "bird_task_metric",
+ "horizon": 1000,
+ "max_steps": null,
+ "commit": "602315a2e",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-24",
+ "measured_at": "2026-09-24T10:01:27.179557+00:00",
+ "provenance": "measured",
+ "engine": {
+  "mujoco": "3.1.6"
+ },
+ "seed_block_hash": "6312660c5f0fd4b3533cf2f64a277a8d0ef58122eb58ac1c4cc2f313cdfa09aa",
+ "params": {
+  "f": 714.4140146504611,
+  "vals": [
+   715.4285403327999,
+   716.2002148879993,
+   715.9638532575713,
+   715.8687263667331,
+   714.4140146504611,
+   715.672529918117,
+   715.5102375569434,
+   715.5874583963616,
+   715.4471442684933,
+   714.790537647149,
+   715.5962376269407,
+   718.6489726555284,
+   716.8838652513505,
+   716.0510925760854,
+   717.7281164363047,
+   715.4176515036149,
+   715.4044710776515
+  ],
+  "p": {
+   "lean_ank": -0.3701371962097915,
+   "lean_hip": -0.46743581360355907,
+   "lean_sh": -1.8617381663341197,
+   "catch_hip": -1.6372432916059396,
+   "catch_knee": 1.4917682520216862,
+   "catch_ank": -0.3737205849688249,
+   "catch_elb": -0.06191960035422413,
+   "catch_sh": -2.5458097471007055,
+   "settle_s": 0.5108546255474439,
+   "hip0": -1.3420834135999302,
+   "knee0": 1.9809293603930667,
+   "sh0": -1.336320457121022,
+   "elb0": 0.3026408915624878,
+   "ank0": -0.09586809679969638,
+   "rk": 0.3105135952633423,
+   "rs": 0.3905502776395598,
+   "ra": -0.1367039632283213,
+   "rn": 0.07303194509143651,
+   "phi": 0.15359982629247118,
+   "freq": 1.0751289499293863
+  },
+  "seeds": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   73,
+   76,
+   196,
+   218,
+   1185,
+   1210,
+   1263,
+   1274,
+   1232,
+   54,
+   164
+  ],
+  "obj": "objective",
+  "gen": 1
+ },
+ "summary": {
+  "n": 100,
+  "mean": 0.032876341902728166,
+  "min": 0.0259498157731484,
+  "max": 0.0355317130296859,
+  "successes": 0,
+  "reference_return_mean": 715.6885368449695
+ },
+ "rows": [
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 0,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.030564770465631847,
+   "success": false,
+   "reference_return": 715.4161063100241
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 1,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03349034222833542,
+   "success": false,
+   "reference_return": 716.0652291851388
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 2,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03417932326300617,
+   "success": false,
+   "reference_return": 715.8351420345405
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 3,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.032189407790697726,
+   "success": false,
+   "reference_return": 714.7809315387054
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 4,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03100825281728627,
+   "success": false,
+   "reference_return": 714.7222528191058
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 5,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033546025570026165,
+   "success": false,
+   "reference_return": 715.0105239882705
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 6,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03446746673909282,
+   "success": false,
+   "reference_return": 716.435125078737
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 7,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03415291154651536,
+   "success": false,
+   "reference_return": 716.1970486282373
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 8,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033733046901859486,
+   "success": false,
+   "reference_return": 715.8315385711336
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 9,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03144644013714148,
+   "success": false,
+   "reference_return": 714.5455626574833
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 10,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.031627148497626115,
+   "success": false,
+   "reference_return": 714.5030949763885
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 11,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.034452474991160734,
+   "success": false,
+   "reference_return": 716.5085268640528
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 12,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03279779883899542,
+   "success": false,
+   "reference_return": 715.7112243701948
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 13,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03476081727008139,
+   "success": false,
+   "reference_return": 716.5146561167788
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 14,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03316970011675015,
+   "success": false,
+   "reference_return": 714.8342326214105
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 15,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03320932581910947,
+   "success": false,
+   "reference_return": 715.3916288197935
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 16,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03289241604239209,
+   "success": false,
+   "reference_return": 715.5423560599169
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 17,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.0338435089078339,
+   "success": false,
+   "reference_return": 715.8032603530528
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 18,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03389282044684215,
+   "success": false,
+   "reference_return": 716.2337945899707
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 19,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03089338795798448,
+   "success": false,
+   "reference_return": 716.2824203625898
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 20,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03230666143688917,
+   "success": false,
+   "reference_return": 715.5475405826535
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 21,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03294891007938992,
+   "success": false,
+   "reference_return": 716.3030472004925
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 22,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03146151118811956,
+   "success": false,
+   "reference_return": 715.8277111030687
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 23,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03511972719130995,
+   "success": false,
+   "reference_return": 716.1709759907646
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 24,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03401073005231701,
+   "success": false,
+   "reference_return": 716.0659320409749
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 25,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.031982441920248385,
+   "success": false,
+   "reference_return": 715.4134632221993
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 26,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03335726225326179,
+   "success": false,
+   "reference_return": 715.5508693226107
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 27,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03490140453970331,
+   "success": false,
+   "reference_return": 716.1194749107925
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 28,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.032976229855825344,
+   "success": false,
+   "reference_return": 715.7582583432868
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 29,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.032201671065341345,
+   "success": false,
+   "reference_return": 715.6548294002802
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 30,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03170637607552554,
+   "success": false,
+   "reference_return": 715.9813249342723
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 31,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03098917584292183,
+   "success": false,
+   "reference_return": 714.2260534565144
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 32,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03158179086568489,
+   "success": false,
+   "reference_return": 715.5256507377163
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 33,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.030799176705034063,
+   "success": false,
+   "reference_return": 714.8920869084865
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 34,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.030993530217938214,
+   "success": false,
+   "reference_return": 715.4478603027683
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 35,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.026292314798570603,
+   "success": false,
+   "reference_return": 712.6254233314484
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 36,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03214729028476375,
+   "success": false,
+   "reference_return": 715.0097295227533
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 37,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03341646887307582,
+   "success": false,
+   "reference_return": 716.1647372987038
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 38,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03155298457886511,
+   "success": false,
+   "reference_return": 713.5278472403189
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 39,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.0355317130296859,
+   "success": false,
+   "reference_return": 718.7039482820103
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 40,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03316599608824984,
+   "success": false,
+   "reference_return": 715.9289410075934
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 41,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03383726207780145,
+   "success": false,
+   "reference_return": 716.12049196419
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 42,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03418488150697023,
+   "success": false,
+   "reference_return": 716.1687627298907
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 43,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03239235450833557,
+   "success": false,
+   "reference_return": 715.0660328510609
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 44,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03167942922845376,
+   "success": false,
+   "reference_return": 716.0754695101492
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 45,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.034631002484862033,
+   "success": false,
+   "reference_return": 716.2019527362982
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 46,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03294174471687629,
+   "success": false,
+   "reference_return": 717.8783181814339
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 47,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03262466049261118,
+   "success": false,
+   "reference_return": 715.8243776393127
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 48,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03497440050070172,
+   "success": false,
+   "reference_return": 715.9671944280177
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 49,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.0323151861819144,
+   "success": false,
+   "reference_return": 715.6648979961357
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 50,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.034000492379308286,
+   "success": false,
+   "reference_return": 715.9879514346293
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 51,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033193073817636747,
+   "success": false,
+   "reference_return": 715.3627929812216
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 52,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03073223725595532,
+   "success": false,
+   "reference_return": 716.0747458898155
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 53,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.034307825843853626,
+   "success": false,
+   "reference_return": 716.4572284701152
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 54,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03355843331667992,
+   "success": false,
+   "reference_return": 715.3597755674509
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 55,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03441184590724476,
+   "success": false,
+   "reference_return": 716.3650753974548
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 56,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.0259498157731484,
+   "success": false,
+   "reference_return": 712.6680225446968
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 57,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.030854827765638658,
+   "success": false,
+   "reference_return": 715.2704982015056
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 58,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03248939595468529,
+   "success": false,
+   "reference_return": 715.4263892807309
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 59,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03319005073464758,
+   "success": false,
+   "reference_return": 716.1553158446069
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 60,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.0337646426898037,
+   "success": false,
+   "reference_return": 713.000851069373
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 61,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03321397842357157,
+   "success": false,
+   "reference_return": 716.3343014123927
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 62,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03330060330365007,
+   "success": false,
+   "reference_return": 715.5483951893298
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 63,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03350393497790645,
+   "success": false,
+   "reference_return": 715.953474394302
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 64,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.032051569902550876,
+   "success": false,
+   "reference_return": 713.7508323475839
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 65,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03385228078021681,
+   "success": false,
+   "reference_return": 716.1149520285757
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 66,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.030411476092015683,
+   "success": false,
+   "reference_return": 715.8588615745936
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 67,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03467352322555918,
+   "success": false,
+   "reference_return": 716.3699776947974
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 68,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033273226341846776,
+   "success": false,
+   "reference_return": 715.6974738279014
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 69,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03357078810001319,
+   "success": false,
+   "reference_return": 715.9000702033751
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 70,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03280827746783742,
+   "success": false,
+   "reference_return": 715.341420478109
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 71,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.031050475679750104,
+   "success": false,
+   "reference_return": 715.072069426894
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 72,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033744897687490075,
+   "success": false,
+   "reference_return": 715.9506308349968
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 73,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.0319272989931082,
+   "success": false,
+   "reference_return": 715.4891488937501
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 74,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03359922918976156,
+   "success": false,
+   "reference_return": 716.1485096537878
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 75,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033748495826985046,
+   "success": false,
+   "reference_return": 716.244989582522
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 76,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.032192571414789865,
+   "success": false,
+   "reference_return": 715.5921664733454
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 77,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03501049215000263,
+   "success": false,
+   "reference_return": 716.0594925878954
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 78,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03433855740457844,
+   "success": false,
+   "reference_return": 716.4141412342974
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 79,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.030459080395623856,
+   "success": false,
+   "reference_return": 714.9479982848038
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 80,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03278820504519085,
+   "success": false,
+   "reference_return": 715.9314960874227
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 81,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03194942684575865,
+   "success": false,
+   "reference_return": 715.5487075550952
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 82,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03394784074140479,
+   "success": false,
+   "reference_return": 716.0129755871362
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 83,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03291239108806762,
+   "success": false,
+   "reference_return": 716.0544614325489
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 84,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033846533678287355,
+   "success": false,
+   "reference_return": 716.2372595232142
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 85,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03251480240090406,
+   "success": false,
+   "reference_return": 715.3976802833388
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 86,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03318763002427922,
+   "success": false,
+   "reference_return": 716.4577625818322
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 87,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033505620942057925,
+   "success": false,
+   "reference_return": 715.1029022904531
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 88,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03154122754645954,
+   "success": false,
+   "reference_return": 715.52172272297
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 89,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.032513155497428045,
+   "success": false,
+   "reference_return": 718.0872598498762
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 90,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03260056820085193,
+   "success": false,
+   "reference_return": 713.5831925232465
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 91,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03419661060356414,
+   "success": false,
+   "reference_return": 718.1252309397692
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 92,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03503338127348478,
+   "success": false,
+   "reference_return": 715.8190416969497
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 93,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03225141887704713,
+   "success": false,
+   "reference_return": 714.4620814336279
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 94,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03283969840494484,
+   "success": false,
+   "reference_return": 716.191629784913
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 95,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033698264356878824,
+   "success": false,
+   "reference_return": 715.9936095099896
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 96,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03441027969987751,
+   "success": false,
+   "reference_return": 715.912525261607
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 97,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03452395544864415,
+   "success": false,
+   "reference_return": 715.9482540528508
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 98,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.03332492834790586,
+   "success": false,
+   "reference_return": 715.9832755821158
+  },
+  {
+   "policy": "h1hand_hb_hacks/crawl_rock",
+   "seed": 99,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.033523177464302056,
+   "success": false,
+   "reference_return": 715.9872038714029
+  }
+ ]
+}

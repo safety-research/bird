@@ -1,0 +1,39 @@
+# Hill-climb configuration 7 (v2_verify_noes): v1 plus the demonstration verifier at 24
+# trainings, without early stopping (the pair of v2_verify).
+#
+# The verifier (verify.quality_screen: demo_margin, bird/demos.py) has each candidate reward
+# re-score rollouts of the task's scripted policy (policies/), that policy under action
+# noise, and a random policy, before any training. A reward that pays random at least what
+# it pays the solution is screened out untrained; the scores also go to the judge and the
+# reflecting LLM (evaluate.artifacts: demo_reward_traces). The access is declared
+# (problem.fitness_access: demonstrations); no task metric, success flag or reference reward
+# is read. The schedule [8,6,4,2,2,2] is v1's taper cut to 24.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v1.yaml
+name: v2_verify_noes
+
+problem:
+  fitness_access: demonstrations
+
+loop:
+  n_iterations: 6
+
+generate:
+  n_candidates: 8
+  candidate_schedule: explicit
+  candidate_schedule_values: [8, 6, 4, 2, 2, 2]
+
+verify:
+  quality_screen: demo_margin
+  demo_screen:
+    keep: all                         # a pure filter here; v2_verify_adapt changes this
+
+evaluate:
+  artifacts: [scalar_metrics, videos, state_trajectories, demo_reward_traces]
+
+budget:
+  max_policy_trainings: 24
+
+train:
+  pruning: none                       # the pair knob: v2_verify turns it on

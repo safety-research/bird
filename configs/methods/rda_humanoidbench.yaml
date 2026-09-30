@@ -1,0 +1,33 @@
+# RDA on HumanoidBench -- Lee et al., "Reward Design Agent for Reinforcement
+# Learning", Reinforcement Learning Journal 2026, arXiv 2606.01672. No code release.
+#
+# The paper's second benchmark: rda.yaml moved to the HumanoidBench column of §5.1
+# and Table 1. train.architecture also differs, though not per benchmark: Table 1's
+# row is unsplit (SimbaV2 on both) and rda.yaml keeps §5.1's "Simba". SimbaV2
+# locators are files of dojeon-ai/SimbaV2.
+# Published values, not a runnable budget (8 x 5 x 10M = 400M search steps). Pair
+# it with --profile humanoid_simba (the SimbaV2 learner, which honours every pin)
+# or --profile humanoid (sb3, which ignores architecture and n_parallel_envs).
+# The paper's experiments run `rda` under scripts/paper_cell.py, not this file.
+
+extends: rda.yaml
+name: rda_humanoidbench
+
+problem:
+  horizon: 500                        # Table 1 "Maximum Environment Steps" (HB); truncates the spec's 1000
+
+generate:
+  n_candidates: 8                     # §5.1, HumanoidBench (4 on ManiSkill)
+
+train:
+  env_steps: 10000000                 # §5.1, HumanoidBench (50M on ManiSkill), per candidate
+  architecture: simba_v2              # Table 1 and §11, both benchmarks; honoured by simba_v2 only
+  n_parallel_envs: 16                 # §5.1, HumanoidBench (2048 on ManiSkill); inert on sb3
+  hyperparameters:
+    device: cuda                      # refused, never downgraded, on a machine without CUDA
+    gamma: 0.98                       # Table 1 (HB); SimbaV2's rule at 500 steps, repeat 2 (online_rl.yaml:19-20)
+    # Table 1's 625K update steps, written once per backend.
+    action_repeat: 2                  # simba_v2: 10M / (16 x 2) x 2 = 625K (env/hb_locomotion.yaml:13)
+    updates_per_interaction_step: null  # = action_repeat, as upstream writes it (online_rl.yaml:28)
+    train_freq: 16                    # sb3: one update per 16 env steps = 625K at 10M (measured)
+    gradient_steps: 1

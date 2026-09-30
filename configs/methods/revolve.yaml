@@ -1,0 +1,125 @@
+# REvolve -- Hazra, Sygkounas, Persson, Loutfi, Zuidberg Dos Martires, "REvolve:
+# Reward Evolution with Large Language Models using Human Feedback", ICLR 2025,
+# arXiv 2406.01309. Code: https://github.com/RishiHazra/Revolve (at eee636b).
+#
+# An island-model evolutionary search over LLM-written rewards. Each offspring is
+# drawn independently: a coin flip picks mutation or crossover, an island is
+# sampled by its average fitness and parents inside it by their own, one LLM call
+# each. This file is REvolve Auto, the paper's no-human ablation (§5.2, App. B.2):
+# a hand-designed task fitness replaces human Elo, and reward-component statistics
+# replace human feedback. The full method is this file plus the overrides in
+# tests/conftest.py::REVOLVE_PUBLISHED_OVERRIDES, with a scripted oracle as human.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value. A bare :N is rewards_database.py.
+# The matched protocol of the paper's experiments: scripts/paper_cell.py.
+
+extends: zeroshot.yaml
+name: revolve
+
+# --- models and loop -------------------------------------------------------
+
+problem:
+  fitness_access: ground_truth_metric # a task-completion fitness (§5.2); human arm: none
+
+llm:
+  generator:
+    model: gpt-4-1106-preview         # "GPT-4 Turbo"; snapshot from modules.py:36
+    temperature: 1.0                  # ‡ modules.py:48 (sampling, not the reward's temperature)
+
+loop:
+  n_iterations: 7                     # N=7 (§5.2); ‡ generation 0 is the seed population (main.py:141)
+  n_restarts: 1                       # "two random seeds": the paper never says of what
+  termination: fixed_iterations       # §3.4's human-level stopping score is never given
+  carry: [archive, best_reward]       # islands and the global best (§3.4); calls are single-turn
+
+# --- generate --------------------------------------------------------------
+
+generate:
+  n_candidates: 16                    # † paper 16 (§5.2); code 15 (cfg/generate.yaml:26)
+  sampling_mode: evolutionary_operators # one prompt per offspring (Alg. 1); generation 0 is zero-shot
+  crossover_rate: 0.5                 # p_c = 1 - p_m, p_m = 0.5 (§3.2, §5.2); Fig. 4 ablates it
+  parent_source: archive_island_cohort # one island, every parent from inside it (Alg. 1 line 11)
+  n_parents: 2                        # crossover takes 2, mutation 1 (cfg/generate.yaml:29-30)
+  history_mode: none                  # single-turn calls (modules.py:44-46)
+  output:
+    format: component_dict_return     # total reward plus a component dict (prompts/system_prompt)
+  context:
+    env_spec: natural_language_only   # † paper: a renamed Python class (§5.1 fn. 2); code: the
+                                      # Gymnasium docstring table (prompts/env_input); ‡ indices regenerated
+    include_parent_code: true         # parents' code fills <EXAMPLES> (modules.py:73-75)
+    include_numeric_reflection: true  # the Auto arm's only feedback (§5.2). † paper: max/mean/min
+                                      # (App. E); code: per-episode sums at 10 points (utils.py:322)
+    include_human_feedback: false     # the no-human ablation; the published method sets true
+    include_reward_engineering_tips: true # the system prompt's tips, in Eureka's near-identical wording
+    reflection_guidance: |-           # verbatim prompts/mutation_auto:5-9, sent on both operators
+      Some helpful tips for analyzing the reward components:
+      If the values for a certain reward component are near identical throughout, then this means the training is not able to optimize this component as it is written. You may consider
+      (a) Rescaling it to a proper range or the value of its temperature parameter
+      (b) Re-writing the reward component
+      (c) Discarding the reward component
+
+# --- verify ----------------------------------------------------------------
+
+verify:
+  enabled: true
+  static_checks: [signature_parse, ast_syntax] # ‡ code: args ⊆ state keys and a return (main.py:36-90)
+  dynamic_checks: []                  # no smoke execution in the release
+  on_failure: resample_blind          # the same prompt again, no error trace (main.py:60-90)
+  max_repair_attempts: 10             # ‡ max_trials=10 (main.py:60): 10 calls there, 10 repairs here
+  on_exhaustion: record_and_continue  # BIRD's; paper silent, the release crashes (main.py:90)
+
+# --- train -----------------------------------------------------------------
+
+train:
+  algorithm: sac                      # App. A.1.2; rl_agent/main.py:173
+  env_steps: 5000000                  # † paper 5e6 (§5.2); code 1000 (rl_agent/main.py:119-121)
+  candidate_parallelism: parallel     # one process per candidate (modules.py:248)
+  seeds_per_candidate: 1              # "two random seeds" is a reporting protocol
+
+# --- evaluate --------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: ground_truth_metric       # † paper: Eq. 3, mean velocity gated on survival (App. B.2);
+                                      # code: window at the log's max, no gate (rl_agent/evaluate.py:19-33)
+  human:
+    mode: none                        # the ablation; the published method sets feedback_text
+  preferences:
+    enabled: false                    # no Elo over human preferences (§3.3) in the Auto arm
+
+# --- select ----------------------------------------------------------------
+
+select:
+  rule: argmax_fitness
+  n_survivors: 16                     # = n_candidates: every offspring faces admission (Alg. 1)
+  scope: within_iteration
+  final_artifact: archive_best        # "the fittest policy ... in the database D" (§3.4)
+
+# --- update ----------------------------------------------------------------
+
+update:
+  topology: island_lineage            # every island breeds; offspring join the parent's island (:93-126)
+  operator: reflect_and_mutate        # inert: parents' code and feedback travel in the prompt
+  winner:
+    action: become_parent             # inert: island_lineage files every survivor itself
+  loser:
+    action: discard                   # a failed admission is dropped (:149-162)
+  elitism:
+    keep_global_best: true            # the final argmax is over the whole database (§3.4)
+  archive:
+    enabled: true
+    n_islands: 13                     # † paper 13 (§5.2); code 4 (cfg/generate.yaml:13),
+                                      # 14 (human_feedback/elo_scoring.py:161)
+    population_size: 8                # ‡ max_island_size: 8 (cfg/generate.yaml:14)
+    admission: above_island_mean      # σ ≥ σ^P (§3.3); ‡ not applied at generation 0 (main.py:237)
+    parent_sampling: {island_avg_weighted: 1.0} # island by mean, then member (§3.2); ‡ code softmax, T=1
+    migration_interval: 3             # ‡ code migrates on a 0.3 coin flip per generation (:176)
+    migration_clock: global_inserts   # ‡ a per-generation, not per-island, clock (:176)
+    migration_rate: 0.125             # ‡ one of 8 migrates (:198-224); the release's reset is not modelled
+
+# --- output ----------------------------------------------------------------
+
+output:
+  video:
+    enabled: true                     # the human arm's ~30-40 s clips (§3.3) need the frames

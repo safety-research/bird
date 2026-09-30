@@ -1,0 +1,78 @@
+# Text2Reward (interactive) -- Xie et al., "Text2Reward: Reward Shaping with Language
+# Models for Reinforcement Learning", ICLR 2024, arXiv 2309.11489, §2.3 and §3.4.
+# Code: https://github.com/xlang-ai/text2reward (code_generation/interactive/)
+#
+# The zero-shot method with a person in the loop: after each training, a user who
+# sees only the rollout video and the learning curve writes free-text feedback, and
+# the LLM revises the reward with the whole transcript in context. Three rounds in
+# three independent chains; no scalar fitness exists, so nothing is ranked.
+# In BIRD the person is a scripted oracle (phases.py `_ScriptedHumanOracle`), whose
+# feedback also reports the reference-reward return and the success rate; the
+# paper's user never sees the former.
+#
+# Values follow the paper; ‡ = paper silent, code supplies the value.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: text2reward_zeroshot.yaml
+name: text2reward_human
+
+# --- problem, models and loop ------------------------------------------------
+
+problem:
+  fitness_access: none                # no ground-truth metric enters the paper's search (§3.4)
+  # task_description is inherited (LiftCube-v0); the paper's interactive runs use
+  # StackCube-v0 and Ant Lie Down (§3.4).
+
+llm:
+  generator:
+    temperature: 0.7                  # App. A; also hardcoded in interactive/basic/generation.py L17-28
+    # model inherited; ‡ the code names only an Azure deployment, "gpt4" (L15, L22)
+
+loop:
+  n_iterations: 3                     # §3.4: an initial generation + "two rounds of feedback" (Fig. 7)
+  n_restarts: 3                       # §3.4 "We sample 3 generated codes": independent chains, not rivals
+  carry: [dialogue]                   # the transcript is the only memory
+
+# --- generate ----------------------------------------------------------------
+
+generate:
+  parent_source: latest               # revise the newest code; there is no fitness to pick a best
+  history_mode: full_dialogue         # every (code, description, feedback) replayed (generation.py L30-41)
+  # BIRD sends the history as a multi-turn dialogue, not the release's one templated
+  # message, and none of feedback_prompt.py's fixed wording.
+
+  context:
+    include_parent_code: true         # feedback_prompt.py L4-7
+    include_human_feedback: true      # feedback_prompt.py L9-13: what the robot did, what to change
+
+  fewshot:
+    enabled: true                     # the history is the few-shot block (generation.py L32-34)
+    corpus: "self"                    # inert here: the self-corpus needs a fitness; history_mode carries it
+    retriever: fixed                  # no example selector on this path
+    k: 2                              # code caps nothing; at most 2 completed rounds in 3 iterations
+
+# --- evaluate ----------------------------------------------------------------
+
+evaluate:
+  artifacts: [scalar_metrics, videos]  # §3.4: the user "can only see the rollout video and learning curve"
+  # Under `-p full` pass `-s output.video.record=all` (best_and_worst needs a fitness).
+
+  fitness:
+    source: none                      # the signal is the human's prose; no number is computed
+
+  human:
+    mode: feedback_text               # free-text feedback after every training (§2.3)
+  # The phase also fires on the last iteration: 3 queries per chain where the paper
+  # has 2.
+
+# --- select ------------------------------------------------------------------
+
+select:
+  rule: none                          # nothing to rank: the one program goes forward
+
+# --- update ------------------------------------------------------------------
+
+update:
+  operator: reflect_and_mutate        # parent + the human's critique -> next program
+  prompt:
+    mode: append                      # the transcript accumulates (up to update.prompt.max_length_tokens)

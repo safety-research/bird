@@ -1,0 +1,220 @@
+{
+ "schema": "bird-policy-eval-v1",
+ "policy": "simple_suite/toy_gridworld_bfs",
+ "env_id": "toy_gridworld",
+ "unit": "bird_task_metric",
+ "commit": "9632d65",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-03",
+ "params": null,
+ "summary": {
+  "n": 25,
+  "mean": 1.0,
+  "min": 1.0,
+  "max": 1.0,
+  "successes": 25
+ },
+ "rows": [
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 0,
+   "steps": 2,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 1,
+   "steps": 5,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 2,
+   "steps": 4,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 3,
+   "steps": 6,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 4,
+   "steps": 1,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 5,
+   "steps": 6,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 6,
+   "steps": 5,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 7,
+   "steps": 2,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 8,
+   "steps": 5,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 9,
+   "steps": 3,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 10,
+   "steps": 1,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 11,
+   "steps": 10,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 12,
+   "steps": 6,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 13,
+   "steps": 1,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 14,
+   "steps": 6,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 15,
+   "steps": 1,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 16,
+   "steps": 4,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 17,
+   "steps": 1,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 18,
+   "steps": 3,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 19,
+   "steps": 5,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 20,
+   "steps": 4,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 21,
+   "steps": 5,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 22,
+   "steps": 4,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 23,
+   "steps": 6,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  },
+  {
+   "policy": "simple_suite/toy_gridworld_bfs",
+   "seed": 24,
+   "steps": 7,
+   "terminated_early": true,
+   "metric": 1.0,
+   "success": true
+  }
+ ]
+}

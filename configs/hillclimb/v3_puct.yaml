@@ -1,0 +1,13 @@
+# Hill-climb configuration 18 (v3_puct): v3_all with AlphaZero's PUCT (Silver et al. 2017)
+# in place of RF-Agent's modified UCT (Eq. 2) for choosing the parent. A child scores
+#     q_norm + c_puct * P * sqrt(sum_b N_b) / (1 + N_child)
+# with P the softmax over the siblings' self-verify scores, now a prior multiplying the
+# exploration term rather than a bonus beside it. † c_puct follows RF-Agent's decaying
+# lambda schedule (0.4 -> 0.1), not AlphaZero's constant, so this stays a one-key diff.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_all.yaml
+name: v3_puct
+
+generate:
+  parent_source: puct_leaf

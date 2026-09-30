@@ -1,0 +1,248 @@
+{
+ "summary": {
+  "task": "pick_place",
+  "n": 25,
+  "mean_metric": 0.8958,
+  "min_metric": 0.882,
+  "any_step": 1.0,
+  "params": {
+   "d_tol": 0.016,
+   "hold_d": 0.05,
+   "k": 16.0,
+   "n_close": 8,
+   "press_z": 0.05,
+   "pull_tol": 0.022,
+   "standoff": 0.06,
+   "xy_tol": 0.01,
+   "z_grasp": 0.02,
+   "z_hover": 0.06
+  }
+ },
+ "rows": [
+  {
+   "task": "pick_place",
+   "seed": 0,
+   "steps": 500,
+   "metric": 0.886,
+   "success_any": true,
+   "inside_frac": 0.886,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 1,
+   "steps": 500,
+   "metric": 0.904,
+   "success_any": true,
+   "inside_frac": 0.904,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 2,
+   "steps": 500,
+   "metric": 0.906,
+   "success_any": true,
+   "inside_frac": 0.906,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 3,
+   "steps": 500,
+   "metric": 0.888,
+   "success_any": true,
+   "inside_frac": 0.888,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 4,
+   "steps": 500,
+   "metric": 0.902,
+   "success_any": true,
+   "inside_frac": 0.902,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 5,
+   "steps": 500,
+   "metric": 0.882,
+   "success_any": true,
+   "inside_frac": 0.882,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 6,
+   "steps": 500,
+   "metric": 0.894,
+   "success_any": true,
+   "inside_frac": 0.894,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 7,
+   "steps": 500,
+   "metric": 0.884,
+   "success_any": true,
+   "inside_frac": 0.884,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 8,
+   "steps": 500,
+   "metric": 0.888,
+   "success_any": true,
+   "inside_frac": 0.888,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 9,
+   "steps": 500,
+   "metric": 0.904,
+   "success_any": true,
+   "inside_frac": 0.904,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 10,
+   "steps": 500,
+   "metric": 0.896,
+   "success_any": true,
+   "inside_frac": 0.896,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 11,
+   "steps": 500,
+   "metric": 0.908,
+   "success_any": true,
+   "inside_frac": 0.908,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 12,
+   "steps": 500,
+   "metric": 0.898,
+   "success_any": true,
+   "inside_frac": 0.898,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 13,
+   "steps": 500,
+   "metric": 0.898,
+   "success_any": true,
+   "inside_frac": 0.898,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 14,
+   "steps": 500,
+   "metric": 0.902,
+   "success_any": true,
+   "inside_frac": 0.902,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 15,
+   "steps": 500,
+   "metric": 0.894,
+   "success_any": true,
+   "inside_frac": 0.894,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 16,
+   "steps": 500,
+   "metric": 0.896,
+   "success_any": true,
+   "inside_frac": 0.896,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 17,
+   "steps": 500,
+   "metric": 0.896,
+   "success_any": true,
+   "inside_frac": 0.896,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 18,
+   "steps": 500,
+   "metric": 0.898,
+   "success_any": true,
+   "inside_frac": 0.898,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 19,
+   "steps": 500,
+   "metric": 0.89,
+   "success_any": true,
+   "inside_frac": 0.89,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 20,
+   "steps": 500,
+   "metric": 0.898,
+   "success_any": true,
+   "inside_frac": 0.898,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 21,
+   "steps": 500,
+   "metric": 0.896,
+   "success_any": true,
+   "inside_frac": 0.896,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 22,
+   "steps": 500,
+   "metric": 0.896,
+   "success_any": true,
+   "inside_frac": 0.896,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 23,
+   "steps": 500,
+   "metric": 0.9,
+   "success_any": true,
+   "inside_frac": 0.9,
+   "last_phase": "hold"
+  },
+  {
+   "task": "pick_place",
+   "seed": 24,
+   "steps": 500,
+   "metric": 0.89,
+   "success_any": true,
+   "inside_frac": 0.89,
+   "last_phase": "hold"
+  }
+ ]
+}

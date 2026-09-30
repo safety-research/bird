@@ -1,0 +1,15 @@
+# ERA-U: the unsupervised recipe of "A Bird's-Eye View of Iterative Reward Design"
+# (Section 4.3, Table "The ERA recipes").
+#
+# The endpoint of a hill-climb that started from RDA (configs/methods/rda.yaml) and changed
+# one design choice at a time on four Meta-World MT10 tasks (configs/hillclimb/). This file
+# is hill-climb configuration 24 (hillclimb/v4_peak_noes40.yaml) under its paper name and
+# adds nothing to it. Relative to RDA it adds RF-Agent's design thought, the peak own-reward
+# checkpoint, a continuous [0, 1] judge score queried twice, the state trajectory shown to
+# the judge, and keeping the incumbent unless a candidate beats it. Candidates are ranked by
+# the VLM judge's completion rating; the search never sees the benchmark score or the
+# reference reward.
+#
+# The paper's matched protocol (e.g. loop.n_iterations=5): scripts/paper_cell.py.
+extends: hillclimb/v4_peak_noes40.yaml
+name: era_u

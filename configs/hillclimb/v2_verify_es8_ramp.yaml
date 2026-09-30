@@ -1,0 +1,11 @@
+# Hill-climb configuration 10 (v2_verify_es8_ramp): schedule control. v2_verify_es8 with the
+# taper reversed, [2,2,2,4,6,8]: narrow while the reward is unsettled, wide at the end, the
+# same 24 trainings over 6 rounds. With the taper, it brackets the schedule's effect.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify_es8.yaml
+name: v2_verify_es8_ramp
+
+generate:
+  n_candidates: 8
+  candidate_schedule_values: [2, 2, 2, 4, 6, 8]

@@ -1,0 +1,51 @@
+# Profile `full`: the paper's models and budgets. claude-opus-5 as reward generator and VLM
+# judge, claude-sonnet-5 for the secondary evaluator roles, 5 iterations, and 1M
+# environment steps per policy training, the published Meta-World budget (CARD App. B.2
+# Table 9; Text2Reward run_metaworld/sac.py:83). Candidates train in parallel; hours per
+# candidate. scripts/paper_cell.py runs every paper cell under this profile and adds the rest
+# of the matched protocol on the command line.
+#
+# A profile says how expensively a method runs, never which method it is. It is merged last
+# (_default.yaml <- the method's extends chain <- profile), so on the keys a profile may set
+# (PROFILE_KEY_PREFIXES in bird/config.py) it overrides the method config, and any other key
+# in a profile is refused. Method choices such as generate.n_candidates, train.algorithm and
+# evaluate.fitness.metric therefore stay with the method. Pick the environment separately
+# (problem.env_id, e.g. `mt10_window-open-v3`).
+
+llm:
+  generator:
+    provider: anthropic
+    model: claude-opus-5              # the papers used gpt-4-* / gpt-5
+  evaluator:
+    provider: anthropic
+    model: claude-sonnet-5
+
+loop:
+  n_iterations: 5
+  n_restarts: 1                       # the papers used 5 / 10 / 3
+
+final_retrain:
+  max_env_steps: same_as_train        # cap the method's retrain budget at train.env_steps
+
+train:
+  backend: sb3
+  env_steps: 1000000                  # the published Meta-World budget
+  n_parallel_envs: 1                  # the papers used 8 / 16384 / 2048
+  candidate_parallelism: parallel     # a schedule, not a science knob: identical to sequential
+  timeout_s: 43200                    # 12 h, above the ~2.9 h training it guards
+
+output:
+  tracker: wandb
+  wandb:
+    entity: null                      # null = the wandb account default
+  video:
+    format: mp4
+    record: best_and_worst            # recording all 8 candidates costs ~1 h of rendering
+    timeout_s: 1800
+
+verify:
+  enabled: true                       # leak gate for forbidden_symbols, not a method choice
+  static_checks:
+    - signature_parse
+    - ast_syntax
+    - forbidden_symbols

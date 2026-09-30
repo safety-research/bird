@@ -1,0 +1,12 @@
+# Hill-climb configuration 9 (v2_verify_es8_constant): schedule control. v2_verify_es8 with
+# the [8,6,4,2,2,2] taper replaced by a constant 4 per round: the same 24 trainings over
+# the same 6 rounds.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify_es8.yaml
+name: v2_verify_es8_constant
+
+generate:
+  n_candidates: 4
+  candidate_schedule: constant
+  candidate_schedule_values: []

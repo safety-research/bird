@@ -1,0 +1,2349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bird:tasks:shared_spec.schema.json",
+  "title": "Shared task spec",
+  "description": "One task, defined once, consumed by BIRD (bird/envs/*.py EnvAdapter). Every field exists because a consumer needs it or because omitting it was measured to bias a result. Absence is always explicit: a value that could not be obtained is null WITH a reason, never omitted and never zero-filled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "env",
+    "description",
+    "state_surface",
+    "discrete_success",
+    "continuous_success",
+    "anchors",
+    "budget",
+    "reward",
+    "judge",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Stable task id, unique across the catalogue. Used as the artifact directory name."
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "env_id",
+        "library",
+        "horizon",
+        "termination",
+        "spaces"
+      ],
+      "properties": {
+        "env_id": {
+          "type": "string",
+          "description": "The simulator's own id, e.g. door-open-v3, HalfCheetah-v5, h1hand-walk-v0."
+        },
+        "library": {
+          "$ref": "#/$defs/library_pin"
+        },
+        "horizon": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Steps per episode. Must equal what the rendered prompt claims."
+        },
+        "control_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Control frequency. Drives video fps and telemetry sampling; null only if the sim has no wall-clock notion."
+        },
+        "termination": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "early_terminate",
+            "autoreset",
+            "prompt_states"
+          ],
+          "description": "The recorded bias: prompts once said episodes never end early while training ran partial_reset=True, which favours hover-hacks. `prompt_states` is what the rendered prompt asserts; a validator must check it against the two booleans above it.",
+          "properties": {
+            "early_terminate": {
+              "type": "boolean"
+            },
+            "autoreset": {
+              "type": "boolean"
+            },
+            "partial_reset": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Vector envs only: does one sub-env reset on success while others continue?"
+            },
+            "prompt_states": {
+              "type": "string",
+              "description": "Verbatim the claim the prompt makes about termination."
+            }
+          }
+        },
+        "reset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "mechanism",
+            "entry",
+            "draws",
+            "constants",
+            "stochastic_transitions",
+            "upstream_divergence",
+            "prompt_states",
+            "prompt_omits"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. What ONE call to the adapter's `_reset(rng)` draws from the episode seed, and what the model is told about it -- `termination`'s shape one line up: `draws` and `constants` are what the code does, each with the lines that do it and how the claim was established (`basis`); `prompt_states` is verbatim what the rendered prompt says about the start or the goal, `prompt_field` names which rendering it reaches the model under, and a test checks the quote is a substring. Consumers derive 'the seed changes: ...' as the set of `role`s in `draws` and 'fixed: ...' from `constants`; there is deliberately no separate summary list to drift. Describes the distribution, never carries a sampler (dynamics never come from a file, bird/envs/spec.py); describes one reset, not the training loop (which seeds the trainer hands `reset` is a fact about bird/components/training.py). `domain_randomization` is NOT repeated here: it is a config-gated method knob drawn from the same Generator BEFORE `_reset` (bird/envs/base.py::EnvAdapter.reset), so turning DR on shifts every draw below -- a consumer renders 'under DR only: <axes>' from that block, not from this one. Not in `Config.hash()`; read by no code path under bird/. Optional here so a spec in the core shape stays valid; required on every spec in this catalogue by tests/test_task_specs.py, which also holds `fields` against the adapter wherever the simulator is installed: every named entry moves across seeded resets and every entry that moves is named.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "stochastic",
+                "deterministic"
+              ],
+              "description": "`deterministic` is a first-class claim, never an empty list: it REQUIRES `deterministic_because` and an empty `draws`, and the adapter test asserts reset(seed 0) == reset(seed 7). `stochastic` requires at least one draw."
+            },
+            "deterministic_because": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "REQUIRED when kind is deterministic: the line that makes the seed inert (h1strong_highbar_hard: `_randomness = 0.0`) and why the task wants that."
+            },
+            "mechanism": {
+              "enum": [
+                "adapter_draws",
+                "library_reseeded",
+                "pinned_instances"
+              ],
+              "description": "How the episode Generator reaches the simulator. `adapter_draws`: `_reset` draws from the Generator it is handed (natives, toys, HumanoidBench, Assistax; also a deterministic reset, whose adapter simply draws nothing). `library_reseeded`: one integer is minted from it and passed to the library's own `reset(seed=)`, whose RNG draws (gymnasium). `pinned_instances`: the Generator CHOOSES one of `n_instances` initial conditions drawn once at construction from `instance_seed` (Meta-World MT1, benchmark_seed 0) -- a seed is a draw over a finite set, two seeds collide with probability 1/n per episode, and every run and candidate shares the set."
+            },
+            "n_instances": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 2,
+              "description": "Integer exactly when mechanism is pinned_instances; null otherwise. Required as a key so the absence is a decision."
+            },
+            "instance_seed": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "For pinned_instances: the seed the instance set was drawn from (`MetaWorld.benchmark_seed`), which is NOT the episode seed. null otherwise."
+            },
+            "instances_source": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "For pinned_instances: how and by which RNG the set was generated (`metaworld.MT1(task, seed=0).train_tasks`, from the GLOBAL np.random inside `_make_tasks`). null otherwise."
+            },
+            "entry": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/source_ref"
+                },
+                {
+                  "properties": {
+                    "path": {
+                      "pattern": "^bird/envs/"
+                    }
+                  },
+                  "required": [
+                    "symbol",
+                    "lines"
+                  ]
+                }
+              ],
+              "description": "The reset code this adapter actually runs, IN THIS REPO: `path` under bird/envs/, `symbol` a dotted name (`Pendulum._reset`, `H1HandReach._task_reset`, `_rs_scratchitch`), `lines` inside its span. A test resolves the symbol with `ast` and requires it to belong to the class `problem.env_id` registers -- a block pasted from a sibling task carries the sibling's symbol and fails there, not in a reader's head."
+            },
+            "rng_note": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Draw order a reader must know, or draws that move nothing (acrobot's `_sample_dr` draws four uniforms it never reads). null when the stream does only what `draws` lists."
+            },
+            "draws": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/reset_draw"
+              },
+              "description": "Everything the seed MOVES at reset, one entry per drawn quantity. Complete, not illustrative: the adapter test asserts the union of `fields` equals the set of observation columns that move across 24 seeded resets, in both directions."
+            },
+            "constants": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/reset_constant"
+              },
+              "description": "What a reader might assume varies and does not: a goal that is a fixed point or does not exist, a hand always at `hand_init_pos`, velocities left at zero, a fixed z under a sampled x-y. Every spec must account for `agent_pose` and `goal` in `draws` or here (a test), so the two questions this block exists to answer are never answered by silence."
+            },
+            "stochastic_transitions": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "What the same episode Generator draws AFTER reset, per step, at nominal domain randomisation (pendulum_discrete's randomised rounding; toy_hungry_thirsty's Bernoulli(0.1) thirst onset), with the line. null asserts `step` is deterministic given state and action once reset has returned. Noise that exists only under DR (`action_noise`, nominal 0) belongs in `domain_randomization`."
+            },
+            "upstream_divergence": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Where the adapter's reset knowingly differs from the benchmark's own: the RNG it draws from (upstream HumanoidBench draws targets from the GLOBAL np.random), a first-episode-only perturbation not reproduced, a terminal removed. Prose, because upstream is not measurable from here. null asserts the adapter reproduces the benchmark's initial distribution."
+            },
+            "prompt_states": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "VERBATIM the claim the prompt makes about the initial state or the goal draw -- a contiguous whitespace-normalised substring of the field `prompt_field` names, checked by a test. null when the prompt says nothing about either: a finding, not a gap -- it is the bias this block records (pendulum's instruction never says the rod can start anywhere)."
+            },
+            "prompt_field": {
+              "enum": [
+                "l_task",
+                "env_prose",
+                "natural_language",
+                "scene",
+                "flat_fields",
+                null
+              ],
+              "description": "Which rendered field the quote is from, because they reach the model under different renderings: `l_task` is always shown; `env_prose`/`natural_language`/`scene` only under the prose renderings of `generate.context.env_spec`; `flat_fields` (a `flat_fields[].description`) only under the state-API stub. null exactly when prompt_states is null."
+            },
+            "prompt_omits": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/reset_role"
+              },
+              "description": "The roles in `draws` the prompt does not say VARY. Mentioning a quantity is not enough: 'a target point marked above the table' names the goal without saying it moves between episodes, so `goal` stays in this list; only a claim that the quantity is drawn, random, re-sampled or differs per episode removes a role. A subset of the roles in `draws`; equal to all of them when prompt_states is null (a test). Rendered as 'the model is not told that ... varies'."
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Block-level caveat a reader of this block alone needs and no other key can carry (e.g. 'deterministic at nominal DR; slip/action_noise draw only under domain randomisation, nominal 0'). Optional; prose, never parsed."
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "deterministic"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "then": {
+                "required": [
+                  "deterministic_because"
+                ],
+                "properties": {
+                  "deterministic_because": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "draws": {
+                    "maxItems": 0
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "draws": {
+                    "minItems": 1
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "mechanism": {
+                    "const": "pinned_instances"
+                  }
+                },
+                "required": [
+                  "mechanism"
+                ]
+              },
+              "then": {
+                "required": [
+                  "instances_source"
+                ],
+                "properties": {
+                  "n_instances": {
+                    "type": "integer"
+                  },
+                  "instance_seed": {
+                    "type": "integer"
+                  },
+                  "instances_source": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "n_instances": {
+                    "type": "null"
+                  },
+                  "instance_seed": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "prompt_states": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "prompt_states"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "prompt_field": {
+                    "type": "null"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "prompt_states": {
+                    "minLength": 1
+                  },
+                  "prompt_field": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt_field"
+                ]
+              }
+            }
+          ]
+        },
+        "spaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "obs_dim",
+            "action_dim"
+          ],
+          "properties": {
+            "obs_dim": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "action_dim": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "action_low": {
+              "type": [
+                "array",
+                "number",
+                "null"
+              ],
+              "items": {
+                "type": "number"
+              }
+            },
+            "action_high": {
+              "type": [
+                "array",
+                "number",
+                "null"
+              ],
+              "items": {
+                "type": "number"
+              }
+            },
+            "action_semantics": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "What one action means physically, e.g. 'delta gripper xyz in metres, scale 0.01 m/step, plus grip effort'."
+            },
+            "action_fields": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. Per-dimension action semantics. `action_semantics` above is one prose blob, which cannot be rendered as a typed stub -- and a state/action API stub is one of the published prompt variants, so the granularity is load-bearing.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "description"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "low": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "high": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "description": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "natural_language",
+        "scene",
+        "success_criterion_prose"
+      ],
+      "description": "The four renderings behind the env_spec / context axis (natural_language_only ... full_source). One prose blob cannot serve an axis that varies what the model sees.",
+      "properties": {
+        "natural_language": {
+          "type": "string",
+          "description": "Human-written task description. What the task IS, in the words a person would use, including what does not count as doing it."
+        },
+        "scene": {
+          "type": "string",
+          "description": "What is physically present and how it is actuated. Feeds the VLM judge as well as the generator."
+        },
+        "success_criterion_prose": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The SHIPPED criterion in prose, rendered only in the rubric rendering. Never the hardened oracle. State it in the coordinate the code actually compares, not a tidier derivation the benchmark authors did not write down. null exactly when discrete_success.kind is continuous_only - there is no shipped criterion to state. Still required, so the absence is a decision rather than an omission."
+        },
+        "full_source": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "description": "For context_env: full_source. Referenced, never copied. null when that rendering is not used for this task.",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "lines": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "env_prose": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. The ENVIRONMENT paragraph, at the granularity a class docstring is written at: what is in the scene and what makes the task hard. This is what the four prompt renderings put in front of the model as the environment, and it is deliberately NOT the instruction. The core `natural_language` field is written at this granularity on some specs and at instruction granularity on others, so a consumer reading that field cannot tell which it is holding."
+        },
+        "l_task": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. The INSTRUCTION -- `l_task` in the papers, the first line of the generation prompt, the reference a VLM judge scores against and the seed a decomposition splits. Separate from `env_prose` because a method may deliberately make it vague (Gran Turismo's is 'win races ... and good sportsmanship'), so a config must always be able to override it. It states the task and the action semantics and never a success tolerance: the threshold is the METRIC, and writing it here would hand it to the model through the door `strip_existing_reward` closes."
+        }
+      }
+    },
+    "state_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "helpers"
+      ],
+      "description": "The CLOSED set of what a generated reward may read. BIRD's verifier rejects a reward that reads anything not listed here. Measured: without the state listing 3 of 4 candidates were lost to KeyError, with it none - without it a run measures the state flattening, not the method.",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "shape",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "shape": {
+                "type": "string",
+                "description": "e.g. '(3,)' or 'scalar'."
+              },
+              "units": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "source": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "file:line the field is read from, so drift is detectable."
+              },
+              "slice": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. The half-open slice of the flat observation this structured field is a view of, e.g. '4:7'. The checkable bridge between the two granularities: a test asserts the slice width matches `shape`."
+              }
+            }
+          }
+        },
+        "helpers": {
+          "type": "array",
+          "description": "Precomputed boolean helpers offered to the reward. An empty list is a finding, not an omission - say why in `helpers_note`.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "signature",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "threshold_parity": {
+                "$ref": "#/$defs/threshold_parity"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "callable",
+                  "inline_expression"
+                ],
+                "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. `callable` = the harness precomputes it and the reward calls it. `inline_expression` = it is ADVERTISED to the model as an expression to paste, and no method of that name exists. The distinction is measured, not stylistic: a real method lets a `self.hand_pos(s)` candidate pass verification against a proxy self and then die in training against `self=None`, i.e. a wasted policy run misattributed to the reward."
+              },
+              "expression": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. The expression itself, in terms of the flat observation and the action, where the helper reduces to a view on them; null where it is a benchmark shaping primitive that takes its own arguments (`tolerance`, `hamacher_product`) and whose `signature` and `description` are what carry it. Writing such a primitive's body here would be worse than null: its formal parameters collide with the observation namespace -- `hamacher_product(a, b)`'s `a` is not the action, but in a rendered prompt it reads as one. Either way `kind: inline_expression` is the operative claim: no method of that name exists, so a consumer must never resolve it as one."
+              }
+            }
+          }
+        },
+        "helpers_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "flat_fields": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. The observation as POSITIONAL SCALARS, one entry per index, which is the surface a reward written as `compute_reward(state, action, next_state)` over a flat array actually sees. `fields` above describes the same observation as a named namespace. Neither is a summary of the other and both are true; a consumer renders whichever its reward contract is written against.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "index",
+              "name",
+              "description"
+            ],
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Position in the flat observation."
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "units": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "discrete_success": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "shipped",
+        "hardened"
+      ],
+      "description": "The DISCRETE SUCCESS: the benchmark's own boolean pass/fail check, per step. Two distinct artifacts. The shipped success check is the OBJECT OF STUDY (gameable by design); the hardened oracle is the independent judge and may never appear in a rendered prompt. Not every task has one: continuous-control benchmarks ship no check at all, and `kind` says which world this task is in rather than leaving an empty block to be read as an oversight. In benchmark code this concept is evaluate() / info['success']; a hardened oracle, where one exists, is the module `hardened` names.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "discrete",
+            "continuous_only",
+            "native_authored"
+          ],
+          "description": "`discrete`: the benchmark ships a boolean success check, so both blocks below are objects. `continuous_only`: it does not (Gymnasium locomotion, for instance) \u2014 both blocks are null, `no_discrete_success_because` is required, and success, where anything needs one, is continuous_success.normalized.success_threshold instead. `native_authored`: this repo authored the env end to end (the toy family), so the repo IS the vendor and the env's own success() IS the native success \u2014 there is no separate vendor-shipped block (shipped/hardened null), `no_discrete_success_because` states that, and the native-signal rule treats it as native_success."
+        },
+        "no_discrete_success_because": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Required when kind = continuous_only OR native_authored. For continuous_only: why there is no discrete success at all. For native_authored: why there is no separate vendor-shipped block (this repo authored the env, so success() is native and lives in code)."
+        },
+        "shipped": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "expr",
+                "provenance",
+                "sound"
+              ],
+              "properties": {
+                "expr": {
+                  "type": "string",
+                  "description": "The check as the code computes it."
+                },
+                "provenance": {
+                  "$ref": "#/$defs/source_ref"
+                },
+                "sound": {
+                  "type": "boolean",
+                  "description": "false when the shipped success check is known to admit non-task behaviour."
+                },
+                "unsoundness": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Required when sound=false: how it fails, and any upstream issue/PR."
+                },
+                "reimplementation": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": false,
+                  "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. A consumer's own transcription of the shipped success check, REFERENCED rather than transcribed into this file -- the same argument that makes `reward.human` a reference and `hardened.module` a {module, symbol} pin. A check needing a quaternion rotation and a site offset read out of an XML asset is source code; carrying it as an evaluable string would also make this data file an arbitrary-code-execution path into a training run.",
+                  "required": [
+                    "repo",
+                    "module",
+                    "symbol"
+                  ],
+                  "properties": {
+                    "repo": {
+                      "type": "string",
+                      "description": "Which codebase holds it."
+                    },
+                    "module": {
+                      "type": "string"
+                    },
+                    "symbol": {
+                      "type": "string",
+                      "description": "Resolved through a CLOSED allow-list in that module, never by importlib on this string."
+                    },
+                    "verified_against": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "How the transcription was checked against the shipped success check, and with what result."
+                    },
+                    "sha256": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hardened": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "invariant"
+              ],
+              "description": "Returns shipped AND (added conjuncts), so hardened <= shipped by construction and the two result columns are directly comparable. Leaving a sound check untightened is as much a decision as tightening a loose one and must be argued.",
+              "properties": {
+                "module": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "symbol": {
+                  "type": "string",
+                  "default": "hardened_success"
+                },
+                "tightened": {
+                  "oneOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "added_conjuncts": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "name",
+                          "exploit_closed"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "exploit_closed": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "not_tightened_because": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Required when tightened=false."
+                },
+                "conservatism": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "How a competent policy can fail this oracle for reasons unrelated to hacking (e.g. an instantaneous per-step success check cannot express 'the gripper did the pulling')."
+                },
+                "invariant": {
+                  "const": "hardened <= shipped"
+                },
+                "status": {
+                  "enum": [
+                    "written",
+                    "pending"
+                  ],
+                  "description": "`written`: the oracle module exists and module/tightened/added_conjuncts describe it. `pending`: it does not exist yet \u2014 module/tightened/added_conjuncts are null, `pending_plan` records the intended conjuncts so the plan is reviewable, and NO analysis may claim hardened numbers for this task until the status flips."
+                },
+                "pending_plan": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Required when status=pending: the conjuncts the oracle is expected to add and why, as reviewable prose. A plan, clearly labelled as one \u2014 never mistakable for an implemented oracle."
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "const": "pending"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "pending_plan"
+                    ],
+                    "properties": {
+                      "module": {
+                        "type": "null"
+                      },
+                      "tightened": {
+                        "type": "null"
+                      },
+                      "added_conjuncts": {
+                        "type": "null"
+                      },
+                      "pending_plan": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "const": "written"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "module",
+                      "tightened",
+                      "added_conjuncts"
+                    ],
+                    "properties": {
+                      "module": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "continuous_only",
+                  "native_authored"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "no_discrete_success_because"
+            ],
+            "properties": {
+              "shipped": {
+                "type": "null"
+              },
+              "hardened": {
+                "type": "null"
+              },
+              "no_discrete_success_because": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "discrete"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "shipped": {
+                "type": "object"
+              },
+              "hardened": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "continuous_success": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw",
+        "normalized"
+      ],
+      "description": "The CONTINUOUS SUCCESS METRIC: the scalar ground-truth quantity the search is scored on \u2014 what BIRD calls task_metric (a fitness, in the papers' terms). Every task has one, because a search needs a total order and a boolean cannot rank candidates. On a discrete-success task it is a REDUCTION of the discrete success (e.g. the fraction of eval episodes with success at least once), so the discrete check is primary and this is its scalar shadow; on a continuous_only task it stands alone as ground truth. `raw` is in physical units; `normalized` is in [0,1], and the spec's success threshold is stated on it.",
+      "properties": {
+        "raw": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "expr",
+            "unit",
+            "direction",
+            "saturates_at"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "expr": {
+              "type": "string",
+              "description": "How it is computed from an episode."
+            },
+            "unit": {
+              "type": "string",
+              "description": "e.g. 'm', 'm/s', 'fraction of horizon', 'dimensionless'."
+            },
+            "direction": {
+              "enum": [
+                "maximize",
+                "minimize"
+              ]
+            },
+            "saturates_at": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "The value this raw metric cannot exceed BY CONSTRUCTION - a ceiling in the metric's own definition, not a best-observed score (that is anchors.expert) and not a training-step count (that is budget.saturates_at, a different field). null = the metric is genuinely unbounded above, which REQUIRES saturates_at_reason. A horizon-derived bound is a modelling choice, not a property of the metric, and must say so in the reason."
+            },
+            "saturates_at_reason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "REQUIRED when saturates_at is null. Why the metric has no constructional ceiling - never leave an unbounded metric looking merely unfilled."
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "saturates_at": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "saturates_at"
+                ]
+              },
+              "then": {
+                "required": [
+                  "saturates_at_reason"
+                ],
+                "properties": {
+                  "saturates_at_reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "normalized": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "method": {
+              "enum": [
+                "anchors",
+                "explicit"
+              ],
+              "description": "`anchors` (default) is the D4RL convention: clip((raw - random)/(expert - random), 0, 1), which is why the anchors block is mandatory. `explicit` only where anchors cannot be obtained."
+            },
+            "formula": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Required when method=explicit."
+            },
+            "success_threshold": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1,
+              "description": "BIRD's success() is this threshold on the normalized metric, so the two can never disagree."
+            }
+          }
+        }
+      }
+    },
+    "anchors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "random",
+        "expert"
+      ],
+      "description": "The two reference points the continuous success metric is normalised against. An unobtained anchor is null WITH a reason - never a fabricated zero.",
+      "properties": {
+        "random": {
+          "$ref": "#/$defs/anchor"
+        },
+        "expert": {
+          "$ref": "#/$defs/anchor"
+        },
+        "reduction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. Names the reduction the REQUIRED `random`/`expert` pair above was measured under. The core schema has room for one pair and does not say which; two reductions of one success check give different numbers, so an unlabelled anchor cannot normalise anything safely."
+        },
+        "by_reduction": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. reduction name -> its own measured {random, expert} pair. The complete record. Must contain the reduction named above, with the same values -- a test pins that, so the required field stays a view of this one rather than a second source of truth.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "random",
+              "expert"
+            ],
+            "properties": {
+              "random": {
+                "$ref": "#/$defs/anchor"
+              },
+              "expert": {
+                "$ref": "#/$defs/anchor"
+              }
+            }
+          }
+        },
+        "published": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. Baseline slug -> a per-task result published OUTSIDE this repo, recorded verbatim with its unit and its source down to table/figure and page. A published number is a BASELINE somebody else measured, never an in-repo expert: it lives beside `random`/`expert` rather than inside them, so the normalisation machinery (which reads only `by_reduction`) can never mistake a paper's episode return for a task_metric anchor. Enter only tasks the source actually reports -- a task the source omits gets no entry, never an interpolated one.",
+          "propertyNames": {
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/published_baseline"
+          }
+        },
+        "scripted": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/anchor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. What THIS repo's registry scripted policy for the task scores on the task's own metric (a `policies/*/policies.yaml` manifest, the entry named in `policy_id`), measured through the BIRD adapter. Beside `expert` (the honest ceiling, whatever produced it) and `published` (a trained specialist's number from its paper) it answers the question: is the scripted policy good compared to a specialist trained from scratch? The registry manifest stays the primary record. Explicitly null on a spec whose task has no qualifying registry entry (a deliberate metric hack never qualifies), so a spec derived or generated from another cannot inherit its block."
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "train_steps",
+        "learning_verified"
+      ],
+      "description": "Both ends matter. Below the floor a flat zero is ambiguous between 'bad reward' and 'too little compute'; above the ceiling every method saturates and stops being distinguishable.",
+      "properties": {
+        "train_steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "learning_verified": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verified",
+            "reward_used"
+          ],
+          "properties": {
+            "verified": {
+              "type": "boolean"
+            },
+            "reward_used": {
+              "enum": [
+                "human",
+                "tuned_dense",
+                "simple_correct",
+                "none"
+              ],
+              "description": "Which reward proved the budget sufficient. `human` = the published baseline; `tuned_dense` = the env's own tuned dense reward; `simple_correct` = a hand-written minimal correct reward, the instrument of a learnability check (train on it; pass if the trained policy clears a bar above a fresh random baseline) \u2014 distinct from `human` because for objectives with no published reward (run backward, hold a speed) a simple correct reward is the only possible instrument; `none` = not verified."
+            },
+            "algo": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seeds": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "result": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          }
+        },
+        "saturates_at": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Steps beyond which a competent reward pins the metric and methods stop separating. null = not measured."
+        }
+      }
+    },
+    "reward": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human",
+        "contract",
+        "forbidden_symbols"
+      ],
+      "properties": {
+        "human": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "scope",
+            "reference",
+            "depends_on",
+            "verified_against"
+          ],
+          "description": "REFERENCED, never vendored. Pins plus file digests are what make drift detectable without carrying a copy that silently diverges from the library actually installed. Digests are PER ARTIFACT, not one blended hash: a combined digest tells you something moved, a per-artifact one tells you WHICH, and only the second is actionable.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "published_dense",
+                "tuned_dense",
+                "none"
+              ]
+            },
+            "scope": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "value_determining",
+                    "text_only",
+                    "file",
+                    "with_success_branch"
+                  ],
+                  "description": "What the pins are asserting, stated rather than assumed. `value_determining` (the default and the one to use) = the reward body PLUS every helper whose content changes the number it returns; that is `reference` + `depends_on` together. `text_only` pins the reward body alone and is UNSAFE for a reward built out of shared helpers - the helpers can change while the body's text does not, so the digest would assert provenance it does not have. `file` pins the whole containing file, which is reproducible but alarms on edits to reset/sampling code that cannot affect the reward. `with_success_branch` additionally pins the shipped success check's own definition; normally unnecessary, because where a reward re-derives the check inline that code is already inside `reference`, and where it calls out to the check the pin belongs on success.shipped.provenance instead."
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reference": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/source_ref"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "depends_on": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "description": "Every OTHER artifact whose content determines the reward's value - shared shaping primitives above all. Empty only for a self-contained reward. This is the field that makes `text_only` unnecessary: the helpers are pinned explicitly rather than hoped to be stable.",
+                  "items": {
+                    "$ref": "#/$defs/source_ref"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "import_path": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Dotted path a loader can import to get the callable BIRD's reference_reward() needs, e.g. 'metaworld.envs.sawyer_door_v3:SawyerDoorEnvV3.compute_reward'."
+            },
+            "verified_against": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "The installed version this was actually checked on, e.g. 'metaworld 3.1.1'."
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "notes": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "none"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "then": {
+                "required": [
+                  "notes"
+                ],
+                "properties": {
+                  "scope": {
+                    "type": "null"
+                  },
+                  "reference": {
+                    "type": "null"
+                  },
+                  "depends_on": {
+                    "type": "null"
+                  },
+                  "verified_against": {
+                    "type": "null"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Required for kind none: why no human reward exists for this objective, and what the nearest unpublished adaptation would be \u2014 named as a possibility, never recorded as the baseline."
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "published_dense",
+                      "tuned_dense"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "scope": {
+                    "type": "string"
+                  },
+                  "reference": {
+                    "type": "object"
+                  },
+                  "depends_on": {
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "signature",
+            "framework",
+            "allowed_modules",
+            "returns"
+          ],
+          "properties": {
+            "signature": {
+              "type": "string"
+            },
+            "framework": {
+              "enum": [
+                "numpy",
+                "torch",
+                "jax"
+              ]
+            },
+            "batched": {
+              "type": "boolean",
+              "default": false
+            },
+            "allowed_modules": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "returns": {
+              "const": "(scalar, components)"
+            },
+            "max_reward": {
+              "type": [
+                "number",
+                "string",
+                "null"
+              ]
+            },
+            "idiom_rule": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reward_utils": {
+              "type": "array",
+              "description": "Shaping primitives the published reward is built from, exposed to the model. Withholding them hands the human baseline a tool the model cannot reach.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "provenance"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "provenance": {
+                    "$ref": "#/$defs/source_ref"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "forbidden_symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The barrier, per task. Symbols a generated reward may not reference (the oracle, the shipped success check's accessor, env internals). Task-scoped because the names differ per env - which is why holding this only in a method config was wrong."
+        },
+        "forbidden_symbols_by_consumer": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. Consumer name -> that consumer's own gate. The flat `forbidden_symbols` above is the BENCHMARK-symbol set and keeps the core shape; a consumer whose leak vectors are its own adapter internals cannot express them there, and inheriting the wrong list silently changes what a run rejects.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "forbidden_symbols_note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. Why this list is what it is, and in particular why anything conspicuous is ABSENT. A deliberate omission with evidence behind it is exactly what the schema's own `not_tightened_because` idiom says must be written down rather than inferred from silence."
+        }
+      }
+    },
+    "judge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vlm_legible",
+        "camera",
+        "subtasks_sequential",
+        "telemetry_fields"
+      ],
+      "description": "Whether and how this task can be judged from frames: what the camera shows and what it hides (a tracking camera hides absolute progress). Only `camera` and `extra_views` are read by code (the render viewpoints); the rest is a record for whoever designs a judge.",
+      "properties": {
+        "vlm_legible": {
+          "type": "boolean"
+        },
+        "legibility_note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why. A single rod on a plain field differs frame-to-frame only by an angle and gives a VLM nothing to read."
+        },
+        "camera": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "mode"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "fixed",
+                "tracking"
+              ]
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A tracking camera hides absolute progress; say so here if it is used anyway."
+            }
+          }
+        },
+        "extra_views": {
+          "type": "array",
+          "description": "BIRD addition (tasks/SCHEMA_DELTA.md #13). Viewpoints the recorder may draw BESIDE `camera`, in one frame, when the config asks (`output.video.n_views: N` takes the first N-1). Ordered: put the view that covers the primary camera's blind spot first. Each is described to the judge by its `mode` and `note`, so those are statements handed to a model, not comments. A view is a camera the simulator model defines under `name`, unless `pose` is given, in which case `name` is a label and the camera is built from the pose.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "mode"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mode": {
+                "enum": [
+                  "fixed",
+                  "tracking"
+                ]
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What this panel shows that the primary camera does not. Rendered into the judge's prompt verbatim."
+              },
+              "pose": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": false,
+                "description": "Build the camera instead of naming one: a tracking camera on `track_body`, or a free camera at `lookat` -- exactly one of the two, since a camera with neither would be aimed at the world origin; `distance`/`azimuth`/`elevation` are MuJoCo's MjvCamera fields.",
+                "properties": {
+                  "track_body": {
+                    "type": "string"
+                  },
+                  "lookat": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "distance": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "azimuth": {
+                    "type": "number"
+                  },
+                  "elevation": {
+                    "type": "number"
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "track_body"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "lookat"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "subtasks_sequential": {
+          "type": "boolean",
+          "description": "Does failing subtask k imply all later subtasks failed?"
+        },
+        "telemetry_fields": {
+          "type": "array",
+          "description": "Observation fields that carry what frames cannot show (distance travelled, a height, a count), measured by the harness rather than reported by the reward. A record only: no BIRD code path reads it or offers it to a judge.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "domain_randomization": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "description": "Required for DrEureka / RAPP; null when the task does not use them.",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "nominal": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "exploits": {
+      "type": "array",
+      "description": "Known hacks, as data rather than folklore, so a scorer can check for them and nobody re-derives them. Includes exploits a detector CANNOT catch on this task.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "mechanism",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mechanism": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "closed",
+              "open",
+              "undetectable_here"
+            ]
+          },
+          "closed_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The hardened conjunct that closes it."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "symbol_mapping": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Text2Reward's general->specific table. null when that method is not run."
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authored_from",
+        "rule",
+        "verified_by",
+        "date"
+      ],
+      "properties": {
+        "authored_from": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "what"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "lines": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "what": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rule": {
+          "description": "How the fields above were established. An ENUM and not a const: four HumanoidBench specs read task geometry out of MJCF assets that no Python source contains -- h1hand_hurdle's hurdle spacing is in generated_xml_hurdles.xml, h1hand_room's obstacle layout in room.xml -- so 'source, not docstrings' would be a false claim about where those numbers came from. The clause both values share is the one that matters: a docstring is not evidence. Add a value only alongside specs that need it.",
+          "enum": [
+            "source, not docstrings",
+            "source and asset, not docstrings"
+          ]
+        },
+        "measured": {
+          "type": "array",
+          "description": "Claims established by running something rather than reading it. Each should be reproducible from what is written here.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verified_by": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "library_pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version_verified"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version_verified": {
+          "type": "string"
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stack": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The rest of the pinned stack this was verified on, e.g. {mujoco: 3.3.0, gymnasium: 1.3.0}."
+        }
+      }
+    },
+    "source_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "lines": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Digest of the WHOLE FILE at `commit`, never of the line range. Deliberate: if the file changed at all then `lines` may no longer point at `symbol`, so a file-level alarm on an unrelated edit is the correct behaviour rather than a false positive. Line-range digests are fragile for the same reason - any edit above the range shifts it."
+        }
+      }
+    },
+    "threshold_parity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_value",
+        "exposed"
+      ],
+      "description": "Where a helper takes a threshold, expose the value the PUBLISHED HUMAN REWARD actually uses, plus a spread around it. Omitting the human's operating point hands the baseline an input the model cannot reach and invalidates the headline comparison.",
+      "properties": {
+        "human_value": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "exposed": {
+          "type": "array",
+          "items": {
+            "type": [
+              "number",
+              "string"
+            ]
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "method"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "method": {
+          "enum": [
+            "random_policy",
+            "scripted_policy",
+            "demo_replay",
+            "published",
+            "trained_policy",
+            "unavailable"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_seeds": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "n_episodes": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "REQUIRED when value is null. Never fill an unobtained anchor with zero."
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "policy_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "For method scripted_policy: the registry id (`<dir>/<name>`, from a policies/*/policies.yaml manifest) the value was measured on"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The score's unit as the registry records it (bird_task_metric); absent = the task's own metric"
+        },
+        "reduction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The reduction the value was measured under, where the metric has more than one (per_step_fraction / any_step_episode_fraction)"
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The registry's own verdict on the policy (solved / partial / reference / negative)"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "value"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "published_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "source",
+        "date"
+      ],
+      "description": "BIRD EXTENSION -- see tasks/SCHEMA_DELTA.md. One published per-task result, recorded verbatim in the source's own unit. `unit` is load-bearing: published humanoid results are typically episode returns under the benchmark's own shipped reward, which is NOT this spec's task_metric and must never normalise it. There is no null branch on `value` on purpose: a task the source does not report gets no entry at all, so absence stays explicit at the level of the entry rather than the field.",
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The published number, verbatim, in `unit`."
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The unit the value is published in, e.g. `hb_episode_return`. Never this spec's task_metric unless the source itself computed BIRD's metric."
+        },
+        "algo": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The algorithm the source trained, as the source names it."
+        },
+        "n_runs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Runs/seeds behind the value, as stated by the source."
+        },
+        "std": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Spread across those runs where the source publishes one (a figure's shaded band); null where the source states none."
+        },
+        "env_steps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Environment steps at the reported point, where the source states them. `integer`, matching `budget.train_steps`, because a fractional environment step is not a thing. Note a whole-valued float such as 1.92e7 still validates -- 2020-12's `integer` is about the value, not the JSON spelling -- so a source quoting millions can be transcribed either way."
+        },
+        "success_bar": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The benchmark's own success threshold in the SAME unit as `value` -- the constant that makes a return comparable across tasks. Carries its own source below, because it usually comes from the benchmark, not from the paper being quoted. DELIBERATELY UNBOUNDED, and not an oversight: it lives in the same space as `value`, which really does go negative -- h1hand_package's published return is -7487.25 -- so a `minimum: 0` here would assert that no benchmark can set a negative return threshold, which is an assumption about every future source rather than a fact about this one. HumanoidBench's own bars all happen to be positive. The contrast is `continuous_success.normalized.success_threshold`, correctly bounded [0, 1] because it thresholds a NORMALISED metric; this one thresholds a raw return."
+        },
+        "success_bar_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Where `success_bar` comes from, pinned to file/line at a commit or to table/page."
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where `value` comes from, down to table/figure and page -- plus the data artifact when the number was read from released data rather than from prose."
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Caveats a reader needs before comparing anything to this number."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "When the entry was recorded here; the source pin carries the source's own date."
+        }
+      }
+    },
+    "reset_role": {
+      "enum": [
+        "agent_pose",
+        "agent_velocity",
+        "object_pose",
+        "object_velocity",
+        "goal",
+        "command",
+        "mode",
+        "scene_selection"
+      ],
+      "description": "The closed vocabulary of what a reset can move, so a consumer can say 'the seed changes: agent pose, goal' without parsing prose. `agent_pose`: the controlled body's position, orientation or joint configuration. `agent_velocity`: its velocities. `object_pose`/`object_velocity`: any other body (puck, door, ball, chair). `goal`: the point, pose or set the metric or success check compares against. `command`: a reference signal carried in the observation (e.g. a velocity command). `mode`: a discrete branch or stage flag that selects which distribution or rule applies (basketball's `throw_stage` latch). `scene_selection`: which objects take part (five of twelve shelf items). Closed: add a value only beside a spec that needs it."
+    },
+    "reset_basis": {
+      "enum": [
+        "measured",
+        "read",
+        "adapter_claimed"
+      ],
+      "description": "How the claim was established. `measured`: by running the adapter (name the test in `note`). `read`: read off the code at `source`. `adapter_claimed`: a stand-in constant or docstring in the adapter asserts a value of upstream code that was NOT read (HumanoidBench's `_REACH_TARGET_LOW/HIGH` against an unvendored cb11890) -- the honest label for a bound nobody has checked against the pinned commit."
+    },
+    "reset_draw": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "quantity",
+        "fields",
+        "distribution",
+        "source",
+        "basis"
+      ],
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/reset_role"
+        },
+        "quantity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Short name, unique within the block; `derived_from` refers to these."
+        },
+        "fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^([A-Za-z_][A-Za-z0-9_.]*|[0-9]+:[0-9]+)$"
+          },
+          "description": "EXACTLY the observation entries this draw moves: names from `state_surface.flat_fields[].name` or `fields[].name` (a group name stands for its slice), or `a:b` slices of the flat observation for a block ('7:76'). Exact in both directions and held against the adapter: a goal whose z is fixed lists x and y here and puts z under `constants`; a pure-yaw quaternion lists w and z only. Empty only with `not_observed_because`."
+        },
+        "not_observed_because": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "REQUIRED when fields is empty: where the drawn quantity lives instead (a task attribute the reward reads; a branch whose only trace is in other entries)."
+        },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "text"
+          ],
+          "properties": {
+            "family": {
+              "enum": [
+                "uniform",
+                "normal",
+                "bernoulli",
+                "categorical",
+                "permutation",
+                "derived",
+                "other"
+              ],
+              "description": "`derived` exactly when derived_from is set: a deterministic function of another draw (door_open's goal is the door position plus a fixed offset), which a reader must not mistake for an independent sample."
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The distribution with its numbers and units in the coordinate the code draws in, plus any rejection or coupling ('U(-0.1, 0.1) x U(0.6, 0.7); re-drawn until 0.15 m from the goal in x-y'). Prose ABOUT numbers the source line carries; it is not the source."
+            },
+            "low": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "number"
+              },
+              "description": "Optional elementwise bounds for a uniform draw, one per entry of `fields` in order, when the bound is a literal in the code. null when the family has no box or the bound is computed (HumanoidBench's keyframe + noise). A test holds low[i] < high[i] and equal lengths; never invent a box."
+            },
+            "high": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "number"
+              }
+            },
+            "p": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1,
+              "description": "bernoulli: probability of the branch `text` names first."
+            },
+            "probabilities": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "minItems": 2,
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "description": "categorical: one per branch in the code's order, summing to 1 (a test) -- how 'half of the episodes take branch A' becomes 0.5 rather than a sentence."
+            }
+          }
+        },
+        "condition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When this draw happens only in one branch of a `mode` draw ('sitting branch only'), or its bounds depend on the branch. null when unconditional."
+        },
+        "derived_from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The `quantity` of another entry this is a deterministic function of; a test resolves the name. Non-null iff family is `derived`."
+        },
+        "source": {
+          "$ref": "#/$defs/source_ref",
+          "description": "The lines that draw it: the library's `reset_model` where the library draws, the adapter where it does. Repo paths are resolved by a test; library paths are checked when the package is installed and otherwise listed by name as unchecked."
+        },
+        "basis": {
+          "$ref": "#/$defs/reset_basis"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "fields": {
+                "maxItems": 0
+              }
+            },
+            "required": [
+              "fields"
+            ]
+          },
+          "then": {
+            "required": [
+              "not_observed_because"
+            ],
+            "properties": {
+              "not_observed_because": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "family": {
+                    "const": "derived"
+                  }
+                },
+                "required": [
+                  "family"
+                ]
+              }
+            },
+            "required": [
+              "distribution"
+            ]
+          },
+          "then": {
+            "required": [
+              "derived_from"
+            ],
+            "properties": {
+              "derived_from": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "derived_from": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "family": {
+                    "const": "bernoulli"
+                  }
+                },
+                "required": [
+                  "family"
+                ]
+              }
+            },
+            "required": [
+              "distribution"
+            ]
+          },
+          "then": {
+            "properties": {
+              "distribution": {
+                "required": [
+                  "p"
+                ],
+                "properties": {
+                  "p": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "family": {
+                    "const": "categorical"
+                  }
+                },
+                "required": [
+                  "family"
+                ]
+              }
+            },
+            "required": [
+              "distribution"
+            ]
+          },
+          "then": {
+            "properties": {
+              "distribution": {
+                "required": [
+                  "probabilities"
+                ],
+                "properties": {
+                  "probabilities": {
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "reset_constant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "quantity",
+        "value",
+        "source",
+        "basis"
+      ],
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/reset_role"
+        },
+        "quantity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The constant with units, or the word none with what stands in for it ('none -- the goal is theta = 0, a constant of the metric'). A string on purpose: a bare number here would look like a knob, and nothing reads it."
+        },
+        "fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^([A-Za-z_][A-Za-z0-9_.]*|[0-9]+:[0-9]+)$"
+          },
+          "description": "Optional: the observation entries that hold this constant, same syntax as a draw's. Where given, the adapter test holds them equal across seeded resets to 1e-6."
+        },
+        "source": {
+          "$ref": "#/$defs/source_ref"
+        },
+        "basis": {
+          "$ref": "#/$defs/reset_basis"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

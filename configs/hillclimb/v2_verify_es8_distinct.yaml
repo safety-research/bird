@@ -1,0 +1,12 @@
+# Hill-climb configuration 11 (v2_verify_es8_distinct): candidate diversity by distinct
+# prompts. v2_verify_es8 where each of a round's samples gets a different diversity
+# instruction (component set, shaping schedule, order of magnitude, failure mode penalized,
+# mathematical form, decomposition granularity; generation.py _DIVERSITY_AXES) instead of
+# i.i.d. draws from one prompt. Used by no published method.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify_es8.yaml
+name: v2_verify_es8_distinct
+
+generate:
+  sampling_mode: distinct_prompts

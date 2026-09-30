@@ -1,0 +1,13 @@
+# Hill-climb configuration 19 (v3_selfverify): the self-verify prior on v3_tree. After each
+# candidate trains, the evaluator LLM imagines an expert strategy for the task and scores the
+# reward's similarity to it on [-1, 1] (evaluate.self_verify, RF-Agent tex:188). UCT adds a
+# softmax of the siblings' scores, so the child the LLM believes in is descended first; the
+# backup (Eq. 3) never sees it.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_tree.yaml
+name: v3_selfverify
+
+evaluate:
+  self_verify:
+    enabled: true

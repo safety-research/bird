@@ -1,0 +1,88 @@
+# Text2Reward (zero-shot) -- Xie et al., "Text2Reward: Reward Shaping with Language
+# Models for Reinforcement Learning", ICLR 2024, arXiv 2309.11489.
+# Code: https://github.com/xlang-ai/text2reward
+#
+# The LLM gets a task instruction and a hand-written Pythonic class abstraction of
+# the environment, and writes one dense reward function. Code that fails to run is
+# repaired from the error trace, the abstraction's general symbols are rewritten into
+# the environment's own, and one policy is trained on the result: no search, no
+# selection, no feedback. Pinned to ManiSkill2 LiftCube-v0 (PPO, 2M steps), the
+# first task of run_maniskill/run_zero_shot.sh. ManiSkill2 is not a registered env,
+# so the env is chosen on the command line (-s problem.env_id=...).
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value. Line numbers refer to the repo above.
+# Not in the paper's matched comparison (scripts/paper_cell.py lists those methods).
+
+extends: zeroshot.yaml
+name: text2reward_zeroshot
+
+# --- problem and models ------------------------------------------------------
+
+problem:
+  task_description: "Pick up cube A and lift it up by 0.2 meter."  # verbatim, zero_shot_exp.py L55
+
+llm:
+  generator:
+    model: gpt-4-0314                 # §3 "GPT-4"; snapshot from App. A footnote 2
+    temperature: 0.7                  # App. A; the zero-shot code path passes no temperature
+
+# --- generate ----------------------------------------------------------------
+
+generate:
+  context:
+    env_spec: pythonic_class_abstraction  # §2.2; PandaPrompt.py L19-64 (fields and callable helpers)
+    include_reward_recipe_hints: t2r_panda  # 5-item reward template, PandaPrompt.py:9-15, sent verbatim
+                                      # † the paper's copy is worded slightly differently (appendix.tex:189-195)
+
+  output:
+    format: scalar_only               # PandaPrompt.py L80: returns `reward: float` only
+  # PandaPrompt.py L78-82's "think step by step" instruction is not sent; BIRD's
+  # default system prompt applies.
+
+  parse:
+    max_retries: "inf"                # resample until a code block parses (generation.py L82-93); capped at 100
+
+  postprocess:
+    symbol_mapping: per_task          # post_process.py L23-30: per-task rewrite, longest key first (L11-12)
+
+  # Few-shot (k = 1, §2.2) is a separate setting in the paper and is off here: its
+  # corpus is the expert rewards of the sibling tasks (few_shot_exp.py L31-45).
+  # † retriever: paper INSTRUCTOR embeddings; code OpenAIEmbeddings + Chroma
+  # (few_shot/generation.py L30-35).
+
+# --- verify ------------------------------------------------------------------
+
+verify:
+  enabled: true                       # † paper §2.2 executes and repairs; code: none, errors crash ppo.py L94
+  static_checks: [signature_parse, ast_syntax]  # BIRD default, kept: "syntax errors" (§2.2)
+  dynamic_checks: [execution_smoke, output_shape, finite_values]  # BIRD default: "runtime errors" (§2.2)
+  on_failure: resample_with_trace     # "we utilize the feedback from code execution" (§2.2)
+  max_repair_attempts: 0              # BIRD default, 0 = uncapped: "until the code is devoid of errors"
+  quality_screen: none                # BIRD default, kept
+
+# --- train -------------------------------------------------------------------
+
+train:
+  algorithm: ppo                      # the paper picks PPO or SAC per task (§3); PPO for LiftCube
+  env_steps: 2000000                  # LiftCube-v0, run_zero_shot.sh L3
+  n_parallel_envs: 8                  # run_zero_shot.sh L2; App. A Table 3
+  seeds_per_candidate: 5              # † paper 5 seeds (Fig. 2 caption); code 1 (run_zero_shot.sh L3)
+  # Not pinned: App. A Table 3's PPO values (discount 0.85, 15 epochs per update,
+  # lr 3e-4, batch 400, 2 x 256 layers, target KL 0.05, 3200 steps per update,
+  # 100-step episodes).
+
+# --- evaluate ----------------------------------------------------------------
+
+evaluate:
+  rollouts_per_candidate: 5           # BIRD's: `--eval_num 5` (run_zero_shot.sh L2) sizes eval envs
+                                      # ‡ code evaluates 10 episodes per checkpoint, 20 at the end (ppo.py L136, L154)
+  fitness:
+    checkpoint_aggregation: final     # BIRD default, kept: where the curve ended
+  # The inherited `fitness.reduction: per_step_fraction` is a dwell fraction; the
+  # paper's success rate is any-step per episode (ppo.py L45-51, L161).
+
+# --- select ------------------------------------------------------------------
+
+select:
+  final_artifact: chain_end           # the run returns the one reward it wrote

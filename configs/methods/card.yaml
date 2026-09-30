@@ -1,0 +1,177 @@
+# CARD -- Sun et al., "A Large Language Model-Driven Reward Design Framework via
+# Dynamic Feedback for Reinforcement Learning", Knowledge-Based Systems 2025,
+# arXiv 2410.14660. Code: https://github.com/ShengjieSun419/CARD (locators are
+# relative to code_generation/self_reflection/ unless another file is named;
+# main.tex is the arXiv v1 LaTeX source).
+#
+# A Coder LLM writes one reward per iteration and keeps the whole dialogue. Before
+# a reward is trained, Trajectory Preference Evaluation (TPE) re-scores stored,
+# labelled trajectories with it and admits it only if it ranks successes above
+# failures; a rejected reward is not trained and gets preference feedback instead.
+# Nothing is ranked or selected: the end of the chain is returned.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value.
+# The matched protocol the paper's experiments used: scripts/paper_cell.py.
+
+extends: zeroshot.yaml
+name: card
+
+# --- models and loop ---------------------------------------------------------
+# Benchmarks are Meta-World and ManiSkill2 (§5.1); problem.env_id stays at the default.
+problem:
+  fitness_access: none                # nothing is ranked (§4.2); success flags only feed TPE
+
+llm:
+  generator:
+    model: gpt-4-1106-preview         # §5.1
+    temperature: 0.7                  # App. B.2 (main.tex:525)
+  # No evaluator LLM: all feedback is assembled offline from logs (§4.2.2).
+
+loop:
+  n_iterations: 3                     # 2 refinements = 3 generations (§5.1, main.tex:263; Alg. 1 N = 2)
+  termination: fixed_generations      # Alg. 1 (main.tex:428-447): the last program is returned untrained
+  n_restarts: 1                       # a single run (§5.3)
+  carry: [dialogue, trajectory_store] # the transcript (§4.3) and the TPE store (§4.4)
+  on_total_failure: abort             # code exit()s on exhausted retries (generation.py:83-84)
+
+# --- generate ----------------------------------------------------------------
+generate:
+  n_candidates: 1                     # one reward per query (§4.1)
+  parent_source: latest               # chain head, even if TPE rejected it
+
+  context:
+    env_spec: t2r_class_abstraction   # T2R's Meta-World class abstraction (App. C, main.tex:734-746)
+    include_reward_recipe_hints: t2r_metaworld # reward template (main.tex:728-732; metaworld_prompt.py:6-10)
+    include_numeric_reflection: true  # process feedback (§4.2.1); BIRD shows the parent's block twice
+    # CARD's system prompt, its method sentences only
+    # (metaworld_prompt.py:2, :5, :26 = main.tex:724, :727, :748)
+    system_prompt: |-
+      You are an expert in robotics, reinforcement learning and code generation.
+
+      Now I want you to help me write a reward function of reinforcement learning.
+      You are allowed to use any existing python package if applicable. But only use these packages when it's really necessary.
+    # First-query instructions (metaworld_prompt.py:31,:42-43 = main.tex:751,:762-763);
+    # item 2 (the signature) is generate.output.signature, so items 3-4 become 2-3.
+    guidance: |-
+      1. Please think step by step and tell me what does this task mean;
+      2. Do not invent any variable or attribute that is not given.
+      3. When you writing code, you can also add some comments as your thought.
+    # Introspection prompt, items 1-4 (common_prompt.py:4-13 = main.tex:783-792)
+    reflection_guidance: |-
+      1.Please carefully analyze the above feedback step by step, tell me your analysis results.
+      2.Consider how to enhance the reward function in order to increase the sample efficiency of RL and improve the task success rate. Provide a new, improved reward function that can better solve the task. Some helpful tips for analyzing the feedback:
+          (1) If the success rates are always near zero, then you must rewrite the entire reward function
+          (2) If the values for a certain reward component are near identical throughout, then this means RL is not able to optimize this component as it is written. You may consider
+              (a) Changing its scale or the value of its temperature parameter
+              (b) Re-writing the reward component
+              (c) Discarding the reward component
+          (3) If some reward components' magnitude is significantly larger, then you must re-scale its value to a proper range
+      3. Give the content and reason of the modification in the form of comments before the modified position.
+      4. Do not invent any variable or attribute that is not given. Don't assume you can use other information.
+
+  history_mode: full_dialogue         # §4.3: the whole dialogue, validated turns only
+
+  output:
+    format: component_dict_return     # (total, component dict) (main.tex:757-759)
+    signature: card_compute_dense_reward # compute_dense_reward(self, action, obs) (metaworld_prompt.py:34)
+
+  parse:
+    max_retries: 9                    # 9 + 1 = max_try_num 10 (App. B.2); validity has its own budget
+
+  postprocess:
+    symbol_mapping: t2r_metaworld_global # T2R's one Meta-World table (T2R metaworld_exp.py:19-27)
+    # CARD's own table module (metaworld_exp.mapping_dicts) is missing from its release.
+
+# --- verify ------------------------------------------------------------------
+verify:
+  enabled: true                       # §4.1
+  dynamic_checks: [execution_smoke, output_dtype]
+                                      # ‡ §4.1 names no checks; code: reset + random step, two
+                                      # type asserts (metaworld_exp_one_step.py:113-131)
+  on_failure: resample_blind          # §4.1: regenerate, error not fed back; code agrees (generation.py:47-51)
+  max_repair_attempts: 10             # max_try_num 10 (App. B.2); BIRD counts repairs only (11 calls)
+  on_exhaustion: abort_run            # App. B.2 "ceasing the process"; code exit()s (generation.py:80-84)
+
+  quality_screen: tpe                 # Trajectory Preference Evaluation, the paper's contribution
+  tpe:
+    enabled: true                     # §4.2.3, Def. 4.1 (main.tex:202-214); utils.py:249-278
+    rule: frac_above_max_failure      # §4.4 (main.tex:238) = utils.py:295-304
+    # An empty or one-sided store passes vacuously (utils.py:289-293).
+    threshold: 0.8                    # δ = 0.8 (§5.1; App. B.2 Table 8)
+    discount: null                    # † paper discounted, gamma^t (Def. 4.1 Eq. 1); code undiscounted
+                                      # mean per step (utils.py:277-287)
+    trajectories_per_iteration: 100   # App. B.2 Table 8; --trajectory_num (metaworld_exp_one_step.py:276)
+    store: append_on_pass             # store grows only on a pass (metaworld_exp_one_step.py:428)
+    on_failure: skip_training         # † paper skips training on a fail (§4.4, main.tex:236); code trains
+                                      # anyway (metaworld_exp_one_step.py:374) = train_anyway
+
+# --- train -------------------------------------------------------------------
+train:
+  algorithm: sac                      # App. B.2 Tables 6-7: SAC on 10 of 12 tasks (PPO on 2 ManiSkill2)
+  env_steps: 1000000                  # App. B.2 Table 9, Meta-World (ManiSkill2: 1M or 2M per task)
+  n_parallel_envs: 8                  # App. B.2 (its 5 inference envs have no key)
+  seeds_per_candidate: 1
+  candidate_parallelism: sequential
+
+  # Text2Reward's SAC, "the exact same hyperparameters as Text2Reward" (main.tex:527):
+  # App. B.2 tab:sac_params (main.tex:555-579) = T2R run_metaworld/sac.py:132-134.
+  hyperparameters:
+    policy_kwargs:
+      net_arch: [256, 256, 256]       # sac.py:132; main.tex:563-564
+    batch_size: 512                   # sac.py:133; main.tex:570 "512 (\MW)"
+    gamma: 0.99                       # sac.py:133; main.tex:571 "0.99 (\MW)"
+    target_update_interval: 2         # sac.py:133; main.tex:565 "2 (\MW)"
+    learning_rate: 0.0003             # sac.py:134; main.tex:562 "3e^{-4}"
+    tau: 0.005                        # sac.py:134; main.tex:567 "5e^{-3}"
+    learning_starts: 4000             # sac.py:134; main.tex:569
+    ent_coef: 'auto_0.1'              # sac.py:134; main.tex:572 "initial temperature 0.1 (\MW)"
+    train_freq: 1                     # main.tex:566 "1 (\MW)"; SB3's default, sac.py passes none
+    gradient_steps: 1                 # main.tex:568 "1 (\MW)"; SB3's default
+
+# Report protocol: "five random seeds" per results figure (main.tex:270, :278, :326).
+# ‡ mechanism: Alg. 1 has no retrain; code trains the extra seeds outside the
+# feedback path (metaworld_exp_one_step.py:392-405).
+post: [final_retrain]
+final_retrain:
+  enabled: true
+  n_seeds: 5                          # † captions 5; README --train_seed_num 5 on ManiSkill2
+                                      # (README.md:63, :76), 1 on Meta-World (:31, :44)
+
+# --- evaluate ----------------------------------------------------------------
+evaluate:
+  checkpoint_eval_episodes: 10        # ‡ README runs pass 10 (README.md:31, :44); code default 3
+                                      # (metaworld_exp_one_step.py:278). † the same flag also sizes
+                                      # trajectory collection there (:231); here that is its own key
+  fitness:
+    source: none                      # no ranking scalar (§4.2): report.fitness is None, not 0.0
+  rollouts_per_candidate: 10          # ‡ README runs pass --n_eval_episodes 10 (README.md:31, :44, :63, :76)
+  feedback:
+    # BIRD verbalises 10 curve points of per-step means, not 5 checkpoints of episode sums.
+    numeric_reflection: true          # process feedback (§4.2.1, main.tex:194; utils.py:96-131)
+    granularity: per_component        # which reward term did what
+    trajectory_examples: best_and_worst # §4.2.2 (main.tex:199); utils.py:222-226
+    trajectory_sample_interval: 100   # App. B.2 Table 8, Meta-World (ManiSkill2: 25) = --log_interval
+    analyzer: none                    # verbalised offline, no LLM analyzer (§4.2.2)
+
+  skip_if_screened: true              # a TPE-rejected reward was never trained (§4.4)
+
+# --- select ------------------------------------------------------------------
+select:
+  rule: none                          # no contest: K = 1 and nothing is ranked (§4.2)
+  final_artifact: chain_end           # the last generated program (Alg. 1, main.tex:428-447)
+  significance: none
+
+# --- update ------------------------------------------------------------------
+update:
+  topology: single_parent_hillclimb
+  operator: reflect_and_mutate        # feedback drives a rewrite of the chain head (§4.2-§4.4)
+  loser:
+    action: none                      # no losers: K = 1
+  prompt:
+    mode: append                      # the transcript grows, never rewritten (§4.3)
+    assistant_content: raw_response   # ‡ whole response kept (generation.py:110, :124); §4.3 silent
+  feedback:
+    routing: tpe_verdict              # pass: process + trajectory feedback; fail: preference report (§4.4)
+  memory:
+    trajectory_store: append_on_pass  # grows the TPE store on a pass; must match verify.tpe.store

@@ -1,0 +1,72 @@
+campaign: mt10_push
+family: metaworld
+pattern: closure
+code:
+- pushmw.py
+source:
+  archive: 'not distributed: only the policy code and its evaluation records are included'
+  date: '2026-09-01'
+  log: null
+policies:
+- id: mt10_push/grasp_drag
+  task: push
+  env_id: mt10_push-v3
+  gym_id: push-v3
+  entry:
+    file: pushmw.py
+    symbol: make_policy
+  params:
+    k: 14.0
+    z_hover: 0.06
+    z_grasp: 0.02
+    xy_tol: 0.01
+    d_tol: 0.016
+    n_close: 8
+    z_drag: 0.035
+    hold_d: 0.035
+    drop_dist: 0.12
+  status: solved
+  score:
+    value: 0.8909
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    seeds: 0-24
+    per_seed:
+    - 0.888
+    - 0.898
+    - 0.898
+    - 0.88
+    - 0.898
+    - 0.87
+    - 0.884
+    - 0.876
+    - 0.88
+    - 0.898
+    - 0.886
+    - 0.902
+    - 0.892
+    - 0.894
+    - 0.898
+    - 0.898
+    - 0.888
+    - 0.892
+    - 0.894
+    - 0.89
+    - 0.894
+    - 0.896
+    - 0.886
+    - 0.894
+    - 0.898
+    aggregate: mean
+    secondary:
+      min: 0.87
+      any_step: 1.0
+    verified_through: bird_adapter
+    verified_at_commit: null
+    date: '2026-09-01'
+    record: records/final_pushmw.json
+  notes: 'Zero tuning: the mt10_peg_insert/waypoint constants transferred verbatim (params are pushmw.py DEFAULTS; the committed record carries per-seed rows only, no summary.params object). matches the bundled
+    expert anchor on any-step (1.0) and beats its per-step dwell (0.5803) 1.5x.
+    Grasp-and-drag: approach/descend/close/drag/hold with a dropped-puck regrasp,
+    puck dragged at table height. verified_at_commit is null: the record carries no commit sha; measured through the BIRD adapter.'

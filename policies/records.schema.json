@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bird/records.schema.json",
+  "title": "bird-policy-eval-v2: one policy, one seed set, one measurement",
+  "description": "What scripts/eval_policy.py writes -- the single evaluation entry point for policies/, so a score enters a manifest by being measured rather than typed. v2 is a SUPERSET of v1: every v1 key keeps its name and its meaning, and six keys are added that v1 could not say (seed_block_hash, engine, provenance, measured_at, horizon, max_steps). Four of the six are required. `horizon` and `max_steps` are OPTIONAL: some committed v2 records predate them, and a committed record is never rewritten to fit a schema -- so their absence has one meaning, `uncapped as far as the record knows`, and the writer emits both on every record (tests/test_eval_policy_record.py holds it to that; tests/test_policy_records_corpus.py validates every committed v2 record against this file). Style rules are policies/policies.schema.json's: additionalProperties false everywhere, and absence is explicit -- a key that was not measured is null and says so, never a zero-fill. THE v1 RECORDS COMMITTED UNDER policies/*/records/ ARE NOT VALIDATED BY THIS FILE and must not be: they carry `schema: bird-policy-eval-v1` and lack the six new keys, and rewriting them would retype numbers this repo's whole point is that nobody retypes. Record readers are deliberately tolerant of both shapes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "policy", "env_id", "unit", "commit",
+               "tree_dirty", "dirty_paths", "date", "measured_at", "provenance", "engine",
+               "seed_block_hash", "params", "summary", "rows"],
+  "properties": {
+    "schema": {
+      "const": "bird-policy-eval-v2",
+      "description": "The record shape. v1 records exist and are read by a tolerant reader; this schema describes only what the current writer produces."
+    },
+    "policy": {
+      "type": "string",
+      "description": "The registry id measured, `<campaign>/<name>`. Resolved under `--root` when one was given, which is why this is an id and not a path -- the same id under two roots is two different artifacts and `commit` plus `tree_dirty` are what separate them."
+    },
+    "env_id": {
+      "type": "string",
+      "description": "The BIRD adapter the episodes ran on -- registry.names(\"env\"). The instrument of record; a number measured on anything else is not this number."
+    },
+    "unit": {
+      "const": "bird_task_metric",
+      "description": "This writer measures the adapter's task_metric and nothing else; the benchmark's own episode return, where one exists, is rows[].reference_return."
+    },
+    "horizon": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The loop bound every row ran to -- bird/policy_api.py::episode_horizon: `--max-steps` when it was given, else the adapter's own horizon. The task metric is a per-step fraction over THIS many steps, so a record whose horizon is under the adapter's measures a different quantity, and no reader of rows[].metric can tell; this key is what can. A row that ran to the bound has terminated_early false whether the bound was the horizon or a cap: cap-vs-full is read from here and `max_steps`, never from the row. OPTIONAL, and absent exactly on the older v2 records (the writer emits it on every record): such a record cannot say what bounded its rows, so a reader takes absence as `unstated -- uncapped as far as the record knows`, never as a cap and never as a measured horizon, because a cap is the one case that must not be assumed away."
+    },
+    "max_steps": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "`--max-steps` as the operator gave it, or null when the episodes ran to the adapter's horizon; when set, `horizon` equals it. Null and never 0: 0 means `use the adapter's horizon` to the writer and is recorded as the absence it is. A capped record should not be cited as a manifest's score. OPTIONAL for the same reason as `horizon`, and absent together with it on the older v2 records. Absent and null both read as `not capped as far as the record knows` (only a non-null value marks a cap), but they are not the same statement: null says the writer looked and found no cap; absence says nothing looked."
+    },
+    "commit": {
+      "type": ["string", "null"],
+      "description": "The short HEAD the measurement ran on, or null when git could not answer. A commit is a pin only if the tree it names is the tree that ran, which is what `tree_dirty` is for."
+    },
+    "tree_dirty": {
+      "type": ["boolean", "null"],
+      "description": "Whether the working tree held changes the recorded `commit` does not describe, in the scopes _dirty_paths names (the campaign dir, bird/, tasks/, this evaluator). NULL when git could not answer -- which is the normal state under `--root <outside this checkout>`, where `git status -- <path>` is `fatal: outside repository`. Null is not false: a check of a record's commit pin judges only records that carry the marker, exactly so an unlooked-at tree is never read as a clean one."
+    },
+    "dirty_paths": {
+      "type": ["array", "null"],
+      "items": {"type": "string"},
+      "description": "The paths, when there were any. Null exactly when `tree_dirty` is null."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The measurement's calendar day, kept from v1 unchanged so a v1 reader is a v2 reader."
+    },
+    "measured_at": {
+      "type": "string",
+      "description": "The wall clock to the microsecond, timezone-aware ISO 8601. It is in the body because it is in the filename, and a filename that states a time the record does not is a fact with no source. The microseconds are load-bearing: they are what makes two runs inside one second two records rather than one silently overwritten."
+    },
+    "provenance": {
+      "enum": ["measured"],
+      "description": "measured: this process ran the episodes. scripts/eval_policy.py only ever writes `measured`: a record is one measurement, made by the writer."
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mujoco"],
+      "description": "The simulator version in force. A mapping rather than a bare string so a second engine can be named later without changing a type readers already parse.",
+      "properties": {
+        "mujoco": {
+          "type": ["string", "null"],
+          "description": "The version of the `mujoco` package importable in the measuring interpreter, or null. A bird_task_metric on a MuJoCo tier is a function of the integrator, and mujoco==3.1.6 (HumanoidBench) and 3.3.0 (Meta-World, Assistax) share no interpreter here -- two records that did not name their engine could not be compared. Null on the bird_control tier, which is pure numpy and has no engine at all; the record does not claim to distinguish that from a failed import, and says so here rather than guessing."
+        }
+      }
+    },
+    "seed_block_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 over the seed set in the order it was run, through bird/checkpoint.py::digest_of -- the repo's one JSON digest, reused rather than re-derived (two digests over one quantity disagree in exactly the places nobody compares). Two records over the same seeds share it whatever else moved, which is what makes `these are the seeds that were spent` checkable against another record's seed set instead of being a claim about a filename."
+    },
+    "params": {
+      "type": "object",
+      "description": "The MERGED constants the policy actually ran with: entry.kwargs_from, then params_file, then inline params, later winning -- bird/policy_api.py::gather_params. `{}` when the policy genuinely has none. v1 wrote `gather_params(record) or None`, which collapsed `no constants` into the same null a record whose constants could not be read would carry; an empty parameter set is a reading and only null is an absence, so this key is never null."
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "mean", "min", "max", "successes", "reference_return_mean"],
+      "properties": {
+        "n": {"type": "integer", "minimum": 1},
+        "mean": {"type": "number"},
+        "min": {"type": "number"},
+        "max": {"type": "number"},
+        "successes": {"type": "integer", "minimum": 0},
+        "reference_return_mean": {
+          "type": ["number", "null"],
+          "description": "The env's own reward summed per episode and averaged, over the seeds that measured one -- null unless EVERY row carries one, because a mean over a subset of the seeds is a different denominator wearing the same name. On HumanoidBench this is the benchmark's published scale."
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/row"},
+      "description": "One per seed, in the order the seeds were run -- the same order seed_block_hash digests."
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "seed", "steps", "terminated_early", "metric",
+                   "success", "reference_return"],
+      "description": "bird/policy_api.py::run_episode's row with `states` stripped (it is large and already summarised by the metric). `metric` is the name here; a consumer that shows rows under another name maps it once, at the boundary where it writes that row, and nothing downstream re-maps. Two OPTIONAL keys: `start` and `loop_calls`, see each.",
+      "properties": {
+        "policy": {"type": "string"},
+        "seed": {"type": "integer"},
+        "steps": {"type": "integer", "minimum": 0},
+        "terminated_early": {
+          "type": "boolean",
+          "description": "The ENVIRONMENT ended the episode: env.step reported done before the loop bound. False when the episode ran to the bound -- the adapter's horizon, or the record's `max_steps` cap -- so a capped row and a full row read alike here by design (the row does not know what bounded it); `steps == horizon` with this false is `ran to the bound`, and the record's `max_steps` says whether that bound was a cap."
+        },
+        "metric": {"type": "number"},
+        "success": {"type": "boolean"},
+        "reference_return": {
+          "type": ["number", "null"],
+          "description": "The adapter's own reward summed over the episode, computed after the rollout from the recorded states and actions. Null, never 0.0, when the adapter has no reference reward: an unmeasured return must stay distinguishable from a measured zero."
+        },
+        "start": {
+          "type": "string",
+          "enum": ["reset"],
+          "description": "Where the episode began (bird/policy_api.py::run_episode): `reset`, the adapter's own draw under the seed. OPTIONAL on the same argument as `horizon`/`max_steps`: older records lack it and are never rewritten; absence reads as `reset`."
+        },
+        "loop_calls": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["steps", "resets"],
+          "properties": {
+            "steps": {"type": "integer", "minimum": 0},
+            "resets": {"type": "integer", "minimum": 1}
+          },
+          "description": "Recorded for provenance: the steps and the single reset run_episode's loop made for this row -- always {steps: this row's steps, resets: 1} in this release. OPTIONAL like `start`, absent on older records, and a reader takes absence as `steps == this row's steps, resets == 1`."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,393 @@
+schema_version: 1
+id: hopper_hop_in_place
+env:
+  env_id: Hopper-v5
+  library:
+    name: mujoco
+    version_verified: 3.3.0
+    commit: null
+    stack:
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 1000
+  control_hz: 125
+  termination:
+    early_terminate: true
+    autoreset: false
+    partial_reset: null
+    prompt_states: Falling over ends the episode.
+  reset:
+    kind: stochastic
+    mechanism: library_reseeded
+    n_instances: null
+    instance_seed: null
+    entry:
+      path: bird/envs/gym_mujoco.py
+      symbol: GymMujoco._reset
+      lines: '1368-1381'
+    rng_note: 'One draw from the episode Generator -- int(rng.integers(2 ** 31 - 1)) in GymMujoco._reset, the entry above -- is
+      passed to gymnasium Env.reset(seed=), which reseeds the wheel np_random before MujocoEnv.reset
+      calls mj_resetData and reset_model (gymnasium/envs/mujoco/mujoco_env.py:174-178); every draw
+      below is then made by that reseeded np_random in reset_model order: qpos, qvel. The row _reset
+      returns is the raw concat(qpos, qvel) (12 entries), NOT the 11-entry gymnasium observation the
+      prose and state_surface describe, so fields are a:b slices of that row. This adapter has no DR
+      axes (dr_parameters is empty), so no draw precedes _reset at any DR setting.'
+    draws:
+      - role: agent_pose
+        quantity: qpos
+        fields: ['0:6']
+        distribution:
+          family: uniform
+          text: 'init_qpos (the model qpos0: root x 0, root z 1.25 m, torso angle 0, thigh 0, leg 0, foot
+            0) + U(-0.005, 0.005) independently on each of the 6 coordinates, so the torso starts
+            between 1.245 and 1.255 m and every angle within 5 mrad of zero. The scale is the v5
+            default reset_noise_scale 5e-3 (hopper_v5.py:175); the adapter passes no override.
+            Keyframe plus noise, so no low/high box.'
+        source:
+          path: gymnasium/envs/mujoco/hopper_v5.py
+          lines: '326-328'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_hopper_hop_in_place built with
+          ctx {}, reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns
+          0-5 all move; column 1 spanned [1.2454, 1.2544], the others [-0.005, 0.005].'
+      - role: agent_velocity
+        quantity: qvel
+        fields: ['6:7', '7:8', '8:9', '9:10', '10:11', '11:12']
+        distribution:
+          family: uniform
+          text: 'init_qvel (zeros) + U(-0.005, 0.005) independently on each of the 6 generalised
+            velocities (x m/s, z m/s, torso rad/s, then three joint rad/s).'
+          low: [-0.005, -0.005, -0.005, -0.005, -0.005, -0.005]
+          high: [0.005, 0.005, 0.005, 0.005, 0.005, 0.005]
+        source:
+          path: gymnasium/envs/mujoco/hopper_v5.py
+          lines: '329-331'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_hopper_hop_in_place built with
+          ctx {}, reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked; columns
+          6-11 all move within [-0.005, 0.005].'
+    constants:
+      - role: goal
+        quantity: goal
+        value: 'none -- hop_minus_drift is std(z over steps 1..T) - |x_T - x_0|: the spot to stay over is
+          the root x at reset itself (column 0 of the first state, part of the agent_pose draw), not
+          a separately sampled point, and nothing in the scene marks it'
+        source:
+          path: bird/envs/gym_mujoco.py
+          lines: '282-292'
+        basis: read
+    stochastic_transitions: null
+    upstream_divergence: null
+    prompt_states: 'stands on flat ground. Make it hop on the spot'
+    prompt_field: natural_language
+    prompt_omits: [agent_pose, agent_velocity]
+  spaces:
+    obs_dim: 11
+    action_dim: 3
+    action_low: -1.0
+    action_high: 1.0
+    action_semantics: Torques on the hip, knee and ankle joints, each in [-1, 1].
+description:
+  natural_language: |-
+    A planar one-legged robot — a torso on a single leg with hip, knee and ankle
+    joints — stands on flat ground. Make it hop on the spot: drive the joints so the
+    torso rises and falls in a sustained hopping motion while the robot stays over
+    the patch of ground it started on. Both halves are required and they are traded
+    off directly against each other. A robot that stands rigidly upright and never
+    leaves the ground is not hopping, however long it stays up; a robot that hops
+    away down the track has travelled instead of staying put, and every metre it
+    drifts cancels a metre of hopping. Falling over ends the episode, so whatever
+    gait it finds has to be one it can keep up.
+  scene: |-
+    - Body: a planar robot constrained to the x-z plane: a torso atop a single leg with
+      three actuated hinge joints — thigh, leg and foot. The root has three unactuated
+      degrees of freedom: x position, z position (height) and torso pitch angle.
+    - Observation: an (11,) float array — 5 position entries followed by 6 velocity
+      entries. obs[0] is the torso height, obs[1] the torso pitch angle, and obs[2:5]
+      the [thigh, leg, foot] joint angles. obs[5] is the forward (x) velocity, obs[6]
+      the vertical (z) velocity, obs[7] the torso pitch angular velocity, and obs[8:11]
+      the three joint angular velocities. The env clips all six velocity entries to
+      [-10, 10] before they reach the observation — hopping-gait joint velocities do
+      hit that bound, so treat +/-10 as saturation, not a physical limit. The root's
+      absolute x position is deliberately excluded from the observation; it is
+      provided on `s` instead.
+    - Control: 3 torques, one per joint in the order [thigh, leg, foot], each clipped
+      to [-1, 1].
+    - Timing: one control step holds the torques for 4 simulator substeps of 0.002 s,
+      so dt = 0.008 s per control step; the episode is at most 1000 steps (8 s).
+    - Termination: the env's default terminate_when_unhealthy=True is in force — the
+      episode ends early the moment the robot stops being healthy. Healthy means:
+      torso height obs[0] > 0.7 m, torso angle |obs[1]| < 0.2 rad, and every entry of
+      the simulator's internal state (the obs[1:] quantities BEFORE velocity clipping)
+      finite and inside (-100, 100). `s.is_healthy` recomputes this from the
+      observation: exact for the height, angle and joint-angle clauses — the falls
+      that actually end hopping episodes — but the velocity part of the range check
+      runs on unclipped values the +/-10-saturated observation cannot see, so that
+      (rare) termination is not detectable from obs.
+    - Convention: +x is forward, +z is up. Forward progress means increasing x while
+      staying healthy.
+  success_criterion_prose: null
+  full_source:
+    path: gymnasium/envs/mujoco/hopper_v5.py
+    lines: null
+state_surface:
+  fields:
+  - name: s.x_position
+    shape: scalar
+    units: null
+    description: world x of the torso, metres; grows as it hops forward (from the simulator —
+      deliberately NOT in the observation)
+    source: null
+  - name: s.x_velocity
+    shape: scalar
+    units: null
+    description: forward velocity averaged over the last control step, m/s; positive means hopping
+      along +x
+    source: null
+  - name: s.z_height
+    shape: scalar
+    units: null
+    description: torso height, metres (obs[0]); below 0.7 the episode ends
+    source: null
+  - name: s.torso_angle
+    shape: scalar
+    units: null
+    description: torso pitch angle, radians (obs[1]); beyond +/-0.2 the episode ends
+    source: null
+  - name: s.joint_angles
+    shape: (3,)
+    units: null
+    description: angles of [thigh, leg, foot], radians (obs[2:5])
+    source: null
+  - name: s.z_velocity
+    shape: scalar
+    units: null
+    description: vertical velocity of the torso, m/s (obs[6], saturates at +/-10)
+    source: null
+  - name: s.torso_angvel
+    shape: scalar
+    units: null
+    description: torso pitch angular velocity, rad/s (obs[7], saturates at +/-10)
+    source: null
+  - name: s.joint_velocities
+    shape: (3,)
+    units: null
+    description: angular velocities of [thigh, leg, foot], rad/s (obs[8:11], each saturates at
+      +/-10 — hopping gaits do hit this bound)
+    source: null
+  - name: s.obs
+    shape: (11,)
+    units: null
+    description: 'the raw observation: 5 position entries then 6 velocity entries, velocities
+      clipped to [-10, 10] (s.x_velocity above is the unclipped simulator value; obs[5] is its
+      clipped counterpart)'
+    source: null
+  - name: action
+    shape: (3,)
+    units: null
+    description: the torques applied this step, order [thigh, leg, foot], each in [-1, 1]
+    source: null
+  helpers: []
+  helpers_note: |-
+    The one precomputed quantity is `s.is_healthy` — the env's default healthy check
+    recomputed from the current observation (exact for the height/angle fall modes;
+    see the state table for the one velocity-clip caveat). Everything else hopping
+    plausibly wants — forward position and speed, height, posture, joint state — is
+    already a named field of `s` above and a direct function of those.
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: Gymnasium's control envs ship no discrete success check and no
+    info['success']; there is no shipped success check to game and nothing for a hardened oracle to
+    tighten. Ground truth is the continuous success metric in continuous_success.raw.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: hop_minus_drift
+    expr: std(z_height) - |final x - x at reset|, both in metres (`bird/envs/gym_mujoco.py::_fit_hop_minus_drift`)
+    unit: m
+    direction: maximize
+    saturates_at: null
+    saturates_at_reason: No ceiling in the metric's definition. std(z_height) has no constructional
+      upper bound and the subtracted drift term only lowers the value, so the supremum is set
+      by the hopper's geometry rather than by the metric. Bounded BELOW by nothing either - drift
+      is unbounded, so the score can be very negative.
+  normalized:
+    method: anchors
+    formula: null
+    success_threshold: 0.9
+anchors:
+  # null: no `policies/` entry has been run on this task. Absence is explicit.
+  scripted: null
+  random:
+    value: -0.0332
+    method: random_policy
+    source: 'Measured 2026-08-24 : n=12 episodes of action_space.sample(), seeds
+      0-11, scored by the task''s own fitness function. sigma
+      0.0404.'
+    n_seeds: 12
+    n_episodes: 12
+    reason: null
+    date: '2026-08-24'
+  expert:
+    value: null
+    method: unavailable
+    source: null
+    reason: >-
+      MEASURED 2026-08-28 by `scripts/train_expert.py` and DOES NOT QUALIFY. PPO (sb3) trained for
+      1,001,472 env steps per seed on the BASE Hopper-v5 reward `healthy + x_velocity - 1e-3|a|^2`
+      -- the built-in reward `reward.human` below disowns as paying "forward velocity, the exact
+      thing this task penalises". These are forward-hopping policies, not policies trained to hop in
+      place, and their score on this task's metric (`hop_minus_drift`, metres of hop minus |net x
+      drift|) says so: seeds 0/1/2 -11.7691 / -13.7599 / -6.9839, every one BELOW the random anchor
+      (-0.0332), because the drift they were trained to maximise is what this metric subtracts.
+      Recording the best of them as the expert would invert the normalisation scale, so this stays
+      null with the measurement kept here. Rolled out with deterministic actions for 30 episodes per
+      seed under mujoco 3.3.0 / gymnasium 1.3.0 / stable-baselines3 2.9.0; the policies are not
+      distributed with this repository. The adapter
+      exposes no `reference_reward` on this task and `train_expert.py` refuses it, so this recipe
+      cannot be re-run; a real expert needs a BIRD-owned hop-in-place reward recorded as ours. The
+      measurement's own confidence interval is deliberately NOT reproduced:
+      `measure_anchors.interval` clamps to [0, 1] as though the metric were a fraction.
+    n_seeds: null
+    n_episodes: null
+    date: null
+budget:
+  train_steps: 300000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: Not established — this task has had no learnability check. Run one (a hand-written simple correct reward trained with SB3 PPO, pass bar vs a fresh n=12 random baseline)
+      before using it in any comparison.
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: none
+    scope: null
+    reference: null
+    depends_on: null
+    import_path: null
+    verified_against: null
+    notes: >-
+      No published reward exists for hopping IN PLACE; the env's built-in reward pays forward
+      velocity, the exact thing this task penalises. BIRD's adapter (bird/envs/gym_mujoco.py)
+      exposes NO `reference_reward` on this task -- `has_reference_reward` is False,
+      `gt_return`/`gt_reward_curve` are recorded as None, `pearson_curve` is undefined here and
+      `scripts/train_expert.py` refuses to train on it. The `expert` anchor was trained on the
+      built-in reward described above; see that anchor's text.
+  contract:
+    signature: |-
+      MAX_REWARD = <float>   # tight upper bound on `reward` below
+
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          """
+          Args:
+            s:      frozen state namespace, fields documented above; no env handle
+            action: (3,) float array, the action applied this step
+          Returns:
+            reward:     a single float in [0, MAX_REWARD]
+            components: dict mapping term name -> float
+          """
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, not a batch: a single Python float for reward and for each component.
+      Single environment, plain NumPy.'
+    reward_utils: []
+  forbidden_symbols: []
+judge:
+  vlm_legible: true
+  legibility_note: Hop amplitude is readable; drift is NOT (tracking camera centres the robot
+    regardless). The one task of the set where the judge cannot check half the objective from
+    frames even in principle.
+  camera:
+    name: track
+    mode: tracking
+    note: 'Verified in the env asset 2026-08-24: <camera name="track" mode="trackcom" pos="0 -3
+      -0.25" xyaxes="1 0 0 0 0 1"/> — a follow camera. For THIS task the tracking camera is actively
+      misleading: it cannot distinguish hopping in place from hopping away, because the robot
+      is centred either way. x_position telemetry is load-bearing here.'
+  subtasks_sequential: false
+  telemetry_fields:
+  - x_position
+  - x_velocity
+  - z_height
+domain_randomization:
+  # Multiplicative scales
+  # on the arrays bird/envs/gym_mujoco.py captures at construction, nominal 1.0; the
+  # adapter's _GYM_AXES table says what each writes. Only axes with a mechanical path on
+  # THIS model are declared (no fluid on a legged model, no collider on Reacher).
+  parameters:
+    body_mass_scale:
+    - 0.25
+    - 4.0
+    torso_mass_scale:
+    - 0.5
+    - 4.0
+    contact_friction_scale:
+    - 0.1
+    - 4.0
+    gravity_scale:
+    - 0.7
+    - 1.3
+    motor_strength_scale:
+    - 0.5
+    - 2.0
+    joint_damping_scale:
+    - 0.1
+    - 5.0
+  nominal:
+    body_mass_scale: 1.0
+    torso_mass_scale: 1.0
+    contact_friction_scale: 1.0
+    gravity_scale: 1.0
+    motor_strength_scale: 1.0
+    joint_damping_scale: 1.0
+exploits:
+- name: high_frequency_jitter
+  mechanism: Vibrate the torso with tiny z oscillations that raise std(z) without the feet ever
+    leaving the ground.
+  status: open
+  closed_by: null
+  note: Recorded in the fitness docstring at creation; std(z) resists it better than sum|dz| would,
+    and the judge sees it plainly.
+- name: drift_dominates_gradient
+  mechanism: 'Not a hack but a known scale asymmetry: hop amplitude ~0.07 vs drift in metres,
+    so most of the gradient is stay-put.'
+  status: open
+  closed_by: null
+  note: The margin that must clear the random baseline is the 0.071 between standing and hopping;
+    whether that is enough to learn from is unverified.
+- name: terminate_to_censor_variance
+  mechanism: 'Jump once and fall: Hopper terminates the episode the moment the torso leaves
+    the healthy band, and std(z) is computed over the states of the episode AS LIVED — so a
+    single ballistic arc followed by a step-73 termination scores std(z) ~ 0.17 with ~zero
+    drift, 2-3x what a sustained full-horizon hop cycle scores (~0.07). Early termination is
+    an action-controllable censoring mechanism for a per-episode variance statistic.'
+  status: open
+  closed_by: null
+  note: 'Observed: a CEM over scripted hop-cycle constants converged on it in 100 generations. Distinct
+    from high_frequency_jitter: the feet DO leave the ground, once. Search-side mitigation that leaves
+    the metric untouched: gate the SEARCH objective on survival; the fitness itself still pays it.'
+symbol_mapping: null
+provenance:
+  authored_from:
+  - path: bird/envs/gym_mujoco.py
+    lines: null
+    what: '`_fit_hop_minus_drift`, the ground-truth fitness (`_FITNESSES["hop_minus_drift"]`, selected by
+      `continuous_success.raw.name`)'
+  - path: gymnasium/envs/mujoco/hopper_v5.py
+    lines: null
+    what: 'gymnasium 1.3.0 env source: spaces, cameras, built-in reward'
+  rule: source, not docstrings
+  measured:
+  - 'Synthetic-episode ordering at creation: stand still 0.000, hop in place +0.071, hop away
+    -4.879.'
+  verified_by: BIRD authors
+  date: '2026-08-24'

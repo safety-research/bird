@@ -1,0 +1,19 @@
+# Hill-climb configuration 1 (v1): the starting point, RDA with the selection fixes.
+#
+# RDA's loop (subtask decomposition, per-subtask VLM feedback, warm start, weighted
+# components) with, from its parents, a continuous [0, 1] judge score, the final round's
+# winner as the answer, a 40-training taper 10 -> 2 over 8 rounds, and state trajectories
+# shown to the judge. Over rda_judge_taper_traj it adds two judge queries per candidate and
+# keeps the incumbent unless a candidate is judged better. GT-free: the judge never sees a
+# success flag or a task metric, and nothing prunes on one.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=8.
+
+extends: rda_judge_taper_traj.yaml
+name: v1
+
+evaluate:
+  vlm:
+    repeats: 2                        # two judge queries per candidate (reduces judge variance)
+
+select:
+  require_improvement_over_incumbent: true   # a worse-judged winner cannot replace the incumbent

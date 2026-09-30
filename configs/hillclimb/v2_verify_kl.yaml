@@ -1,0 +1,15 @@
+# Hill-climb configuration 6 (v2_verify_kl): v2_verify plus a KL-style pull toward the
+# task's scripted policy during training (train.reference_policy): each step the learner
+# pays beta * ||a - a_ref(s)||^2 / (2 sigma^2), the Gaussian-policy KL to the deterministic
+# reference. The candidate reward is still what is designed and judged; the pull only
+# shapes how its policy is found. It uses the demonstration access the verifier already
+# declares. beta and sigma are first guesses, not tuned.
+
+extends: v2_verify.yaml
+name: v2_verify_kl
+
+train:
+  reference_policy:
+    enabled: true
+    beta: 0.1
+    sigma: 0.5

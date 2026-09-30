@@ -1,0 +1,344 @@
+# AUTHORED FOR BIRD. This environment is implemented in this repo rather than
+# vendored from a benchmark, so this spec has no upstream counterpart
+# -- but the same rules apply as everywhere else in the catalogue: absence is explicit, and every claim came
+# off the adapter or a config rather than a docstring.
+schema_version: 1
+id: toy_hungry_thirsty
+env:
+  env_id: toy_hungry_thirsty
+  library:
+    name: bird
+    version_verified: in-repo
+    commit: null
+    stack:
+      numpy: '>=1.24'
+      python: '>=3.10'
+  horizon: 60
+  control_hz: null
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null
+    prompt_states: The episode always runs the full 60 steps; reaching the goal does not end it.
+  reset:
+    kind: stochastic
+    mechanism: adapter_draws
+    entry:
+      path: bird/envs/toy.py
+      symbol: ToyHungryThirsty._reset
+      lines: 441-443
+    draws:
+    - role: agent_pose
+      quantity: start_cell
+      fields:
+      - x
+      - y
+      distribution:
+        family: uniform
+        text: 'uniform over all 16 cells of the 4x4 grid: x, y ~ integers(4) each. The food cell (0, 0)
+          and the water cell (0, 2) are NOT excluded. Discrete, so no low/high box.'
+        low: null
+        high: null
+      source:
+        path: bird/envs/toy.py
+        lines: '442'
+      basis: measured
+      note: 5000 seeded resets hit all 16 cells including (0, 0) and (0, 2); reset(default_rng(3)) twice
+        is bitwise-equal.
+    constants:
+    - role: agent_pose
+      quantity: internal_state
+      value: hungry = 1.0, thirsty = 0.0 -- every episode starts hungry and not thirsty.
+      fields:
+      - hungry
+      - thirsty
+      source:
+        path: bird/envs/toy.py
+        lines: '443'
+      basis: measured
+      note: 'Filed under agent_pose as the agent''s configuration: the role vocabulary has no entry for
+        a non-kinematic internal state. Constant across 5000 seeded resets.'
+    - role: goal
+      quantity: food_and_water
+      value: none -- there is no goal object. task_metric is the fraction of steps spent not hungry (`hungry`
+        < 0.5); eating only works at the fixed food cell (0, 0) while not thirsty and drinking at the fixed
+        water cell (0, 2). Neither cell is carried in the observation.
+      source:
+        path: bird/envs/toy.py
+        lines: 417-418
+      basis: read
+      note: task_metric at toy.py:480-489; the cell checks at toy.py:455 and 411.
+    stochastic_transitions: '`_step` (toy.py:464-465): whenever the agent is not thirsty, `self._rng.random()
+      < dr[''thirst_prob'']` with nominal thirst_prob = 0.1 (this spec''s domain_randomization.nominal)
+      makes it thirsty -- one Bernoulli(0.1) draw per step from the episode Generator, at nominal DR. Measured:
+      one (s, a) stepped under 2000 Generators went thirsty in 11% of them. slip_prob and eat_fail_prob
+      are nominal 0.0 and draw nothing (toy.py:449, 408).'
+    upstream_divergence: 'Singh, Lewis and Barto (2009)''s hungry-thirsty domain re-implemented in this
+      repo (env.library.name: bird). Their initial-state protocol was not read against this reset, so
+      whether the uniform start over all 16 cells is the paper''s is unverified.'
+    prompt_states: Food is at (0, 0); water is at (0, 2).
+    prompt_field: env_prose
+    prompt_omits:
+    - agent_pose
+  spaces:
+    obs_dim: 4
+    action_dim: 1
+    action_low:
+    - 0.0
+    action_high:
+    - 5.0
+    action_semantics: 'act: 0 = +y, 1 = -y, 2 = +x, 3 = -x, 4 = eat, 5 = drink'
+    action_fields:
+    - name: act
+      description: 0 = +y, 1 = -y, 2 = +x, 3 = -x, 4 = eat, 5 = drink
+      low: 0.0
+      high: 5.0
+description:
+  env_prose: A 4x4 grid. Food is at (0, 0); water is at (0, 2). The agent may move in four directions,
+    eat, or drink. Eating only succeeds at the food cell and only while the agent is not thirsty;
+    it removes hunger for that step. Hunger returns on every step the agent does not successfully
+    eat. Drinking only succeeds at the water cell and removes thirst; thirst returns spontaneously
+    with probability 0.1 per step. The episode always runs the full 60 steps.
+  l_task: A 4x4 grid.
+  natural_language: A 4x4 grid. Food is at (0, 0); water is at (0, 2). The agent may move in four
+    directions, eat, or drink. Eating only succeeds at the food cell and only while the agent
+    is not thirsty; it removes hunger for that step. Hunger returns on every step the agent does
+    not successfully eat. Drinking only succeeds at the water cell and removes thirst; thirst
+    returns spontaneously with probability 0.1 per step. The episode always runs the full 60 steps.
+  scene: Singh, Lewis and Barto's 2009 domain. A 4x4 grid with food at (0, 0) and water at (0,
+    2); the agent moves, eats or drinks, and becomes thirsty at random. The discretisation is
+    exact (64 states), which is what makes tabular Q-learning and exhaustive reward enumeration
+    honest here.
+  success_criterion_prose: null
+  full_source:
+    path: bird/envs/toy.py
+    lines: null
+state_surface:
+  fields:
+  - name: x
+    shape: scalar
+    units: null
+    description: agent column, integer 0..3
+    source: null
+    slice: 0:1
+  - name: y
+    shape: scalar
+    units: null
+    description: agent row, integer 0..3
+    source: null
+    slice: '1:2'
+  - name: hungry
+    shape: scalar
+    units: null
+    description: 1.0 if the agent is hungry, else 0.0
+    source: null
+    slice: '2:3'
+  - name: thirsty
+    shape: scalar
+    units: null
+    description: 1.0 if the agent is thirsty, else 0.0
+    source: null
+    slice: '3:4'
+  helpers:
+  - name: at_food
+    signature: at_food(s)
+    description: True when the agent stands on the food cell
+    kind: inline_expression
+    expression: null
+  - name: at_water
+    signature: at_water(s)
+    description: True when the agent stands on the water cell
+    kind: inline_expression
+    expression: null
+  - name: steps_to_water
+    signature: steps_to_water(s)
+    description: Manhattan distance from the agent to the water cell
+    kind: inline_expression
+    expression: null
+  helpers_note: 'Advertised as inlineable EXPRESSIONS and deliberately not implemented as methods:
+    verification binds a proxy `self` and training binds `self=None`, so a helper that existed
+    would let a `self.x(s)` candidate pass the gate and then die in training -- a wasted policy
+    run charged to the reward that did not cause it.'
+  flat_fields:
+  - index: 0
+    name: x
+    description: agent column, integer 0..3
+  - index: 1
+    name: y
+    description: agent row, integer 0..3
+  - index: 2
+    name: hungry
+    description: 1.0 if the agent is hungry, else 0.0
+  - index: 3
+    name: thirsty
+    description: 1.0 if the agent is thirsty, else 0.0
+discrete_success:
+  kind: native_authored
+  no_discrete_success_because: This env is authored end to end in this repo, so the repo IS the vendor
+    and `EnvAdapter.success()` here (a threshold on this repo's own task_metric) IS the native success
+    -- there is no separate vendor-shipped block to record (shipped and hardened null). `kind` is `native_authored`
+    to mark exactly this under the native-signal rule -- a repo-owned env whose own success check counts
+    as native_success.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: not_hungry_fraction
+    expr: fraction of the episode's arriving states in which the agent is not hungry
+    unit: fraction of steps
+    direction: maximize
+    saturates_at: 1.0
+  normalized:
+    method: explicit
+    formula: 'identity -- the raw metric is already a fraction of steps and therefore already
+      in [0, 1]. `method: anchors` would need an expert anchor this environment cannot have.'
+    success_threshold: 0.15
+anchors:
+  scripted:
+    value: 0.594
+    method: scripted_policy
+    policy_id: simple_suite/toy_hungry_thirsty_shuttle
+    status: solved
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    n_episodes: 25
+    reason: null
+    date: '2026-09-03'
+    source: 'REGISTRY 2026-09-04: policies/simple_suite/policies.yaml entry `simple_suite/toy_hungry_thirsty_shuttle`
+      (status solved), score 0.594 bird_task_metric under per_step_fraction, n=25, verified through bird_adapter.
+      The manifest is the primary record. n_episodes equals n_seeds: one episode per seed, as the registry
+      counts them.'
+  reduction: per_step_fraction
+  by_reduction:
+    per_step_fraction:
+      random:
+        value: 0.0028
+        method: random_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 uniform-random episodes, `scripts/measure_anchors.py
+          --env toy_hungry_thirsty --n 30`, seed 0.'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+      expert:
+        value: null
+        method: unavailable
+        source: null
+        n_seeds: null
+        n_episodes: null
+        reason: No scripted expert exists for this environment. It is implemented in this repo
+          and ships no reference policy, and inventing a ceiling would make every `human_normalised`
+          number on it a ratio against a number nobody measured. Recorded as absent so `baselines_of`
+          returns None and `_normalise_pool` leaves fitness raw.
+        date: null
+  random:
+    value: 0.0028
+    method: random_policy
+    source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 uniform-random episodes, seed 0.
+      See anchors.by_reduction.'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-08-25'
+  expert:
+    value: null
+    method: unavailable
+    source: null
+    n_seeds: null
+    n_episodes: null
+    reason: No scripted expert exists for this environment. It is implemented in this repo and
+      ships no reference policy, and inventing a ceiling would make every `human_normalised` number
+      on it a ratio against a number nobody measured. Recorded as absent so `baselines_of` returns
+      None and `_normalise_pool` leaves fitness raw.
+    date: null
+budget:
+  train_steps: 2000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: Not established as a floor by a dedicated sweep.
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: tuned_dense
+    scope: value_determining
+    reference:
+      path: bird/envs/toy.py
+      lines: null
+      symbol: ToyHungryThirsty.reference_reward
+      commit: null
+      sha256: null
+    depends_on: []
+    import_path: bird.envs.toy:ToyHungryThirsty.reference_reward
+    verified_against: This repo at the commit that ran. The environment is implemented here, so there
+      is no external library to pin -- what pins it is the repository version (tag or commit) a sweep
+      is launched from.
+    notes: 'The 2009 paper''s own finding lives here: the REFERENCE reward carries a thirst term
+      that the FITNESS function does not, so the optimal reward is not the fitness function. That
+      gap is the point of the environment and must not be ''fixed''.'
+  contract:
+    signature: 'def compute_reward(state, action=None, next_state=None):'
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    - math
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, over the FLAT observation array. There is no `self` and no env
+      handle: the compiler binds arguments by name and maps `self`/`env` to None deliberately.'
+    reward_utils: []
+  forbidden_symbols: []
+judge:
+  vlm_legible: false
+  legibility_note: No renderer.
+  camera:
+    name: none
+    mode: fixed
+    note: 'No camera: frames are rasterised in pure numpy where a renderer exists at all.'
+  subtasks_sequential: false
+  telemetry_fields:
+  - hungry
+  - thirsty
+  - cell
+domain_randomization:
+  parameters:
+    thirst_prob:
+    - 0.0
+    - 0.4
+    eat_fail_prob:
+    - 0.0
+    - 0.5
+    slip_prob:
+    - 0.0
+    - 0.4
+  nominal:
+    thirst_prob: 0.1
+    eat_fail_prob: 0.0
+    slip_prob: 0.0
+exploits: []
+symbol_mapping:
+  agent_position: s[0:2]
+  is_hungry: s[2]
+  is_thirsty: s[3]
+  food_location: (0, 0)
+  water_location: (0, 2)
+provenance:
+  authored_from:
+  - path: bird/envs/toy.py
+    lines: null
+    what: '`ToyHungryThirsty` -- the observation and action tables, the helper vocabulary, the
+      symbol map, the randomisation axes, the horizon and the success threshold, all read off
+      the class'
+  - path: configs/_default.yaml
+    lines: null
+    what: the l_task, the forbidden-symbol list and the step budget
+  rule: source, not docstrings
+  measured:
+  - 'Random anchor: n=30 uniform-random episodes through the adapter, 2026-08-25.'
+  verified_by: BIRD authors
+  date: '2026-08-25'

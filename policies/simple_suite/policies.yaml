@@ -1,0 +1,182 @@
+campaign: simple_suite
+family: bird_control
+pattern: closure
+code:
+- simplereg.py
+- controllers.py
+source:
+  archive: 'not distributed: only the policy code and its evaluation records are included'
+  date: '2026-09-03'
+  log: null
+policies:
+- id: simple_suite/pendulum_energy
+  task: pendulum
+  env_id: pendulum
+  entry:
+    file: simplereg.py
+    symbol: pendulum_energy
+  params: {}
+  status: solved
+  score:
+    value: 1.0
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    threshold: 0.5
+    n_seeds: 25
+    seeds: '0-24'
+    per_seed: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    aggregate: mean
+    secondary:
+      min: 1.0
+      successes: 25
+    verified_through: bird_adapter
+    record: records/eval_pendulum_energy_2026-09-03.json
+    verified_at_commit: '9632d65'
+    date: '2026-09-03'
+  notes: >-
+    Energy-shaping swing-up, then a PD hold inside the upright window. Registered so the task has a runnable closed-loop policy
+    in the registry (and a BC base). Status set from the record: 25/25 seeds over the 0.5 bar, mean 1.0.
+- id: simple_suite/pendulum_discrete_energy
+  task: pendulum_discrete
+  env_id: pendulum_discrete
+  entry:
+    file: simplereg.py
+    symbol: pendulum_discrete_energy
+  params: {}
+  status: partial
+  score:
+    value: 0.96
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    threshold: 0.5
+    n_seeds: 25
+    seeds: '0-24'
+    per_seed: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    aggregate: mean
+    secondary:
+      min: 0.0
+      successes: 24
+    verified_through: bird_adapter
+    record: records/eval_pendulum_discrete_energy_2026-09-03.json
+    verified_at_commit: '9632d65'
+    date: '2026-09-03'
+  notes: >-
+    The same energy law, each torque snapped to the 5-torque action set. Registered so the task has a runnable
+    closed-loop policy in the registry (and a BC base). Status set from the record: 24/25 seeds over the 0.5
+    bar, mean 0.96.
+- id: simple_suite/acrobot_pump
+  task: acrobot
+  env_id: acrobot
+  entry:
+    file: simplereg.py
+    symbol: acrobot_pump
+  params: {}
+  status: negative
+  score:
+    value: 0.1615
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    threshold: 0.3
+    n_seeds: 25
+    seeds: '0-24'
+    per_seed: [0.206, 0.1561, 0.0831, 0.1462, 0.1495, 0.0997, 0.1329, 0.1495, 0.1329, 0.1827, 0.1761, 0.3189, 0.1728, 0.2193, 0.206, 0.0532, 0.1728, 0.186, 0.2359, 0.113, 0.1163, 0.1894, 0.1462, 0.093, 0.1993]
+    aggregate: mean
+    secondary:
+      min: 0.0532
+      successes: 1
+    verified_through: bird_adapter
+    record: records/eval_acrobot_pump_2026-09-11_153954_a43fe20d.json
+    verified_at_commit: '4288c38e'
+    date: '2026-09-11'
+  caveats:
+  - 'Seeded start states: every seeded start state draws 1-4 of the episode stream, so the per-seed
+    numbers are tied to the adapter''s reset stream as well as to the controller.'
+  - 'The one seed over the bar (11, at 0.3189) is the spec''s open exploit `pump_without_holding`: the tip whips
+    through the goal region often enough to bank 31.9% of the steps without ever holding there. The status stays negative -- the controller never holds the tip there, and the metric has no stability term.'
+  notes: >-
+    Bang-bang elbow energy pumping; brakes once the tip is over the goal line; does not balance, whips through
+    the goal region. Registered so the task has a runnable closed-loop policy in the registry (and a BC base). Status set from the
+    record: 1/25 seeds over the 0.3 bar (seed 11, by whipping through -- see caveats), mean 0.1615.
+- id: simple_suite/toy_reacher_pd
+  task: toy_reacher
+  env_id: toy_reacher
+  entry:
+    file: simplereg.py
+    symbol: toy_reacher_pd
+  params: {}
+  status: partial
+  score:
+    value: 0.4128
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    threshold: 0.2
+    n_seeds: 25
+    seeds: '0-24'
+    per_seed: [0.44, 0.64, 0.32, 0.4, 0.64, 0.76, 0.36, 0.0, 0.36, 0.36, 0.36, 0.36, 0.32, 0.36, 0.32, 0.68, 0.52, 0.56, 0.48, 0.36, 0.32, 0.4, 0.32, 0.36, 0.32]
+    aggregate: mean
+    secondary:
+      min: 0.0
+      successes: 24
+    verified_through: bird_adapter
+    record: records/eval_toy_reacher_pd_2026-09-03.json
+    verified_at_commit: '9632d65'
+    date: '2026-09-03'
+  notes: >-
+    PD toward the goal with velocity damping, clipped to the action box. Registered so the task has a runnable closed-loop policy
+    in the registry (and a BC base). Status set from the record: 24/25 seeds over the 0.2 bar, mean 0.4128.
+- id: simple_suite/toy_gridworld_bfs
+  task: toy_gridworld
+  env_id: toy_gridworld
+  entry:
+    file: simplereg.py
+    symbol: toy_gridworld_bfs
+  params: {}
+  status: solved
+  score:
+    value: 1.0
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    threshold: 0.5
+    n_seeds: 25
+    seeds: '0-24'
+    per_seed: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    aggregate: mean
+    secondary:
+      min: 1.0
+      successes: 25
+    verified_through: bird_adapter
+    record: records/eval_toy_gridworld_bfs_2026-09-03.json
+    verified_at_commit: '9632d65'
+    date: '2026-09-03'
+  notes: >-
+    Shortest path to the goal around the lava ridge, recomputed every step. Registered so the task has a runnable
+    closed-loop policy in the registry (and a BC base). Status set from the record: 25/25 seeds over the 0.5
+    bar, mean 1.0.
+- id: simple_suite/toy_hungry_thirsty_shuttle
+  task: toy_hungry_thirsty
+  env_id: toy_hungry_thirsty
+  entry:
+    file: simplereg.py
+    symbol: toy_hungry_thirsty_shuttle
+  params: {}
+  status: solved
+  score:
+    value: 0.594
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    threshold: 0.15
+    n_seeds: 25
+    seeds: '0-24'
+    per_seed: [0.5833, 0.7, 0.7167, 0.6167, 0.8167, 0.4333, 0.55, 0.4833, 0.7, 0.5, 0.9, 0.5833, 0.7, 0.4667, 0.6667, 0.4833, 0.4667, 0.5, 0.55, 0.6167, 0.45, 0.6333, 0.4667, 0.7167, 0.55]
+    aggregate: mean
+    secondary:
+      min: 0.4333
+      successes: 25
+    verified_through: bird_adapter
+    record: records/eval_toy_hungry_thirsty_shuttle_2026-09-03.json
+    verified_at_commit: '9632d65'
+    date: '2026-09-03'
+  notes: >-
+    Drink when thirsty, otherwise eat: the food-water shuttle. Registered so the task has a runnable
+    closed-loop policy in the registry (and a BC base). Status set from the record: 25/25 seeds over the 0.15
+    bar, mean 0.594.

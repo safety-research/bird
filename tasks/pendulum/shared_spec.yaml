@@ -1,0 +1,377 @@
+# AUTHORED FOR BIRD. This environment is implemented in this repo rather than
+# vendored from a benchmark, so this spec has no upstream counterpart
+# -- but the same rules apply as everywhere else in the catalogue: absence is explicit, and every claim came
+# off the adapter or a config rather than a docstring.
+schema_version: 1
+id: pendulum
+env:
+  env_id: pendulum
+  library:
+    name: bird
+    version_verified: in-repo
+    commit: null
+    stack:
+      numpy: '>=1.24'
+      python: '>=3.10'
+  horizon: 200
+  control_hz: null
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null
+    prompt_states: The episode always runs the full 200 steps; reaching the goal does not end
+      it.
+  reset:
+    kind: stochastic
+    mechanism: adapter_draws
+    entry:
+      path: bird/envs/control.py
+      symbol: Pendulum._reset
+      lines: 304-313
+    rng_note: 'Two draws from `rng`, theta then theta_dot (control.py:312-313). `_sample_dr` consumes nothing
+      before them at nominal DR: `_dr_ranges` is empty, so it returns the nominal dict without touching
+      the Generator (bird/envs/base.py:682-686). Measured: reset(default_rng(3)) == _reset(default_rng(3)).'
+    draws:
+    - role: agent_pose
+      quantity: theta
+      fields:
+      - cos_theta
+      - sin_theta
+      distribution:
+        family: uniform
+        text: theta ~ U(-pi, pi) rad, measured from upright, so on average an episode starts half a swing
+          from the goal. The observation carries cos(theta) and sin(theta), not theta, so there is no per-field
+          box.
+        low: null
+        high: null
+      source:
+        path: bird/envs/control.py
+        lines: '312'
+      basis: measured
+      note: 24 seeded resets (default_rng(0..23)) move cos_theta over [-0.96, 1.00] and sin_theta over [-1.00,
+        0.98]; reset(default_rng(3)) twice is bitwise-equal. Gymnasium Pendulum-v1's own start (DEFAULT_X
+        = pi), kept this wide on purpose -- control.py:305-311 says why.
+    - role: agent_velocity
+      quantity: theta_dot
+      fields:
+      - theta_dot
+      distribution:
+        family: uniform
+        text: theta_dot ~ U(-1.0, 1.0) rad/s (gymnasium Pendulum-v1's DEFAULT_Y = 1.0)
+        low:
+        - -1.0
+        high:
+        - 1.0
+      source:
+        path: bird/envs/control.py
+        lines: '313'
+      basis: measured
+      note: 24 seeded resets move theta_dot over [-0.68, 0.98].
+    constants:
+    - role: goal
+      quantity: upright_target
+      value: 'none -- the goal is theta = 0 (upright) with |theta_dot| < 1.0 rad/s, a constant of the metric:
+        task_metric counts the final third of the episode with |theta| < upright_angle (0.2 rad) and |theta_dot|
+        < upright_speed (1.0 rad/s). Nothing in the observation carries it.'
+      source:
+        path: bird/envs/control.py
+        lines: 224-225
+      basis: read
+      note: task_metric at control.py:374-404; the per-step `success` flag at control.py:351 applies the
+        same two constants.
+    stochastic_transitions: null
+    upstream_divergence: null
+    prompt_states: null
+    prompt_field: null
+    prompt_omits:
+    - agent_pose
+    - agent_velocity
+    note: 'Deterministic at nominal DR only: `_torque` (control.py:325-326) draws
+      `self._rng.normal(0, action_noise)` once per step when `action_noise` > 0, and this spec''s nominal
+      is 0.0 -- so `stochastic_transitions: null` holds under nominal dynamics and the per-step draw exists
+      only under domain randomisation.'
+  spaces:
+    obs_dim: 3
+    action_dim: 1
+    action_low:
+    - -2.0
+    action_high:
+    - 2.0
+    action_semantics: 'torque: torque at the pivot, clipped to [-2, 2]'
+    action_fields:
+    - name: torque
+      description: torque at the pivot, clipped to [-2, 2]
+      low: -2.0
+      high: 2.0
+description:
+  env_prose: 'A rigid rod is attached to a fixed pivot and swings in a vertical plane under gravity.
+    The angle theta is measured from straight up, so theta = 0 is upright and theta = pi is hanging
+    down. The action is a torque in [-2, 2] applied at the pivot. That torque is too weak to lift
+    the rod directly from horizontal: the rod must be swung back and forth to build up energy
+    before it can be brought over the top. Angular velocity is limited to +/-8 rad/s. The task
+    is to swing the rod up and then hold it upright and motionless for the rest of the episode.
+    The episode always runs its full length; there is no early termination and no way to fail
+    permanently.'
+  l_task: Swing the pendulum up to the upright position and keep it balanced there with as little
+    torque as possible.
+  natural_language: 'A rigid rod is attached to a fixed pivot and swings in a vertical plane under
+    gravity. The angle theta is measured from straight up, so theta = 0 is upright and theta =
+    pi is hanging down. The action is a torque in [-2, 2] applied at the pivot. That torque is
+    too weak to lift the rod directly from horizontal: the rod must be swung back and forth to
+    build up energy before it can be brought over the top. Angular velocity is limited to +/-8
+    rad/s. The task is to swing the rod up and then hold it upright and motionless for the rest
+    of the episode. The episode always runs its full length; there is no early termination and
+    no way to fail permanently.'
+  scene: A single rigid rod on a fixed pivot, swinging in a vertical plane under gravity. Nothing
+    else is in the scene. The observation is (cos, sin, angular velocity) rather than the angle
+    itself, so a reward that wants the angle must take an arctangent.
+  success_criterion_prose: null
+  full_source:
+    path: bird/envs/control.py
+    lines: null
+state_surface:
+  fields:
+  - name: cos_theta
+    shape: scalar
+    units: null
+    description: cosine of the angle from upright; +1 upright, -1 hanging
+    source: null
+    slice: 0:1
+  - name: sin_theta
+    shape: scalar
+    units: null
+    description: sine of the angle from upright; sign gives which side
+    source: null
+    slice: '1:2'
+  - name: theta_dot
+    shape: scalar
+    units: null
+    description: angular velocity in rad/s, clipped to [-8, 8]
+    source: null
+    slice: '2:3'
+  helpers:
+  - name: angle
+    signature: angle(s)
+    description: signed angle from upright in radians, in [-pi, pi]
+    kind: inline_expression
+    expression: null
+  - name: angular_velocity
+    signature: angular_velocity(s)
+    description: s[2], the angular velocity in rad/s
+    kind: inline_expression
+    expression: null
+  - name: is_upright
+    signature: is_upright(s)
+    description: True when |angle(s)| < 0.2 and |s[2]| < 1.0
+    kind: inline_expression
+    expression: null
+  helpers_note: 'Advertised as inlineable EXPRESSIONS and deliberately not implemented as methods:
+    verification binds a proxy `self` and training binds `self=None`, so a helper that existed
+    would let a `self.x(s)` candidate pass the gate and then die in training -- a wasted policy
+    run charged to the reward that did not cause it.'
+  flat_fields:
+  - index: 0
+    name: cos_theta
+    description: cosine of the angle from upright; +1 upright, -1 hanging
+  - index: 1
+    name: sin_theta
+    description: sine of the angle from upright; sign gives which side
+  - index: 2
+    name: theta_dot
+    description: angular velocity in rad/s, clipped to [-8, 8]
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: This environment ships no benchmark success check, because
+    it is implemented in this repo. `EnvAdapter.success()` here is a threshold WE chose on a metric
+    WE wrote, so recording it as a `shipped` check would claim an independence it does not
+    have. That caveat is the reason the benchmark suites, whose success checks are their own
+    (Meta-World above all), carry the evaluation.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: upright_fraction
+    expr: fraction of the episode's arriving states within the upright cone (|angle| below the
+      adapter's threshold)
+    unit: fraction of steps
+    direction: maximize
+    saturates_at: 1.0
+  normalized:
+    method: explicit
+    formula: 'identity -- the raw metric is already a fraction of steps and therefore already
+      in [0, 1]. `method: anchors` would need an expert anchor this environment cannot have.'
+    success_threshold: 0.5
+anchors:
+  scripted:
+    value: 1.0
+    method: scripted_policy
+    policy_id: simple_suite/pendulum_energy
+    status: solved
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    n_episodes: 25
+    reason: null
+    date: '2026-09-03'
+    source: 'REGISTRY 2026-09-04: policies/simple_suite/policies.yaml entry `simple_suite/pendulum_energy`
+      (status solved), score 1.0 bird_task_metric under per_step_fraction, n=25, verified through bird_adapter.
+      The manifest is the primary record. n_episodes equals n_seeds: one episode per seed, as the registry
+      counts them.'
+  reduction: per_step_fraction
+  by_reduction:
+    per_step_fraction:
+      random:
+        value: 0.0174
+        method: random_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 uniform-random episodes, `scripts/measure_anchors.py
+          --env pendulum --n 30`, seed 0.'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+      expert:
+        value: 1.0
+        method: trained_policy
+        source: 'MEASURED 2026-08-27: mean `task_metric` over 30 episodes (10 each from 3 independently
+          trained policies) of SAC trained on this environment''s own `reference_reward` for 20,000 env
+          steps -- `scripts/train_expert.py --env pendulum --algo sac --steps 20000 --train-seeds 3`,
+          seed 0. NOT a scripted expert: this environment ships none. The budget and learner are MATCHED to the `dev` profile budget (`train.backend: sb3`, `train.algorithm: sac`, `train.env_steps: 20000`), so the
+          gap to it is attributable to the reward rather than to compute; an anchor trained longer would
+          answer a different question. Per-seed per_step: 1.0000, 1.0000, 1.0000. 95% interval [0.8865,
+          1.0] (wilson). A score of 1.000 is the metric''s maximum, so this anchor cannot separate competent rewards here.'
+        n_seeds: 3
+        n_episodes: 30
+        reason: null
+        date: '2026-08-27'
+  random:
+    value: 0.0174
+    method: random_policy
+    source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 uniform-random episodes, seed 0.
+      See anchors.by_reduction.'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-08-25'
+  expert:
+    value: 1.0
+    method: trained_policy
+    source: 'MEASURED 2026-08-27: mean `task_metric` over 30 episodes (10 each from 3 independently trained
+      policies) of SAC trained on this environment''s own `reference_reward` for 20,000 env steps -- `scripts/train_expert.py
+      --env pendulum --algo sac --steps 20000 --train-seeds 3`, seed 0. NOT a scripted expert: this environment
+      ships none. The budget and learner are MATCHED to the `dev` profile budget (`train.backend: sb3`, `train.algorithm:
+      sac`, `train.env_steps: 20000`), so the gap to it is attributable to the reward rather than to compute;
+      an anchor trained longer would answer a different question. Per-seed per_step: 1.0000, 1.0000, 1.0000.
+      95% interval [0.8865, 1.0] (wilson). A score of 1.000 is the metric''s maximum, so this anchor cannot separate competent rewards here.'
+    n_seeds: 3
+    n_episodes: 30
+    reason: null
+    date: '2026-08-27'
+budget:
+  train_steps: 20000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: Not established as a floor by a dedicated sweep.
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: published_dense
+    scope: value_determining
+    reference:
+      path: bird/envs/control.py
+      lines: null
+      symbol: Pendulum.reference_reward
+      commit: null
+      sha256: null
+    depends_on: []
+    import_path: bird.envs.control:Pendulum.reference_reward
+    verified_against: This repo at the commit that ran. The environment is implemented here, so there
+      is no external library to pin -- what pins it is the repository version (tag or commit) a sweep
+      is launched from.
+    notes: 'Gymnasium''s `Pendulum-v1` cost `-(theta^2 + 0.1*theta_dot^2 + 0.001*u^2)`, negated
+      so larger is better. Transcribed into this repo rather than imported: the environment is
+      implemented here.'
+  contract:
+    signature: 'def compute_reward(state, action=None, next_state=None):'
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    - math
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, over the FLAT observation array. There is no `self` and no env
+      handle: the compiler binds arguments by name and maps `self`/`env` to None deliberately.'
+    reward_utils: []
+  forbidden_symbols:
+  - task_metric
+  - success
+  - reference_reward
+judge:
+  vlm_legible: false
+  legibility_note: 'A single rod on a plain field: every frame differs from every other only by
+    an angle, so a VLM comparator has almost nothing to read. This is the measured weakness that
+    the Meta-World tasks exist to answer.'
+  camera:
+    name: none
+    mode: fixed
+    note: 'No camera: frames are rasterised in pure numpy where a renderer exists at all.'
+  subtasks_sequential: false
+  telemetry_fields:
+  - angle
+  - angular_velocity
+  - torque
+domain_randomization:
+  parameters:
+    mass:
+    - 0.5
+    - 2.0
+    length:
+    - 0.5
+    - 2.0
+    gravity:
+    - 5.0
+    - 15.0
+    torque_scale:
+    - 0.5
+    - 1.5
+    action_noise:
+    - 0.0
+    - 0.5
+  nominal:
+    mass: 1.0
+    length: 1.0
+    gravity: 10.0
+    torque_scale: 1.0
+    action_noise: 0.0
+exploits:
+- name: spin_through_the_top
+  status: open
+  closed_by: null
+  mechanism: The metric counts steps inside the upright cone with no velocity term, so a rod spun
+    fast enough passes through the cone every revolution and banks credit without ever balancing.
+  note: Present in the metric this repo wrote, not in a benchmark's. It is the reason a pendulum run
+    answers 'does this run' and not 'is this better'.
+symbol_mapping:
+  angle: np.arctan2(s[1], s[0])
+  pendulum_angle: np.arctan2(s[1], s[0])
+  cos_angle: s[0]
+  sin_angle: s[1]
+  angular_velocity: s[2]
+  upright_error: np.abs(np.arctan2(s[1], s[0]))
+  applied_torque: a[0]
+provenance:
+  authored_from:
+  - path: bird/envs/control.py
+    lines: null
+    what: '`Pendulum` -- the observation and action tables, the helper vocabulary, the symbol
+      map, the randomisation axes, the horizon and the success threshold, all read off the class; the l_task, the forbidden-symbol list and the step
+      budget were authored for BIRD alongside the class'
+  rule: source, not docstrings
+  measured:
+  - 'Random anchor: n=30 uniform-random episodes through the adapter, 2026-08-25.'
+  verified_by: BIRD authors
+  date: '2026-08-25'

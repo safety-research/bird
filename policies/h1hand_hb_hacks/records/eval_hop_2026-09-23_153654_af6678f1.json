@@ -1,0 +1,1480 @@
+{
+ "schema": "bird-policy-eval-v2",
+ "policy": "h1hand_hb_hacks/hop",
+ "env_id": "h1hand_walk",
+ "unit": "bird_task_metric",
+ "horizon": 1000,
+ "max_steps": null,
+ "commit": "15eccc417",
+ "tree_dirty": false,
+ "dirty_paths": [],
+ "date": "2026-09-23",
+ "measured_at": "2026-09-23T15:36:54.219605+00:00",
+ "provenance": "measured",
+ "engine": {
+  "mujoco": "3.1.6"
+ },
+ "seed_block_hash": "6312660c5f0fd4b3533cf2f64a277a8d0ef58122eb58ac1c4cc2f313cdfa09aa",
+ "params": {
+  "p": {
+   "v_des": 1.2529780034072595,
+   "spin_up": 2.2001427261014985,
+   "r_comp": 0.749289574566993,
+   "r_ext": 0.7713974944518524,
+   "r_td": 0.7230241234727277,
+   "r_air": 0.7149328492310194,
+   "ts": 0.16,
+   "kv": 0.08291282090816637,
+   "kp_phi": 1009.1425714424701,
+   "kd_phi": 0.0,
+   "phi_des": 0.09733536616114945,
+   "k_ank": 0.5864777527726239,
+   "ank_push": -0.0423987519354358,
+   "ky": 0.09836289964881373,
+   "k_yaw": 0.5,
+   "arm_sp": 0.060986248584705555,
+   "t_init": 0.39016486827969293,
+   "r_init": 0.7,
+   "f_td": 0.26577079848488644,
+   "thrust_t": 0.046634225264890444,
+   "tau_max": 150.0,
+   "kL": 71.05881824784531,
+   "kd_comp": 1.0,
+   "k_ff": 0.0,
+   "lead": 0.01,
+   "ts_adapt": 1.0,
+   "foot_off": 0.05364375810307666,
+   "kp_roll": 220.30413629202988,
+   "kd_roll": 14.568359106566813,
+   "k_h": 0.004005631363855416,
+   "vz_des": 0.9469094289855304,
+   "boost": 1.8993665206613999,
+   "boost_d": 0.0,
+   "k_ns": 0.7053879506068519,
+   "kboost": 1.0,
+   "k_arm": -0.1279663063125398,
+   "arm_ret": 0.2,
+   "L_des": 0.0,
+   "ramp_mode": 1.0,
+   "vz_gate": 0.45,
+   "dv_hop": 0.12,
+   "dv_down": 0.0,
+   "n_warm": 1,
+   "fo_mode": 0.0,
+   "fo_v": 1.0,
+   "r_ext0": 0.755
+  },
+  "module": "hop4",
+  "provenance": "CEM a (hop3, seeds 0-2, 25 gens) -> CEM b (seeds 0-7, 7 gens, sigma x0.5) -> event-gated speed ramp (grid9, seeds 0-9) -> gentle first push r_ext0/r_init (grid10 seeds 0-9+80-129, grid11 seeds 130-329)"
+ },
+ "summary": {
+  "n": 100,
+  "mean": 0.9999972300690771,
+  "min": 0.9997230069077171,
+  "max": 1.0,
+  "successes": 100,
+  "reference_return_mean": 890.6518790898045
+ },
+ "rows": [
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 0,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.6119377937994
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 1,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.766913830108
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 2,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.0340631921703
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 3,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.0990987538579
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 4,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.9040333651867
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 5,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.3869905698276
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 6,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.8785446352877
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 7,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.8978885595156
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 8,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.6312994164736
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 9,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.6883530579315
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 10,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.7636340339177
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 11,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.5456753383078
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 12,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.932669076129
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 13,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.2319036978217
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 14,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.6960919717344
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 15,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.4193435130996
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 16,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.8756666807462
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 17,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.425720897555
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 18,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.5223192873893
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 19,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.2073734124658
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 20,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.1303778385262
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 21,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.2486283462084
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 22,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.789954628346
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 23,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 898.6111237317704
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 24,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.6236929521384
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 25,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.0727680874793
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 26,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.7874164583371
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 27,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 898.9343249718523
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 28,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 884.2948784624379
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 29,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 894.3746534792859
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 30,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.9035683679978
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 31,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 878.9605682225118
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 32,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.7541856603947
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 33,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.5849347846839
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 34,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.459836417389
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 35,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 892.2127588798162
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 36,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.1492892227438
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 37,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.9265985046488
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 38,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 891.0513944428533
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 39,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.7539820339565
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 40,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.2921663223689
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 41,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.5036019141792
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 42,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.150718761634
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 43,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.3215204750286
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 44,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.8409294176388
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 45,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.1901199802356
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 46,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.2911211826945
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 47,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.2023359094533
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 48,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.4300172220379
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 49,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.5476716379351
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 50,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.6735717732851
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 51,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.6210601621609
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 52,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 899.493152042192
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 53,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.2497241180487
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 54,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.8430568016248
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 55,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.3350659785733
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 56,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 893.6717162606947
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 57,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.2606723928104
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 58,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.002375574061
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 59,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.0793770033764
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 60,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.9560178682603
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 61,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.1680726601952
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 62,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.2107456209229
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 63,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.0244814114726
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 64,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.5680328957998
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 65,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.3358243100802
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 66,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 898.7094515064753
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 67,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.8949148463196
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 68,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.9401288509279
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 69,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.0742703131295
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 70,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.7902439854153
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 71,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 884.5021912008191
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 72,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 888.3949334318239
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 73,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 894.8804208078276
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 74,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 0.9997230069077171,
+   "success": true,
+   "reference_return": 885.0574631959013
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 75,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.6795756745637
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 76,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 884.0763151909922
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 77,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.1789781411626
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 78,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.8299047837255
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 79,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 884.5632329007608
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 80,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 886.1045608210283
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 81,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 895.5235991980577
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 82,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 890.2962187127101
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 83,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.4852640748928
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 84,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 889.2229164266664
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 85,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.3788128541836
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 86,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.0686038171755
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 87,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.2063685734693
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 88,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 884.8276657714987
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 89,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.3836389753642
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 90,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.2807714311048
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 91,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 894.4705053250884
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 92,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.5106837751634
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 93,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.0568047637797
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 94,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 885.8103518745758
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 95,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.9343163213626
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 96,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 897.085433695502
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 97,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 896.1460401192404
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 98,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.0046676502992
+  },
+  {
+   "policy": "h1hand_hb_hacks/hop",
+   "seed": 99,
+   "start": "reset",
+   "loop_calls": {
+    "steps": 1000,
+    "resets": 1
+   },
+   "steps": 1000,
+   "terminated_early": false,
+   "metric": 1.0,
+   "success": true,
+   "reference_return": 887.4110536959702
+  }
+ ]
+}

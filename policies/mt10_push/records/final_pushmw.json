@@ -1,0 +1,227 @@
+[
+ {
+  "seed": 0,
+  "steps": 500,
+  "metric": 0.888,
+  "success_any": true,
+  "inside_frac": 0.888,
+  "final_gd": 0.0286,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 1,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0219,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 2,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0257,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 3,
+  "steps": 500,
+  "metric": 0.88,
+  "success_any": true,
+  "inside_frac": 0.88,
+  "final_gd": 0.0299,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 4,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0274,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 5,
+  "steps": 500,
+  "metric": 0.87,
+  "success_any": true,
+  "inside_frac": 0.87,
+  "final_gd": 0.0339,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 6,
+  "steps": 500,
+  "metric": 0.884,
+  "success_any": true,
+  "inside_frac": 0.884,
+  "final_gd": 0.0222,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 7,
+  "steps": 500,
+  "metric": 0.876,
+  "success_any": true,
+  "inside_frac": 0.876,
+  "final_gd": 0.0268,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 8,
+  "steps": 500,
+  "metric": 0.88,
+  "success_any": true,
+  "inside_frac": 0.88,
+  "final_gd": 0.0256,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 9,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0186,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 10,
+  "steps": 500,
+  "metric": 0.886,
+  "success_any": true,
+  "inside_frac": 0.886,
+  "final_gd": 0.0202,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 11,
+  "steps": 500,
+  "metric": 0.902,
+  "success_any": true,
+  "inside_frac": 0.902,
+  "final_gd": 0.0222,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 12,
+  "steps": 500,
+  "metric": 0.892,
+  "success_any": true,
+  "inside_frac": 0.892,
+  "final_gd": 0.0253,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 13,
+  "steps": 500,
+  "metric": 0.894,
+  "success_any": true,
+  "inside_frac": 0.894,
+  "final_gd": 0.0166,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 14,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0165,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 15,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0156,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 16,
+  "steps": 500,
+  "metric": 0.888,
+  "success_any": true,
+  "inside_frac": 0.888,
+  "final_gd": 0.0292,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 17,
+  "steps": 500,
+  "metric": 0.892,
+  "success_any": true,
+  "inside_frac": 0.892,
+  "final_gd": 0.019,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 18,
+  "steps": 500,
+  "metric": 0.894,
+  "success_any": true,
+  "inside_frac": 0.894,
+  "final_gd": 0.0166,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 19,
+  "steps": 500,
+  "metric": 0.89,
+  "success_any": true,
+  "inside_frac": 0.89,
+  "final_gd": 0.0204,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 20,
+  "steps": 500,
+  "metric": 0.894,
+  "success_any": true,
+  "inside_frac": 0.894,
+  "final_gd": 0.0166,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 21,
+  "steps": 500,
+  "metric": 0.896,
+  "success_any": true,
+  "inside_frac": 0.896,
+  "final_gd": 0.0261,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 22,
+  "steps": 500,
+  "metric": 0.886,
+  "success_any": true,
+  "inside_frac": 0.886,
+  "final_gd": 0.0202,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 23,
+  "steps": 500,
+  "metric": 0.894,
+  "success_any": true,
+  "inside_frac": 0.894,
+  "final_gd": 0.015,
+  "last_phase": "hold"
+ },
+ {
+  "seed": 24,
+  "steps": 500,
+  "metric": 0.898,
+  "success_any": true,
+  "inside_frac": 0.898,
+  "final_gd": 0.0247,
+  "last_phase": "hold"
+ }
+]

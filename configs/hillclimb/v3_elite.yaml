@@ -1,0 +1,15 @@
+# Hill-climb configuration 16 (v3_elite): elite crossover (RF-Agent's a_c3, tex:199) on
+# v3_tree. Two of the five slots per round write a new reward from the parent plus samples
+# from the top-10 trained nodes of the whole tree (generate.tree.elite_size, RF-Agent's code
+# value, rfagent_algo.py:128); the other three are single-parent mutations.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_tree.yaml
+name: v3_elite
+
+generate:
+  actions:
+    mutation_mechanism: 3
+    crossover_elite: 2
+  tree:
+    elite_size: 10

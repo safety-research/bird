@@ -1,0 +1,19 @@
+# Hill-climb configuration 20 (v3_thought): design thought before the code, carried in the
+# prompt. v2_verify (no tree) plus RF-Agent's three thought keys: a one-sentence design idea
+# in {braces} before the code in the same turn (tex:1055), a re-description after training
+# of what the reward actually does (evaluate.thought_alignment), and that aligned thought
+# shown as `Design Idea:` above the parent's code in the next prompt.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify.yaml
+name: v3_thought
+
+generate:
+  output:
+    design_thought: inline_brace
+  context:
+    include_parent_thought: true
+
+evaluate:
+  thought_alignment:
+    enabled: true

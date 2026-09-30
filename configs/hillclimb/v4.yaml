@@ -1,0 +1,19 @@
+# Hill-climb configuration 22 (v4): v3_thought with its one inert component removed, the
+# demonstration verifier (the v2_verify_es8 / v2_noverify_es8 pair was indistinguishable),
+# and with it the demonstration access, so v4 is GT-free like v1. What remains: v1 (RDA decomposition, per-subtask VLM judge, warm
+# start, [0, 1] scores queried twice, state trajectories, the final round's winner with an
+# incumbent gate), v2's 24-training taper [8,6,4,2,2,2] with own-reward early stopping, and
+# RF-Agent's design thought.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_thought.yaml
+name: v4
+
+problem:
+  fitness_access: none
+
+verify:
+  quality_screen: none
+
+evaluate:
+  artifacts: [scalar_metrics, videos, state_trajectories]

@@ -1,0 +1,108 @@
+# Optimal Reward Search -- Singh, Lewis & Barto, "Where Do Rewards Come From?",
+# CogSci 2009, pp. 2601-2606. No code release.
+#
+# The pre-LLM limit case: enumerate every tabular reward over the four (hunger,
+# thirst) combinations on a discretized [-1, 1] grid, train a Q-learner on each
+# under its own best (alpha, epsilon), and keep the reward with the highest
+# fitness. No language model is involved. This is the Hungry-Thirsty experiment
+# (3,240 rewards, p. 2604), not Boxes (54,000, p. 2605).
+# Simplified: BIRD's enumeration backend emits a reward linear in [x, y, hungry,
+# thirsty], not a four-cell table, so the paper's optimum is not reachable.
+#
+# Page numbers are the printed ones. INFERRED = the paper gives no value; ours.
+# Included in the paper only in simplified form; scripts/paper_cell.py has no cell for it.
+
+extends: zeroshot.yaml
+name: singh_orp
+
+# --- problem and budget -------------------------------------------------------
+
+problem:
+  # BIRD's smaller domain: 4x4 open grid, fixed food and water, deterministic moves,
+  # 60-step episodes (paper p. 2603: 6x6 in four rooms, one continuous lifetime).
+  env_id: toy_hungry_thirsty          # bird/envs/toy.py::ToyHungryThirsty
+  task_description: >-
+    A grid world containing food at one fixed location and water at another.
+    Eating removes hunger for a single step and only succeeds while the agent
+    is not thirsty; drinking removes thirst, which returns spontaneously with
+    probability 0.1 per step. The objective is to spend as many steps as
+    possible not hungry.
+  reward_representation: tabular      # p. 2604: four hunger x thirst cells, values from [-1.0, 1.0]
+
+budget:
+  max_llm_calls: 0                    # no LLM in this method: any call aborts the run
+
+# --- generate -----------------------------------------------------------------
+# Generation is a for-loop over a grid: no prompt, no sampling.
+
+generate:
+  generator_backend: exhaustive_enumeration
+                                      # p. 2603 fn. 2: "exhaustive searches over a discretized
+                                      # parameter space"
+
+  # INFERRED: the paper gives only the total, 3,240 = 9 x 9 x 8 x 5. Each axis holds
+  # the paper's best value (-0.05, -0.01, +1.0, +0.5) and 0.01 steps near zero.
+  search_grid:
+    state_features:                   # p. 2604: "only the hunger and thirst status features"
+      - hungry_and_thirsty
+      - hungry_and_not_thirsty
+      - not_hungry_and_thirsty
+      - not_hungry_and_not_thirsty
+    values:                           # INFERRED; all within [-1.0, 1.0]
+      hungry_and_thirsty:       [-1.0, -0.5, -0.1, -0.05, -0.01, 0.0, 0.1, 0.5, 1.0]
+      hungry_and_not_thirsty:   [-1.0, -0.5, -0.1, -0.05, -0.01, 0.0, 0.1, 0.5, 1.0]
+      not_hungry_and_thirsty:   [-1.0, -0.5, -0.1, 0.0, 0.1, 0.25, 0.5, 1.0]
+      not_hungry_and_not_thirsty: [-1.0, 0.0, 0.25, 0.5, 1.0]
+
+  n_candidates: 3240                  # p. 2604, Fig. 2; a cap equal to the grid, so nothing is cut
+  sampling:
+    chunk_size: 3240                  # unread by the enumeration backend; set to n_candidates
+
+# --- verify -------------------------------------------------------------------
+
+verify:
+  enabled: false                      # nothing to verify: a candidate is four numbers, not code
+
+# --- train --------------------------------------------------------------------
+
+train:
+  backend: tabular                    # BIRD's Q-learner; unlike the paper it decays alpha and replays
+  algorithm: q_learning               # p. 2603: "epsilon-greedy Q-learning (Watkins, 1989)"
+  env_steps: 75000                    # p. 2604 lifetime; BIRD's tabular backend runs at most 12,000
+
+  hyperparameters:                    # p. 2603, all three
+    gamma: 0.99                       # "we use gamma = 0.99 throughout"
+    q_init_low: -0.001                # "initialize Q ... uniformly from [-0.001, 0.001]"
+    q_init_high: 0.001
+
+  # p. 2603: a reward's fitness is the MAXIMUM estimate over "a coarse discretization
+  # of the space of feasible (alpha, epsilon) pairs": each reward gets its own learner.
+  hyperparameter_search: per_candidate_best
+  hyperparameter_grid:                # INFERRED values, cited shape; 3,240 x 9 = 29,160 trainings
+    alpha: [0.1, 0.2, 0.4]            # starting value; BIRD decays it linearly to 0.02
+    epsilon: [0.01, 0.05, 0.1]
+
+  seeds_per_candidate: 1              # the paper never gives N, the environments per reward
+
+# --- evaluate -----------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: ground_truth_metric       # p. 2603: reward and fitness are distinct by design
+    metric: task_success              # fraction of steps not hungry, on greedy evaluation episodes
+    seed_aggregation: mean            # p. 2603 "return average of {F(h_1) ... F(h_N)}"
+    checkpoint_aggregation: final     # nearest value; the paper scores the whole learning history
+
+# --- select -------------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # exact over a full enumeration
+  significance: none                  # the paper's t-tests (p. 2604 fn. 3) are post hoc, not a gate
+  scope: within_iteration             # one iteration, so the same as cumulative
+  final_artifact: global_best         # "the best reward function in our search space" (p. 2604)
+
+# --- loop ---------------------------------------------------------------------
+# One sweep: n_iterations 1 and update.operator none come from zeroshot.yaml.
+
+loop:
+  carry: [best_reward]                # without it, final_artifact: global_best returns nothing

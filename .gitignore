@@ -1,0 +1,41 @@
+# Upstream papers and code fetched by scripts/fetch_refs.sh. Not ours to redistribute.
+refs/
+
+# Run output
+runs/
+wandb/
+configs/sweeps/
+MUJOCO_LOG.TXT
+
+# Large binary artifacts
+*.npz
+*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+.eggs/
+.venv*/
+venv*/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Editors and OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Secrets
+.env
+.env.*
+*.key
+credentials.json

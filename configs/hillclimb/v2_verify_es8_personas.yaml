@@ -1,0 +1,11 @@
+# Hill-climb configuration 12 (v2_verify_es8_personas): candidate diversity by personas.
+# v2_verify_es8 where each sample is written under a different system persona
+# (generation.py _PERSONAS), the generator-side sibling of v2_verify_es8_distinct. Used by
+# no published method.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify_es8.yaml
+name: v2_verify_es8_personas
+
+generate:
+  sampling_mode: personas

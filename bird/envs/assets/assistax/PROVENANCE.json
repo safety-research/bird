@@ -1,0 +1,735 @@
+{
+ "decimation": {
+  "aggressiveness": 7,
+  "keep_fraction": 0.1,
+  "min_triangles": 1500,
+  "tool": "pyfqmr"
+ },
+ "fidelity": {
+  "bed_scene.xml": {
+   "colliding_geom_pos_max_abs_diff": 0.0,
+   "colliding_geom_quat_max_abs_diff": 0.0,
+   "colliding_geom_size_max_abs_diff": 0.0,
+   "colliding_geoms": 29,
+   "fixed_body_mass_max_abs_diff": 3.561075813480784,
+   "moving_bodies": 25,
+   "moving_body_inertia_max_abs_diff": 0.0,
+   "moving_body_ipos_max_abs_diff": 0.0,
+   "moving_body_mass_max_abs_diff": 0.0
+  },
+  "bed_scene_armmanip.xml": {
+   "colliding_geom_pos_max_abs_diff": 0.0,
+   "colliding_geom_quat_max_abs_diff": 0.0,
+   "colliding_geom_size_max_abs_diff": 0.0,
+   "colliding_geoms": 28,
+   "fixed_body_mass_max_abs_diff": 3.561075813480784,
+   "moving_bodies": 25,
+   "moving_body_inertia_max_abs_diff": 0.0,
+   "moving_body_ipos_max_abs_diff": 0.0,
+   "moving_body_mass_max_abs_diff": 0.0
+  },
+  "feeding_scene.xml": {
+   "colliding_geom_pos_max_abs_diff": 0.0,
+   "colliding_geom_quat_max_abs_diff": 0.0,
+   "colliding_geom_size_max_abs_diff": 0.0,
+   "colliding_geoms": 27,
+   "fixed_body_mass_max_abs_diff": 18.724921579935142,
+   "moving_bodies": 26,
+   "moving_body_inertia_max_abs_diff": 0.0,
+   "moving_body_ipos_max_abs_diff": 0.0,
+   "moving_body_mass_max_abs_diff": 0.0
+  },
+  "teethbrushing_scene.xml": {
+   "colliding_geom_pos_max_abs_diff": 0.0,
+   "colliding_geom_quat_max_abs_diff": 0.0,
+   "colliding_geom_size_max_abs_diff": 0.0,
+   "colliding_geoms": 27,
+   "fixed_body_mass_max_abs_diff": 18.724921579935142,
+   "moving_bodies": 26,
+   "moving_body_inertia_max_abs_diff": 0.0,
+   "moving_body_ipos_max_abs_diff": 0.0,
+   "moving_body_mass_max_abs_diff": 0.0
+  },
+  "wheelchair_scene.xml": {
+   "colliding_geom_pos_max_abs_diff": 0.0,
+   "colliding_geom_quat_max_abs_diff": 0.0,
+   "colliding_geom_size_max_abs_diff": 0.0,
+   "colliding_geoms": 25,
+   "fixed_body_mass_max_abs_diff": 18.724921579935142,
+   "moving_bodies": 25,
+   "moving_body_inertia_max_abs_diff": 0.0,
+   "moving_body_ipos_max_abs_diff": 0.0,
+   "moving_body_mass_max_abs_diff": 0.0
+  }
+ },
+ "meshes": {
+  "bed_single_reduced": {
+   "bytes": 75084,
+   "bytes_upstream": 337310,
+   "protected": false,
+   "sha256": "f06b7e91c1356689888fe1b371d352ee011585c9177dca127c3101567a32fadd",
+   "sha256_upstream": "33c7c069a3f8dbdbeb28c15eca304a87918621b8119bc85ffc48c95097f32cc9",
+   "triangles": 1500,
+   "triangles_upstream": 3652
+  },
+  "finger_0": {
+   "bytes": 18184,
+   "bytes_upstream": 87872,
+   "protected": true,
+   "sha256": "7950bcb967cd295cd0ef592bc31b67132eb2ff4521d07392c03b2f4f59dbf3e6",
+   "sha256_upstream": "215098c0fcdf7192f6c503a37cf49e3efecf8a9e1320f02b17c5584d89cc5b2c",
+   "triangles": 362,
+   "triangles_upstream": 362
+  },
+  "finger_1": {
+   "bytes": 13184,
+   "bytes_upstream": 64651,
+   "protected": false,
+   "sha256": "f4589a7b9dbd7d16dcded188045b13bd1b564028c442797c980507e8ee0c691a",
+   "sha256_upstream": "cf239e9aca26bba09dbbf1c544c47d87cfc9a2f0637c8bb786af750b6d4eca44",
+   "triangles": 262,
+   "triangles_upstream": 262
+  },
+  "hand_0": {
+   "bytes": 2184,
+   "bytes_upstream": 9091,
+   "protected": false,
+   "sha256": "5402aeb6c7960932d866b9abec54a00d0fdf9382324bce60e519c17aade7943e",
+   "sha256_upstream": "b94aab901086f85df04c019b30f43bf9aa23a7ad0443ec80a8c14662a41cabd2",
+   "triangles": 42,
+   "triangles_upstream": 42
+  },
+  "hand_1": {
+   "bytes": 24484,
+   "bytes_upstream": 121863,
+   "protected": false,
+   "sha256": "25dc21dc00bffaf4c133511344201f6b582f2a6610bec7ed7963d69e75b586f6",
+   "sha256_upstream": "cd76f7494bb314406a1819c46eb826ee254894f87235714f604a470653d9badb",
+   "triangles": 488,
+   "triangles_upstream": 488
+  },
+  "hand_2": {
+   "bytes": 115584,
+   "bytes_upstream": 596001,
+   "protected": false,
+   "sha256": "56c8e95ea0e43223a83e70cc872462dd462d9d12c5e8db9153a67bf9c022b87a",
+   "sha256_upstream": "e0f44a71712afa5b98eb20355eff17763d3e2e19f459b2bef19abed3727e64b3",
+   "triangles": 2310,
+   "triangles_upstream": 2310
+  },
+  "hand_3": {
+   "bytes": 177484,
+   "bytes_upstream": 902145,
+   "protected": true,
+   "sha256": "e36e8c4bb3b172ee9bb8062f1d0b151cae4221d5573da9290b3bc2ab126419cb",
+   "sha256_upstream": "a431a06d99e88a1b322b3122a01424ee7704daeaad0bc343b90b9604f014ad0c",
+   "triangles": 3548,
+   "triangles_upstream": 3548
+  },
+  "hand_4": {
+   "bytes": 34584,
+   "bytes_upstream": 151988,
+   "protected": false,
+   "sha256": "9e5d7c4310c7a07c6af271c32905b960be4a9d36d6c7e92c94dc2749b00dfb08",
+   "sha256_upstream": "21f96ef6a8de082e41b1ea9834f1043de359e5d60305541bcb63539581f53bff",
+   "triangles": 690,
+   "triangles_upstream": 690
+  },
+  "link0_0": {
+   "bytes": 60184,
+   "bytes_upstream": 296497,
+   "protected": false,
+   "sha256": "038d61ed4df8b5ba178eb7133d22958dd60911804a42d351b174f2223a95e472",
+   "sha256_upstream": "6b9f41a4c203540daaeb7a33cc3d0d6c6a32dc8bba187074eeaf97b3e36b3f9c",
+   "triangles": 1202,
+   "triangles_upstream": 1202
+  },
+  "link0_1": {
+   "bytes": 21484,
+   "bytes_upstream": 103978,
+   "protected": false,
+   "sha256": "0a28ef2d354a2a2e0c3a27a2ac63927b627ce6c618dfef5f35cdf06f153bcdba",
+   "sha256_upstream": "57673d2ee2a9db2e10c8986ae57c56a7c39c012b60fd26d7d8549553b664a5ed",
+   "triangles": 428,
+   "triangles_upstream": 428
+  },
+  "link0_10": {
+   "bytes": 68634,
+   "bytes_upstream": 343308,
+   "protected": false,
+   "sha256": "dc0ad382ba4ce523e6afbc2c4c152c810334569b7c586dbffd85f2c06a08a05a",
+   "sha256_upstream": "c9198b9d8534d628d097b0f2b239bb30343353182df098ce0d9db6bc13326848",
+   "triangles": 1371,
+   "triangles_upstream": 1371
+  },
+  "link0_11": {
+   "bytes": 4684,
+   "bytes_upstream": 22295,
+   "protected": false,
+   "sha256": "09b6094c707b8e2f2d61ec10baa32ccb1406bb2382087d812c707e5cfae4e78e",
+   "sha256_upstream": "f0adec78d6677b7799d25121981270e8bfe119b5c18d08a91ee37a54ad75f65c",
+   "triangles": 92,
+   "triangles_upstream": 92
+  },
+  "link0_2": {
+   "bytes": 117684,
+   "bytes_upstream": 590892,
+   "protected": false,
+   "sha256": "16b67e6bb83be0e2af89e65d00aaadccb366f9637800fb460ba0bcef72e5af8c",
+   "sha256_upstream": "1ca435a2a87a9608a146a47955724d43dd7ce10fc3dd3018800aa98f8ba86e05",
+   "triangles": 2352,
+   "triangles_upstream": 2352
+  },
+  "link0_3": {
+   "bytes": 9484,
+   "bytes_upstream": 47588,
+   "protected": false,
+   "sha256": "3bd67ac5fab8d8ac388629f78ed06f9a1d3dd981845bd064a4dd4f59de0572a2",
+   "sha256_upstream": "3e9c6334d2b3b47944af3458ee5f20519abc20fe7ee23063bb53405ccab28046",
+   "triangles": 188,
+   "triangles_upstream": 188
+  },
+  "link0_4": {
+   "bytes": 51084,
+   "bytes_upstream": 211200,
+   "protected": false,
+   "sha256": "1e11232c728d58408a92fbc8f46484c04c5124dec7b26b2951f1a2333c5248fa",
+   "sha256_upstream": "215d25789704936120f119c0bc1cc7f68516dd3f8f1df61457b71acac3873f26",
+   "triangles": 1020,
+   "triangles_upstream": 1020
+  },
+  "link0_5": {
+   "bytes": 3534,
+   "bytes_upstream": 17023,
+   "protected": false,
+   "sha256": "21c1e02101071829033380b1c5e36ac7030299cd1eebc9f7021bd465c015c7ad",
+   "sha256_upstream": "9361b104e93743045107aa5b15fb1a0835ba9c1f355aae71f56403cf6a9c33f6",
+   "triangles": 69,
+   "triangles_upstream": 69
+  },
+  "link0_7": {
+   "bytes": 6284,
+   "bytes_upstream": 30699,
+   "protected": false,
+   "sha256": "aecdefec33f4ebb49881216dde58db69591e010d279435b964015cd4ac29c342",
+   "sha256_upstream": "2dc0b8ebbbc80e4c065d71e195adbc384f673438641fac82b07b801b4d2837cb",
+   "triangles": 124,
+   "triangles_upstream": 124
+  },
+  "link0_8": {
+   "bytes": 659334,
+   "bytes_upstream": 3263194,
+   "protected": false,
+   "sha256": "c002e182d487559cbf14ab3d1d4e6a474779e41abb3d39f8ce6270022efd20a8",
+   "sha256_upstream": "3b8c436999db5586b8eb47bed2b0aa7de6993868b2681b4c04246eeac42fdb7a",
+   "triangles": 13185,
+   "triangles_upstream": 13185
+  },
+  "link0_9": {
+   "bytes": 20884,
+   "bytes_upstream": 105629,
+   "protected": false,
+   "sha256": "3882e318bb5b509d439cd9b6d7c560d6a24437a10c90e63deb326792d529f4db",
+   "sha256_upstream": "45178f97d2b5da6bce11f610212c4ef7d08c73db33a4fc38e1b7f66b93d023f5",
+   "triangles": 416,
+   "triangles_upstream": 416
+  },
+  "link1": {
+   "bytes": 625784,
+   "bytes_upstream": 3274995,
+   "protected": false,
+   "sha256": "9eb1fbc726cafe0c596c450adfd4cead95f986cc9c70d668902925a2a77b661c",
+   "sha256_upstream": "51091e776b16babdbe2f3849b5c041f921d1f11dd94ac19a0f1c81abf496fbae",
+   "triangles": 12514,
+   "triangles_upstream": 12516
+  },
+  "link2": {
+   "bytes": 635784,
+   "bytes_upstream": 3295608,
+   "protected": false,
+   "sha256": "fae27883439479cee1f6770b0c9fdf375a8105b8a0f097aba08a4597737b061d",
+   "sha256_upstream": "5c9f8e715de52c3eb71b475de35993b3b96081e02abea9f28c414768877fc59b",
+   "triangles": 12714,
+   "triangles_upstream": 12716
+  },
+  "link3_0": {
+   "bytes": 591634,
+   "bytes_upstream": 3046804,
+   "protected": false,
+   "sha256": "f9afc735ddeb6e3739366aa85f878e255869ac7de8f7f9e3173b10866fc4464a",
+   "sha256_upstream": "ce2da87f51708e11b189249d41401065dabe89a06e251185a06cef4d5ff27178",
+   "triangles": 11831,
+   "triangles_upstream": 11835
+  },
+  "link3_1": {
+   "bytes": 13034,
+   "bytes_upstream": 65260,
+   "protected": false,
+   "sha256": "86a094f0e44319d51e6cb51861f88e285642b21fa55fc089b2b36ead6936d7b2",
+   "sha256_upstream": "2880b7753a7173f38fa87ee21da4dfc7fa7be46fbe07bac5aef9e128513cb118",
+   "triangles": 259,
+   "triangles_upstream": 259
+  },
+  "link3_2": {
+   "bytes": 16684,
+   "bytes_upstream": 83591,
+   "protected": false,
+   "sha256": "235eaf1c1e091ef603737228ae0e0b0513716ce2e8097010975d18110a4067d2",
+   "sha256_upstream": "670cff81ae84693769ca4ae658c154cf909d81167e7c8d22b70ea977f2504efa",
+   "triangles": 332,
+   "triangles_upstream": 332
+  },
+  "link3_3": {
+   "bytes": 90434,
+   "bytes_upstream": 457684,
+   "protected": false,
+   "sha256": "50cd53e606fb783adf54990c74929f08735fc69350f1ead5271a73b7d83044b5",
+   "sha256_upstream": "30ede0c812efd0e0b767d134a4eae0b84e0fa407bb6325a5a555e0569b3a3ffd",
+   "triangles": 1807,
+   "triangles_upstream": 1807
+  },
+  "link4_0": {
+   "bytes": 16734,
+   "bytes_upstream": 83486,
+   "protected": false,
+   "sha256": "086b59a1c81b1979783acb10f09c67aae1bea4b0132712ca3121302c641b741f",
+   "sha256_upstream": "443bf6d178177cf347951ecf107ccd10ca444e605e375b67304579e5f948806f",
+   "triangles": 333,
+   "triangles_upstream": 333
+  },
+  "link4_1": {
+   "bytes": 611134,
+   "bytes_upstream": 3148001,
+   "protected": false,
+   "sha256": "c3ae5ebae71f01dd8aa9d6cc9bee5216dfe7248129471213f17049d9131e51bf",
+   "sha256_upstream": "ca935ec7cc8b3f0e86aa079c76b0b3bf593b1e9830bab0fa7131ac51577c74f0",
+   "triangles": 12221,
+   "triangles_upstream": 12229
+  },
+  "link4_2": {
+   "bytes": 89784,
+   "bytes_upstream": 455522,
+   "protected": false,
+   "sha256": "7badddcc25977728a64341b929b5078010f86efb93f504f90d33285b0302fd92",
+   "sha256_upstream": "c89caf26d379c35bb9e191ee2d91d09ab29ecc792b48d8bc10b39e5b38222175",
+   "triangles": 1794,
+   "triangles_upstream": 1794
+  },
+  "link4_3": {
+   "bytes": 13334,
+   "bytes_upstream": 67497,
+   "protected": false,
+   "sha256": "150775688355c82a8d9912b5d5ee99a8318e7b8179c7cd2d2155eb99277b36fb",
+   "sha256_upstream": "1495d17f45bdb230cf58b0beef9da4e8c9cfe76a3d2d38da89017efe5e093136",
+   "triangles": 265,
+   "triangles_upstream": 265
+  },
+  "link5_0": {
+   "bytes": 162734,
+   "bytes_upstream": 824158,
+   "protected": false,
+   "sha256": "2471db098cb2731ccb96d0f5b9a410ff3344070bb4319807fc610cb539167d14",
+   "sha256_upstream": "a3238b8f2af0f2eb66d9fe63dc5d41ac52d5d38507241b5ed10e3cb019ab3e71",
+   "triangles": 3253,
+   "triangles_upstream": 3253
+  },
+  "link5_1": {
+   "bytes": 12584,
+   "bytes_upstream": 63174,
+   "protected": false,
+   "sha256": "c52466221a52827bddc8bc5772e1f0c058109ab02128177dff96591440a45dc6",
+   "sha256_upstream": "9d994bbf83ec241e301b5197a6846da13f2a4a0582edb2c0f76962c5549649d6",
+   "triangles": 250,
+   "triangles_upstream": 250
+  },
+  "link5_2": {
+   "bytes": 741284,
+   "bytes_upstream": 3856621,
+   "protected": false,
+   "sha256": "b828190af56479173b8f808be381c05078af3e16ee177a21d1dd8b1f60cb11c9",
+   "sha256_upstream": "83b4ffe9f772cd7fe182e98640650eebc899aaf01842656574b0416c90dd40a4",
+   "triangles": 14824,
+   "triangles_upstream": 14824
+  },
+  "link6_0": {
+   "bytes": 37384,
+   "bytes_upstream": 157563,
+   "protected": false,
+   "sha256": "eeecdbc3bc87a67c5e99890369f72932544ba25891c471839938e91ac0855613",
+   "sha256_upstream": "0504c70ebf1b284ee8faae7dcb896b8830bc672a6552015dd5dbd121fa031fb9",
+   "triangles": 746,
+   "triangles_upstream": 746
+  },
+  "link6_1": {
+   "bytes": 5934,
+   "bytes_upstream": 27106,
+   "protected": false,
+   "sha256": "b9e0ba298b5e183fc2278d48d307d7eaf317d359c69f2834b74cb6d1a46085ca",
+   "sha256_upstream": "45f7ca77695198b6d86ec2417ad4e42e6275044f0f96266699ee8e1057757ac1",
+   "triangles": 117,
+   "triangles_upstream": 117
+  },
+  "link6_10": {
+   "bytes": 73684,
+   "bytes_upstream": 368502,
+   "protected": false,
+   "sha256": "8cee69d621ba7b2b999ba5f2ac504dd644d5588cecbdd12aea45a3ff9caf9a14",
+   "sha256_upstream": "365f26c21d10332cab8d8704645cb46930c30b3085956f2d097498c793f24db4",
+   "triangles": 1472,
+   "triangles_upstream": 1472
+  },
+  "link6_11": {
+   "bytes": 6784,
+   "bytes_upstream": 32653,
+   "protected": false,
+   "sha256": "248540506ecfea7869ae202571bd64e477b6b3e9b292f42c4972124da6ebcfe6",
+   "sha256_upstream": "8ae61e08b3ad064f25bbf03b22e59cc15d65883b5a7ce92711aff29df2493901",
+   "triangles": 134,
+   "triangles_upstream": 134
+  },
+  "link6_12": {
+   "bytes": 884,
+   "bytes_upstream": 3894,
+   "protected": false,
+   "sha256": "e5ac6532c6d5a970b27645e9483f385d96e17a1678d5bc16c58c7367691c1589",
+   "sha256_upstream": "f28d1bfd62b0244ffd19fb35fe9edefdf583d3c9167db944e87185d919e1d021",
+   "triangles": 16,
+   "triangles_upstream": 16
+  },
+  "link6_13": {
+   "bytes": 884,
+   "bytes_upstream": 3798,
+   "protected": false,
+   "sha256": "23a470f7dfd5ac82e5a6e8625e6e49a3930779eba7d22c6d71839a7cecf6bca7",
+   "sha256_upstream": "0a55fa92dccb261d07200e6565fca4c850fd17f0c1ecf38821c0b97d51796c7d",
+   "triangles": 16,
+   "triangles_upstream": 16
+  },
+  "link6_14": {
+   "bytes": 87884,
+   "bytes_upstream": 444469,
+   "protected": false,
+   "sha256": "de8a077c6e6339c22ccba85fbf3c2365c26601825ff181f7ae9f9dbd96aff8a8",
+   "sha256_upstream": "750ae3ee4781e62e3a045c662195247b03f6642b05aa93104f08258e5f6eba26",
+   "triangles": 1756,
+   "triangles_upstream": 1756
+  },
+  "link6_15": {
+   "bytes": 133184,
+   "bytes_upstream": 668552,
+   "protected": false,
+   "sha256": "6a339c9ea069bb108787d88eb0566aa7ffcc439d2c89f7bf87903d8111febfe1",
+   "sha256_upstream": "5999c1c2497a004a7c4bbe034cdf13744f839d85ae7a11b1bc386c48a3e642e6",
+   "triangles": 2662,
+   "triangles_upstream": 2662
+  },
+  "link6_16": {
+   "bytes": 716334,
+   "bytes_upstream": 3675358,
+   "protected": true,
+   "sha256": "0bfd75b9f2b5b525f882bba894c7cf1da872299af3e6009d126d2ae0fac2360a",
+   "sha256_upstream": "551d7a8b37c53e7a152d008b4e36992e5b5abe74a4be18b57ee6319c27def09f",
+   "triangles": 14325,
+   "triangles_upstream": 14325
+  },
+  "link6_2": {
+   "bytes": 2134,
+   "bytes_upstream": 9916,
+   "protected": false,
+   "sha256": "825e8543d2ccd8173d57230a727b55f56be08e7936aba8dec75c73bfb4593d90",
+   "sha256_upstream": "e54eee4d8232947ee8af65afd5a067e09dac2da6e7e585cb1dccb65496457da0",
+   "triangles": 41,
+   "triangles_upstream": 41
+  },
+  "link6_3": {
+   "bytes": 2534,
+   "bytes_upstream": 11943,
+   "protected": false,
+   "sha256": "c74cc0b5afeec5dd205fc29e0671e25ff794ce768e2b8af04390fdef12859170",
+   "sha256_upstream": "d4f6a25ef32fa1fa4734146981994ee760232cb077c80fea6487d78a077c7f27",
+   "triangles": 49,
+   "triangles_upstream": 49
+  },
+  "link6_4": {
+   "bytes": 2934,
+   "bytes_upstream": 13846,
+   "protected": false,
+   "sha256": "92638ecda50dceb75b579def8162aba41f93202dead3069a81915c1f04590495",
+   "sha256_upstream": "be353480fe71d46f7a96f0a3cbb7e112caaf8d88368826f321a36a253c8749b2",
+   "triangles": 57,
+   "triangles_upstream": 57
+  },
+  "link6_5": {
+   "bytes": 2534,
+   "bytes_upstream": 11841,
+   "protected": false,
+   "sha256": "4145d0ea20d2b9b55a80be3ce0be87e835c83a396fe8212669a8a64e0cd6b2ba",
+   "sha256_upstream": "7c87664623c3e1a6cb330db273227a69626dc5e53b4caff1d4ee7911eb3340c6",
+   "triangles": 49,
+   "triangles_upstream": 49
+  },
+  "link6_6": {
+   "bytes": 2684,
+   "bytes_upstream": 12597,
+   "protected": false,
+   "sha256": "314acc0223eff5b1c0d9422cf68bcdf14594644e089a2685fbbdf8adfae262f5",
+   "sha256_upstream": "8fbc031e0d07b795ebf99115c75223141caaba317cab569159f3d477a7821681",
+   "triangles": 52,
+   "triangles_upstream": 52
+  },
+  "link6_7": {
+   "bytes": 984,
+   "bytes_upstream": 4382,
+   "protected": false,
+   "sha256": "1dacfbcbb8fe1ff5d2b6f6c48900282efa5992f6b927169f643785bdfb71bdb1",
+   "sha256_upstream": "7dc5ebb799fe281aab27d6e84e7a4efa0a8e42da2369ec83de3ea3f206f62d73",
+   "triangles": 18,
+   "triangles_upstream": 18
+  },
+  "link6_8": {
+   "bytes": 1984,
+   "bytes_upstream": 9131,
+   "protected": false,
+   "sha256": "f3461a3fa1f7b09f3388518ec63b6a08bb0b64c2a7cea4f02ecc014ebfeb75c6",
+   "sha256_upstream": "e3f77381817a341030f9dcc4c4aa7c559f80411b453fd87eb0fefecca82151bf",
+   "triangles": 38,
+   "triangles_upstream": 38
+  },
+  "link6_9": {
+   "bytes": 3684,
+   "bytes_upstream": 17616,
+   "protected": false,
+   "sha256": "10da78963886314604422bf1bf398055f3df9b14d4a0b1376529c8f2ab4a9b0e",
+   "sha256_upstream": "25a56ea9b02a03b6cb5a81f31c54f54d0185e1a0b3937c37e4289d896e50215a",
+   "triangles": 72,
+   "triangles_upstream": 72
+  },
+  "link7_0": {
+   "bytes": 268784,
+   "bytes_upstream": 1362355,
+   "protected": true,
+   "sha256": "3c177f7c6ab0009fce574260d83e659a0ef13ba56fc50def6645b6d67b142e1c",
+   "sha256_upstream": "04586b0bde011715cfc22072ac72fe0717eb4d4817bcf665987ce6cd88eb2b93",
+   "triangles": 5374,
+   "triangles_upstream": 5374
+  },
+  "link7_1": {
+   "bytes": 24634,
+   "bytes_upstream": 121358,
+   "protected": false,
+   "sha256": "c9dcb309dbca1f0ce7edc7681ec2bdaac3ee8b738584c76f674b989590e44cd8",
+   "sha256_upstream": "c3f72289f394c9d6749a4a327fb11f05b203c37c95032c92f28019b40ebe7e00",
+   "triangles": 491,
+   "triangles_upstream": 491
+  },
+  "link7_2": {
+   "bytes": 41984,
+   "bytes_upstream": 208907,
+   "protected": false,
+   "sha256": "5ffee902f9cfbc08d3b6185a8454920248cdd6e6ea7cd415e9cc2b0710f02929",
+   "sha256_upstream": "d2faecedb304d0989040d082410378dc949dbbda23bd18c05134f08aae984db5",
+   "triangles": 838,
+   "triangles_upstream": 838
+  },
+  "link7_3": {
+   "bytes": 24434,
+   "bytes_upstream": 123684,
+   "protected": false,
+   "sha256": "b0bf6825e6c18c9533f9c860b28a2780afe7a5a7931d5da0b8462a792d105046",
+   "sha256_upstream": "b62d87c4d4bdb7b281ed341d347c39dad0e50bf36aed8ac11d050073701d5f70",
+   "triangles": 487,
+   "triangles_upstream": 487
+  },
+  "link7_4": {
+   "bytes": 17034,
+   "bytes_upstream": 85732,
+   "protected": false,
+   "sha256": "fa64c1ea074b74b072c53115117073c1444f8ba4cc26e41427901798b954530c",
+   "sha256_upstream": "cb78ccb61fd4ad6c7bff4c4d2e6cb41e1964a5a3e1a28e67c0c6202371cfc018",
+   "triangles": 339,
+   "triangles_upstream": 339
+  },
+  "link7_5": {
+   "bytes": 45384,
+   "bytes_upstream": 226402,
+   "protected": false,
+   "sha256": "ed1be4aa98b3e3eea918d709c8611f6a5e2943bcfbf4f4bff5cc98cae91ce0d2",
+   "sha256_upstream": "099071d3090b51471ba52f4f90814fd3089f4975d196e4d488117073d0bfe491",
+   "triangles": 906,
+   "triangles_upstream": 906
+  },
+  "link7_6": {
+   "bytes": 20234,
+   "bytes_upstream": 99900,
+   "protected": false,
+   "sha256": "7f13ee3b21a1437b810efad61fc3921d3a573b71bcaefa0305ce724a40d4304b",
+   "sha256_upstream": "99469e2d95ab74ce0292f2f16954c87a8a7dc16652e62e970fe37c94330a81bb",
+   "triangles": 403,
+   "triangles_upstream": 403
+  },
+  "link7_7": {
+   "bytes": 162284,
+   "bytes_upstream": 792162,
+   "protected": true,
+   "sha256": "858cf7065541f44adb643e9e9c2ca9d99ddd4cf23e51f671abc0a22398d5be6f",
+   "sha256_upstream": "426c3db8a19373f3dc73d4bec672e948121b2914c10e2e7b9c7ea80643a19e54",
+   "triangles": 3244,
+   "triangles_upstream": 3244
+  },
+  "wheelchair_permobil_reduced_compressed": {
+   "bytes": 74984,
+   "bytes_upstream": 431741,
+   "protected": false,
+   "sha256": "8792f61aaefd734424521d0fe88da8cbbacd1b6d5736eb1b9a63fef80488cc1d",
+   "sha256_upstream": "a13c4ff4cb33f996c897ae6339a5978d9dc12b90b1c0fc5048794245ca461d72",
+   "triangles": 1498,
+   "triangles_upstream": 6840
+  }
+ },
+ "protected": {
+  "finger_0": [
+   "wheelchair_scene.xml: fitted primitive left_finger_collision collides",
+   "wheelchair_scene.xml: fitted primitive right_finger_collision collides",
+   "bed_scene.xml: fitted primitive left_finger_collision collides",
+   "bed_scene.xml: fitted primitive right_finger_collision collides",
+   "bed_scene_armmanip.xml: fitted primitive left_finger_collision collides",
+   "bed_scene_armmanip.xml: fitted primitive right_finger_collision collides",
+   "feeding_scene.xml: fitted primitive left_finger_collision collides",
+   "feeding_scene.xml: fitted primitive right_finger_collision collides",
+   "teethbrushing_scene.xml: fitted primitive left_finger_collision collides",
+   "teethbrushing_scene.xml: fitted primitive right_finger_collision collides"
+  ],
+  "hand_3": [
+   "wheelchair_scene.xml: fitted primitive panda_hand4 collides",
+   "bed_scene.xml: fitted primitive panda_hand4 collides",
+   "bed_scene_armmanip.xml: fitted primitive panda_hand4 collides",
+   "feeding_scene.xml: fitted primitive panda_hand4 collides",
+   "teethbrushing_scene.xml: fitted primitive panda_hand4 collides"
+  ],
+  "link6_16": [
+   "wheelchair_scene.xml: fitted primitive panda_hand0 collides",
+   "bed_scene.xml: fitted primitive panda_hand0 collides",
+   "bed_scene_armmanip.xml: fitted primitive panda_hand0 collides",
+   "feeding_scene.xml: fitted primitive panda_hand0 collides",
+   "teethbrushing_scene.xml: fitted primitive panda_hand0 collides"
+  ],
+  "link7_0": [
+   "wheelchair_scene.xml: fitted primitive panda_hand3 collides",
+   "bed_scene.xml: fitted primitive panda_hand3 collides",
+   "bed_scene_armmanip.xml: fitted primitive panda_hand3 collides",
+   "feeding_scene.xml: fitted primitive panda_hand3 collides",
+   "teethbrushing_scene.xml: fitted primitive panda_hand3 collides"
+  ],
+  "link7_7": [
+   "wheelchair_scene.xml: fitted primitive panda_hand1 collides",
+   "bed_scene.xml: fitted primitive panda_hand1 collides",
+   "bed_scene_armmanip.xml: fitted primitive panda_hand1 collides",
+   "feeding_scene.xml: fitted primitive panda_hand1 collides",
+   "teethbrushing_scene.xml: fitted primitive panda_hand1 collides"
+  ]
+ },
+ "rule": "every mesh OBJ -> binary STL; a mesh is decimated to max(min_triangles, keep_fraction) UNLESS a geom that references it (mesh geom or fitted primitive, any scene) collides or carries mass on a moving body (`protected`, read off the compiled models); XML copied verbatim except <mesh file=\"X.obj\"> -> X.stl; `fidelity` compares the compiled models",
+ "upstream": {
+  "assets_dir": "assistax/envs/assets",
+  "commit": "a7d94f4e20636b9b0c07370344b8a2b521db58b2",
+  "repo": "assistive-autonomy/assistax",
+  "source": "--src checkout at a7d94f4e20636b9b0c07370344b8a2b521db58b2"
+ },
+ "xml": {
+  "bed_assets/bed_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "17d9704eca9b552c8ecd940724dbdb4efd298b3d4f1baf5f680ece421b6edf9e",
+   "sha256_upstream": "17d9704eca9b552c8ecd940724dbdb4efd298b3d4f1baf5f680ece421b6edf9e"
+  },
+  "bed_assets/humanoid_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "e10cfc56bdb93a5e0106ba0a4dfafcb4b54679d9514bbd92dfde59824e1b3701",
+   "sha256_upstream": "e10cfc56bdb93a5e0106ba0a4dfafcb4b54679d9514bbd92dfde59824e1b3701"
+  },
+  "bed_assets/humanoid_bare_armmanip.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "2583ca2c7c95577721871033e1ec4ba0988dadde9b8822104c790794a3b77305",
+   "sha256_upstream": "2583ca2c7c95577721871033e1ec4ba0988dadde9b8822104c790794a3b77305"
+  },
+  "bed_assets/panda_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "1582c888235a932f2c6faa81f58922b3ae333caecdc95d207b32a669a5bf8940",
+   "sha256_upstream": "1582c888235a932f2c6faa81f58922b3ae333caecdc95d207b32a669a5bf8940"
+  },
+  "bed_assets/panda_bare_armmanip.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "7462e846153fa0c4cce1fbd05b8e441cabbaf59cf2145a24c1d3f214b1adb82e",
+   "sha256_upstream": "7462e846153fa0c4cce1fbd05b8e441cabbaf59cf2145a24c1d3f214b1adb82e"
+  },
+  "bed_scene.xml": {
+   "mesh_refs_repointed": 57,
+   "sha256": "2de92de88db1723c9f5f9a29154b1ce1224a18c27f2107742b22bdd9b4d83a34",
+   "sha256_upstream": "8d4c6e419c7afd7882445897ed21db5c44efe7deef77259ffd5a8698930685bf"
+  },
+  "bed_scene_armmanip.xml": {
+   "mesh_refs_repointed": 57,
+   "sha256": "682cb1646d010c3198844d58f3ea5da5dae38c9c18efa4e8aceacc73a48edace",
+   "sha256_upstream": "d725cf08c870ad1c00fa6bed80ac8838f49aea0d34cc8a6c673e8a38546d9e88"
+  },
+  "feeding_assets/humanoid_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "81500c0892cae8b882580e593a71272fbf7ef9e79e35a8143aa6bcd825f39cd2",
+   "sha256_upstream": "81500c0892cae8b882580e593a71272fbf7ef9e79e35a8143aa6bcd825f39cd2"
+  },
+  "feeding_assets/panda_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "fb3e2132f63d9c3d96d382808cbe1880d622f14a9f2818033bf44e866e6fa492",
+   "sha256_upstream": "fb3e2132f63d9c3d96d382808cbe1880d622f14a9f2818033bf44e866e6fa492"
+  },
+  "feeding_assets/wheelchair_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "122528901fd4c26c9055fb53ba27257040715d94d55b462158f1bec4e493a3c0",
+   "sha256_upstream": "122528901fd4c26c9055fb53ba27257040715d94d55b462158f1bec4e493a3c0"
+  },
+  "feeding_scene.xml": {
+   "mesh_refs_repointed": 57,
+   "sha256": "b4858840356406bf2cf6f8ef00953f2ac72ef9c9c79fccadc77911e399f71be4",
+   "sha256_upstream": "521abc77a5d4b814a1926bc14167c709f7edf2705ed5c0f500dcb6e6e574040a"
+  },
+  "teethbrushing_assets/humanoid_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "81500c0892cae8b882580e593a71272fbf7ef9e79e35a8143aa6bcd825f39cd2",
+   "sha256_upstream": "81500c0892cae8b882580e593a71272fbf7ef9e79e35a8143aa6bcd825f39cd2"
+  },
+  "teethbrushing_assets/panda_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "c2158afe93e96cd306fcb8395e67736643a2d283be1ec9a264f90957f8cbf41f",
+   "sha256_upstream": "c2158afe93e96cd306fcb8395e67736643a2d283be1ec9a264f90957f8cbf41f"
+  },
+  "teethbrushing_assets/wheelchair_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "122528901fd4c26c9055fb53ba27257040715d94d55b462158f1bec4e493a3c0",
+   "sha256_upstream": "122528901fd4c26c9055fb53ba27257040715d94d55b462158f1bec4e493a3c0"
+  },
+  "teethbrushing_scene.xml": {
+   "mesh_refs_repointed": 57,
+   "sha256": "0f0264d0c51c58abe545a7b3064d7ee32878907557d254dcf6c6081a2b1128cf",
+   "sha256_upstream": "a15fd6b59caafbcd4198273d5b47b9cca63f7ffb3af16fb67d526fe8b132afad"
+  },
+  "wheelchair_assets/humanoid_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "045cd71fa3887e23a414f21b82b66ebb986fd20c8d9e805f79d93ca349df021d",
+   "sha256_upstream": "045cd71fa3887e23a414f21b82b66ebb986fd20c8d9e805f79d93ca349df021d"
+  },
+  "wheelchair_assets/panda_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "b6b877d5e94e01a104cbbc043df5c7cb874e3902287ae25920a72ba230ce36d2",
+   "sha256_upstream": "b6b877d5e94e01a104cbbc043df5c7cb874e3902287ae25920a72ba230ce36d2"
+  },
+  "wheelchair_assets/wheelchair_bare.xml": {
+   "mesh_refs_repointed": 0,
+   "sha256": "122528901fd4c26c9055fb53ba27257040715d94d55b462158f1bec4e493a3c0",
+   "sha256_upstream": "122528901fd4c26c9055fb53ba27257040715d94d55b462158f1bec4e493a3c0"
+  },
+  "wheelchair_scene.xml": {
+   "mesh_refs_repointed": 57,
+   "sha256": "5bb9a82acef290c25acc0f5a20ee8918913798d25457a46a251952246af23c4f",
+   "sha256_upstream": "938cf175cf44cf2dc8b9f88f3f210536fed8d92b0cd84de1babdc5f66147ab0f"
+  }
+ }
+}

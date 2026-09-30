@@ -1,0 +1,557 @@
+# REvolve's own MuJoCo environment, as the paper defines it: Gym Humanoid, "run upright for
+# 1000 steps" (refs/tex/revolve/main.tex:416, Table tab:rl_tasks_summary).
+#
+# THE GROUND-TRUTH METRIC IS THE PAPER'S FITNESS, NOT THE RELEASE'S. App. B.2 Eq. 3
+# (refs/tex/revolve/main.tex:1121-1129) gates the episode-mean forward velocity on surviving
+# all T_max = 1000 steps; the released code computes a mean over a +/-1000-sample window
+# centred on the MAXIMUM of the training-time velocity log with no survival gate at all
+# (refs/code/Revolve/rl_agent/evaluate.py:19-33). The two are not two precisions of one
+# measure - see the dagger on continuous_success.raw. This spec implements the PAPER's,
+# because the paper's is the published definition of the task.
+#
+# v5, NOT THE PAPER'S v4, and the deltas are recorded on env.library.upstream_divergence
+# below rather than left to a reader to discover. None of them changes the fitness.
+
+schema_version: 1
+id: humanoid_run
+
+env:
+  env_id: Humanoid-v5
+  library:
+    name: mujoco
+    version_verified: "3.3.0"
+    commit: null
+    stack: { gymnasium: "1.3.0", python: "3.11" }
+  horizon: 1000
+  control_hz: 66.67           # frame_skip 5 at model timestep 0.003 s -> dt 0.015 s
+  termination:
+    early_terminate: true
+    autoreset: false
+    partial_reset: null
+    prompt_states: "The episode ends the moment the torso's height leaves the open interval (1.0, 2.0) metres -
+      that is, the moment the humanoid falls. Surviving all 1000 steps is a precondition for scoring
+      anything at all."
+  reset:
+    kind: stochastic
+    mechanism: library_reseeded
+    n_instances: null
+    instance_seed: null
+    entry:
+      path: bird/envs/gym_mujoco.py
+      symbol: GymMujoco._reset
+      lines: "1368-1381"
+    rng_note: "One draw from the episode Generator -- int(rng.integers(2 ** 31 - 1)) -- is passed to
+      gymnasium Env.reset(seed=), which reseeds the wheel np_random before MujocoEnv.reset calls
+      mj_resetData and reset_model (humanoid_v5.py:519-532); reset_model then makes exactly two
+      draws in order, qpos then qvel, each a single uniform() over the WHOLE vector. The row
+      _reset returns is the raw concat(qpos, qvel) -- 24 + 23 = 47 entries -- and is NOT the
+      348-entry gymnasium observation (see spaces.obs_dim's note). This adapter declares DR axes
+      but every published config leaves them off, so no draw precedes _reset at the nominal
+      setting."
+    draws:
+      - role: agent_pose
+        quantity: qpos
+        fields: ['0:1', '1:2', '2:3', '3:4', '4:5', '5:6', '6:7', '7:8', '8:9', '9:10', '10:11', '11:12', '12:13', '13:14', '14:15', '15:16', '16:17', '17:18', '18:19', '19:20', '20:21', '21:22', '22:23', '23:24']
+        distribution:
+          family: uniform
+          text: 'init_qpos + U(-0.01, 0.01) independently on all 24 generalised coordinates. init_qpos is
+            the model''s qpos0: [0, 0, 1.4, 1, 0, 0, 0] for the free root (x, y, z, then the identity quaternion
+            in MuJoCo''s w-first order) and 0 for the seventeen hinges. The scale is v5''s default reset_noise_scale
+            0.01 -- a TENTH of HalfCheetah''s and Hopper''s 0.1, because this body falls over - and the
+            adapter passes no override. NOTE THE QUATERNION: the noise is applied componentwise to qpos[3:7]
+            as well, so the reset orientation is NOT a unit quaternion (measured over 24 seeds: |q| in [0.9904,
+            1.0090]). That is upstream''s own behaviour, not this port''s, and it is harmless HERE for a
+            reason worth stating: set_state + mj_forward leaves data.qpos exactly as given (measured - a
+            norm-2.0 quaternion goes in and comes back out at norm 2.0), so the state _reset returns is
+            restorable bit for bit and the stateless-step contract holds. mj_step DOES renormalise (|q|
+            is exactly 1.0 after one step), and the physics difference between the raw reset state and its
+            normalised twin after one step is 5.6e-17 - float noise. Contrast a reset that returns a pre-normalisation
+            qpos which the restore path DOES normalise: every episode would then begin off the manifold.
+            That failure does not occur on this family, and the measurement above is why.'
+          low: [-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01,
+                -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01]
+          high: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+                 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        source:
+          path: gymnasium/envs/mujoco/humanoid_v5.py
+          lines: "519-527"
+        basis: measured
+        note: 'Measured on the project venv''s wheel (gymnasium 1.3.0, mujoco 3.3.0): the env reset 24 times
+          on seeds derived as the adapter derives them, qpos stacked; all 24 columns move, columns 0-1 and
+          3-23 span within [-0.0100, +0.0100] of their init_qpos entry and column 2 spans [1.39227, 1.40950]
+          about 1.4.'
+      - role: agent_velocity
+        quantity: qvel
+        fields: ['24:25', '25:26', '26:27', '27:28', '28:29', '29:30', '30:31', '31:32', '32:33', '33:34', '34:35', '35:36', '36:37', '37:38', '38:39', '39:40', '40:41', '41:42', '42:43', '43:44', '44:45', '45:46', '46:47']
+        distribution:
+          family: uniform
+          text: "init_qvel (zeros) + U(-0.01, 0.01) independently on all 23 generalised velocities: the
+            free root's three linear (m/s) then three angular (rad/s), then the seventeen hinges
+            (rad/s). UNIFORM, not the Gaussian HalfCheetah and Swimmer draw for velocity."
+          low: [-0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01,
+                -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01, -0.01]
+          high: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+                 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        source:
+          path: gymnasium/envs/mujoco/humanoid_v5.py
+          lines: "528-530"
+        basis: measured
+        note: 'Measured in the same run as the qpos row: all 23 velocity columns move and span within [-0.0100,
+          +0.0100].'
+    constants:
+      - role: goal
+        quantity: goal
+        value: "none -- the fitness is a mean forward velocity of the body's centre of mass over the
+          episode, so the reset x/y jitter cancels into a displacement difference; no target, marker
+          or finish line exists in the scene"
+        source:
+          path: bird/envs/gym_mujoco.py
+          symbol: _fit_gated_mean_com_velocity
+          lines: "332-377"
+        basis: read
+    stochastic_transitions: null
+    upstream_divergence: >-
+      THE PAPER RAN Humanoid-v4; THIS RUNS Humanoid-v5, and the four differences that touch this
+      task are all from gymnasium's own changelog (humanoid_v5.py:271-289), read there rather than
+      inferred:
+      (1) OBSERVATION 376 -> 348. v5 excludes the cinert, cvel and cfrc_ext of worldbody and the
+      root freejoint's qfrc_actuator "as it was always 0". Measured via env.observation_structure:
+      cinert 140 -> 130, cvel 84 -> 78, cfrc_ext 84 -> 78, qfrc_actuator 23 -> 17, total 376 ->
+      348. Every dropped entry was a constant zero, so the paper's 376 and this 348 carry the same
+      information and a policy cannot do better or worse for the change. NOTE SEPARATELY that
+      BIRD's adapter presents NEITHER: its state is concat(qpos, qvel) = 47 entries (see
+      spaces.obs_dim).
+      (2) HEALTHY BONUS. v4 paid the +5.0 survival bonus on every step including unhealthy ones;
+      v5 fixed it to pay only while healthy. This MOVES THE SHIPPED REWARD (reward.human) by up to
+      5.0 on a terminal step and therefore moves any episode return quoted on it - so a shipped-
+      reward number measured here is NOT comparable to a v4 one. It does not touch the fitness.
+      (3) CONTACT COST RESTORED. v4 removed contact_cost (and v4's was always 0 anyway per the
+      wheel's own bug note at humanoid_v5.py:221); v5 restores it at weight 5e-7, capped at 10.
+      Measured here it reaches |2.44| and up to 94% of |reward| on an impact step, mean 2.9-6.5%,
+      so it is material to the shipped reward and is computed exactly rather than dropped. Also
+      fitness-neutral.
+      (4) info["x_position"] is now qpos-based rather than xipos-based. Irrelevant to the fitness,
+      which reads the mass centre directly, but it is why the adapter's com_x does not read that
+      key - the two differ by up to 0.10 m over 21 steps.
+      REvolve's own vendored fork (refs/code/Revolve/rl_agent/HumanoidEnv.py) is a v4-era copy: it
+      carries the unconditional healthy bonus (:388-392), no contact cost, and the 376-D
+      observation (:413-439). Its mass_center (:58) is byte-equivalent to gymnasium v5's (:17).
+      WHAT (2) AND (3) TOGETHER COST US, stated plainly because it bounds the comparison: the
+      paper's "Expert Designed" arm IS this shipped reward, and on v5 as shipped it is not the
+      same function it was on v4 -- v5 pays the healthy bonus only while healthy and charges a
+      contact cost v4 did not. So of the five arms in REvolve's Humanoid Elo table (tex:560-580),
+      Expert Designed is the ONE we cannot reproduce on this env without reintroducing a bug
+      gymnasium fixed, and this spec does not reintroduce it. The four LLM-designed arms are
+      unaffected: their rewards are written by the model, and the fitness they are ranked on is
+      Eq. 3, which reads velocity and survival only. The comparison this env exists for -- the
+      MuJoCo panel of fig:baseline comparison on the auto fitness scale, REvolve Auto against
+      Eureka Auto -- is therefore intact; the Expert Designed baseline is not.
+    prompt_states: "stands upright on flat, endless ground"
+    prompt_field: natural_language
+    prompt_omits: [agent_pose, agent_velocity]
+  spaces:
+    obs_dim: 47
+    action_dim: 17
+    action_low: -0.4
+    action_high: 0.4
+    action_semantics: "Normalised torques on the seventeen hinge actuators (abdomen y/z/x, then each hip
+      x/z/y and knee, then each shoulder pair and elbow), each in [-0.4, 0.4] and multiplied by the
+      actuator's own gear ratio to give a torque: 300 on hip_y, 200 on the knees, 100 on the abdomen
+      and hips_x/z, 25 on the arms. Equal action components are therefore NOT equal torques.
+      ACTUATOR ORDER IS NOT JOINT ORDER: a[0] drives abdomen_y and a[1] drives abdomen_z."
+
+description:
+  natural_language: |-
+    A three-dimensional bipedal humanoid - a torso with a twisting abdomen, two legs with hip
+    and knee joints and two arms with shoulder and elbow joints, seventeen torque-controlled
+    joints in total - stands upright on flat, endless ground. Make it run forward, in the +x
+    direction, as fast as it can for the whole 1000-step episode while staying on its feet.
+    Both halves matter and the second is a precondition: the episode ends the instant the
+    torso's height leaves the band between 1.0 and 2.0 metres, and an episode that ends early
+    scores nothing at all no matter how fast the humanoid was moving before it fell. Drive the
+    joints so the robot builds and holds a fast, stable running gait rather than diving
+    forward, hopping once and collapsing, or standing still.
+  scene: |-
+    A humanoid on flat infinite ground, seen from a camera that follows it. The root is
+    completely free - the robot can translate in any direction, rise and fall, and rotate to
+    any orientation - so nothing in the environment holds it upright. There is no goal object,
+    no target marker and no landmark of any kind: nothing in the scene shows how far the robot
+    has travelled or how fast it is going.
+  success_criterion_prose: >-
+    REvolve's Auto fitness, App. B.2 Eq. 3: the episode-mean forward velocity of the body's
+    centre of mass, and exactly 0 unless the episode survived all 1000 steps. There is no
+    discrete success check - gymnasium ships none for this task.
+  full_source:
+    path: gymnasium/envs/mujoco/humanoid_v5.py
+    lines: null
+
+state_surface:
+  fields:
+    - { name: s.qpos, shape: "(24,)", units: mixed, description: "Generalised positions: the free root's x, y, z (m) and orientation quaternion in MuJoCo's w-first order, then the seventeen hinge angles (rad). The quaternion at the reset state is not exactly unit - see env.reset.draws.", source: null }
+    - { name: s.qvel, shape: "(23,)", units: mixed, description: "Generalised velocities: the root's three linear (m/s) then three angular (rad/s), then the seventeen hinge rates (rad/s).", source: null }
+    - { name: s.torso_height, shape: scalar, units: m, description: "qpos[2], the torso's height. The episode ends when it leaves (1.0, 2.0).", source: null }
+    - { name: s.com_x_velocity, shape: scalar, units: m/s, description: "The forward velocity of the WHOLE BODY's centre of mass - the quantity the fitness integrates. It is NOT qvel[0], the torso's own x velocity, which correlates -0.39 with it; reachable only through the helper.", source: null }
+    - { name: action, shape: "(17,)", units: null, description: "The normalised actuator commands applied this step, each in [-0.4, 0.4].", source: null }
+  helpers:
+    - name: forward_velocity
+      signature: "forward_velocity(s) -> float"
+      kind: callable
+      expression: null
+      description: "The forward (x) velocity of the WHOLE BODY's centre of mass in m/s -- the quantity
+        this task is scored on. `kind: callable` and not an inline expression because there IS no
+        expression: the mass centre's velocity is not any entry or slice of the state vector, and the
+        nearest slice (s[24], the torso's own x velocity) correlates -0.39 with it. The harness computes
+        it by a forward pass; bird/envs/gym_mujoco.py::GymMujoco.forward_velocity is the method."
+    - name: torso_height
+      signature: "torso_height(s) -> float"
+      kind: inline_expression
+      expression: "s[2]"
+      description: "The torso's height in metres. A genuine slice, so it is advertised as one --
+        s[2] and not the s[1] the planar rows use, because a free root spends qpos[0:2] on x and y.
+        bird/envs/gym_mujoco.py::GymMujoco.torso_height also exists and returns the same value."
+    - name: is_upright
+      signature: "is_upright(s) -> float"
+      kind: callable
+      expression: null
+      description: "1.0 while the torso's height is strictly inside (1.0, 2.0); the episode ends the
+        step this becomes 0.0. Humanoid-v5's own healthy test (`min_z < qpos[2] < max_z`), reproduced
+        with 0 mismatches against upstream's `terminated` over a falling episode. Named apart from
+        Hopper's `is_healthy`, whose pitch and state-range clauses do not exist on this model;
+        bird/envs/gym_mujoco.py::GymMujoco.is_upright is the method."
+  helpers_note: >-
+    Three, and the first exists because it must: on this body the forward velocity the task is
+    scored on is not any entry of the state vector (the mass centre's velocity, against the torso's
+    own, correlates -0.39 over a zero-action episode), so a reward that wants it has no way to
+    reach it by indexing. `is_upright` is named apart from Hopper's `is_healthy` because the
+    predicates differ - no pitch clause and no state-range clause exist on this model.
+
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: >-
+    Gymnasium's locomotion environments ship no discrete success check, and neither does REvolve:
+    Humanoid-v5 returns no `info["success"]` and the paper scores this task purely on the
+    continuous fitness of App. B.2 Eq. 3. There is no shipped success predicate to game and
+    nothing for a hardened oracle to tighten. The hack question here is not "did it fake success"
+    but "did it fake SPEED, or trade survival for it" - which `exploits` below carries.
+  shipped: null
+  hardened: null
+
+continuous_success:
+  raw:
+    name: gated_mean_com_velocity
+    expr: 'REvolve App. B.2 Eq. 3 (refs/tex/revolve/main.tex:1121-1129): sigma = (1/T_max) * sum_{t=1}^{T_max}
+      v_t^x if T == T_max, else 0 -- where v_t^x is the forward velocity of the body''s centre of mass
+      and T is the number of steps the agent stayed upright. Implemented telescoped as (com_x(T) - com_x(0))
+      / (T * dt) once the survival gate passes (bird/envs/gym_mujoco.py::_fit_gated_mean_com_velocity).
+      DAGGER -- PAPER AND RELEASED CODE DISAGREE, and the paper''s is what is implemented: the release
+      (refs/code/Revolve/rl_agent/evaluate.py:19-33, calculate_average_around_max) means over a +/-1000-sample
+      window centred on the MAXIMUM of the training-time velocity log and applies no survival gate at
+      all. That statistic is max-seeking (positively biased in the log''s length, so it rewards a longer
+      training run rather than a better policy), ungated (a policy that dives and falls at step 40 is
+      scored on its fastest 40 steps, where the paper''s headline for this task is ''run upright for 1000
+      steps'', tex:416), and not an episode statistic (a +/-1000-sample window spans two episodes at T_max
+      = 1000). The figure being compared against is the paper''s MuJoCo panel, so the paper''s definition
+      is the one that makes the comparison meaningful.'
+    unit: m/s
+    direction: maximize
+    saturates_at: null
+    saturates_at_reason: "No ceiling in the metric's definition: a mean velocity in m/s with no clamp, so
+      its supremum is whatever the physics and the 1000-step horizon allow rather than anything the
+      measurement asserts. REvolve's own best reported value on this task is 5.67 m/s, which is an
+      observation about one search and not a bound."
+    # THE DAGGER. Paper and released code disagree, and this is not a rounding difference:
+    #   PAPER  (App. B.2 Eq. 3): mean over ALL T_max steps of the episode, 0 unless T == T_max.
+    #   CODE   (refs/code/Revolve/rl_agent/evaluate.py:19-33, calculate_average_around_max):
+    #          reads a flat file of logged velocities, finds the INDEX OF THE MAXIMUM, and means
+    #          the +/-1000 samples around it. No survival gate anywhere, and the window is over
+    #          the TRAINING-TIME log rather than one evaluation episode.
+    # Three consequences, which is why the paper's is implemented and the code's is not:
+    #   * The code's statistic is max-seeking. Centring a window on the maximum of a noisy series
+    #     is a positively biased estimator of that series' level, and the bias grows with the log's
+    #     length - so it rewards a longer training run, not a better policy.
+    #   * It has no survival gate, so a policy that dives forward and falls at step 40 is scored on
+    #     its fastest 40 steps. The paper's headline for this task is "run upright for 1000 steps"
+    #     (tex:416), which the code's statistic does not measure.
+    #   * A +/-1000-sample window over per-step velocities spans two episodes at T_max = 1000, so
+    #     the code's value is not an episode statistic at all.
+    # The figure being compared against is the paper's (MuJoCo panel of fig:baseline comparison, on the auto
+    # scale), so the paper's definition is the one that makes the comparison meaningful.
+  normalized:
+    method: explicit
+    formula: >-
+      IDENTITY -- the raw m/s IS the reported scale, and no anchor normalisation is applied.
+      `explicit` rather than `anchors` because there is no random->expert span to normalise against:
+      the random anchor is a hard 0.0 by construction (a random policy never survives 1000 steps, so
+      Eq. 3's gate zeroes every episode) and no expert anchor exists at all (anchors.expert is null,
+      with its reason stated there). A scale whose lower end is a degenerate 0.0 and whose upper end
+      is unmeasured is not a scale, and `bird/envs/spec.py::baselines_of` refuses this flat
+      unlabelled pair in any case, so fitness on this task stays RAW. THE UNIT IS NOT STATED IN THE
+      RENDERED PAPER. What the live text says is main.tex:2457, "the best-performing reward from
+      REvolve with an average velocity of $5.67$" -- a figure with NO UNIT. The words "representing
+      locomotion velocity in m/s" appear only at main.tex:553, which is COMMENTED OUT (the line
+      opens `% For autonomous driving, ...`), i.e. struck draft text that is not in the published
+      paper. (main.tex:547, the "REvolve Auto performs on par with Eureka" sentence, contains
+      neither the figure nor the phrase.) WHAT THE ARGUMENT RESTS ON INSTEAD, stated so the scale
+      choice does not lean on a struck line: Eq. 3 (main.tex:1121-1129) defines sigma as a mean of
+      v_t^x, a velocity, so its unit is a velocity unit whatever the prose does or does not say; the
+      simulator's own quantity is metres per second; and the figure the comparison is drawn against
+      reports the same sigma, so a [0, 1] rescaling of it would compare against a differently-scaled
+      axis. That reasoning is sound independently of :553. The 5.67 is cited only as a scale check
+      (a REvolve-designed reward reached it on this task) and is NOT used as an anchor -- see
+      anchors.expert, which is null.
+    success_threshold: null
+
+anchors:
+  scripted: null
+  random:
+    value: 0.0
+    method: random_policy
+    n_seeds: 30
+    n_episodes: 30
+    date: '2026-09-18'
+    source: >-
+      MEASURED 2026-09-18: the registered env `gym_humanoid_run` built with ctx {}, one episode per
+      seed on seeds 0-29, actions drawn uniformly from the adapter's own action box (+/-0.4 on all
+      17 actuators), each episode scored by `env.task_metric` on the whole trajectory -- i.e.
+      `continuous_success.raw`, Eq. 3 itself. The episode STOPS at the adapter's `done`, which is
+      the load-bearing detail (see the caveat below). Engine: gymnasium 1.3.0 / mujoco 3.3.0, the
+      stack this spec declares, so no engine caveat applies to this side -- unlike six of the ten
+      sibling gym randoms (`tasks/SOURCE.md`). THE RESULT IS 0.0 ON EVERY ONE
+      OF THE 30, exactly: mean 0.0, sd 0.0, min 0.0, max 0.0, and 0/30 episodes survived the full
+      1000-step horizon (episode length mean 26.1, min 18, max 57). So this is a DEGENERATE anchor
+      and the number should be read as what it is -- not "a random humanoid travels no distance" but
+      "Eq. 3's survival gate zeroes every random episode, because a random humanoid is on the floor
+      inside 60 steps of 1000". Its zero variance is itself the reason
+      `continuous_success.normalized.method` is `explicit` and not `anchors`: a span whose lower end
+      has no variance carries no information, so there is nothing to normalise against even before
+      `baselines_of` refuses the flat pair. CAVEAT ON THE INSTRUMENT, and it is why this was
+      measured directly rather than by the usual script: `scripts/measure_anchors.py::_episode`
+      IGNORES termination (`:66` discards `_done` and the loop runs the full horizon), so on this
+      row it keeps stepping a fallen humanoid to 1000 rows, Eq. 3's gate then PASSES, and it reports
+      -0.0645 -- the mean centre-of-mass velocity of a body being shoved around the floor for ~975
+      steps after it fell. That is a real number about a protocol this task does not have. Its
+      `any_step` column is `env.success()`, unconditionally False on every gym row, and its printed
+      interval was `+/- -0.0272`, a negative half-width (the `interval()`-clamps-to-[0,1] defect
+      `half_cheetah`'s spec already records for raw-valued metrics). No committed anchor is affected
+      -- the three terminating sibling rows were measured with rollouts that stop at
+      termination -- but the
+      trap is live for the next terminating env.
+  expert:
+    value: null
+    method: unavailable
+    source: null
+    n_seeds: null
+    n_episodes: null
+    date: null
+    reason: >-
+      NO SCRIPTED OR SHIPPED POLICY EXISTS FOR THIS TASK, in this repo or upstream. Checked:
+      gymnasium ships no policy for any of its MuJoCo envs; `policies/` has no gym_humanoid_run
+      entry (grepping `policies/` for "humanoid" DOES hit files: those are the HumanoidBench
+      policies in `policies/h1hand_hb_hacks` on Unitree's H1, a different robot in a different simulator, and none of
+      them is loadable here -- `bird.policies.policy_for_env` refuses a policy filed against another env id); and
+      REvolve's release publishes neither a trained checkpoint nor a scripted controller -
+      `refs/code/Revolve/rl_agent/main.py:119-121` sets total_timesteps = 1000, so the released code
+      never trained one either. A trained expert is reachable only by paying the task's own budget,
+      which on this family is SAC at 5e6 steps, and that is the run this env exists to make possible
+      rather than a prerequisite for it. Stated null rather than filled with a number from a shorter
+      run: an "expert" anchor trained on a budget the task does not use would misstate the ceiling,
+      the failure this family's own docstring records for half_cheetah_backward.
+budget:
+  train_steps: 5000000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: >-
+      NOT CHECKED, and the honest statement of what that costs is that nothing yet establishes 5e6
+      SAC steps is enough to learn this task in THIS port. The figure is the paper's, not a
+      measurement of ours: REvolve trained SAC for 5 x 10^6 steps per candidate per generation on
+      the MuJoCo environments (refs/tex/revolve/main.tex:435), and the comparison this env exists
+      for is against the paper's own figure, so the paper's budget is the one to run. A 200k-step
+      pilot measured throughput only, not learning.
+    date: null
+  saturates_at: null
+
+reward:
+  human:
+    kind: published_dense
+    # The env's OWN built-in reward, which is the human-written baseline for a gym task. REvolve
+    # calls its equivalent the "Expert Designed" baseline and ranks it last on this task
+    # (Elo 1407, tex:560-580). Self-contained: forward + healthy - ctrl - contact, computed inline.
+    scope: value_determining
+    reference:
+      path: gymnasium/envs/mujoco/humanoid_v5.py
+      lines: "499-518"
+      symbol: HumanoidEnv._get_rew
+      commit: null
+      sha256: "079e98c842d76ff53a28ac5e35f8a12d1aa2d916ca0adb1cb36abdb0d38a13cf"
+    depends_on: []
+    import_path: "gymnasium.envs.mujoco.humanoid_v5:HumanoidEnv"
+    verified_against: "gymnasium 1.3.0 (mujoco 3.3.0)"
+    notes: >-
+      1.25 * com_x_velocity + 5.0 * is_healthy - 0.1 * sum(action**2) - min(5e-7 *
+      sum(cfrc_ext**2), 10). Read off _get_rew at humanoid_v5.py:499-518 of gymnasium 1.3.0,
+      whole-file sha256 above; weights read off the live env (_forward_reward_weight 1.25,
+      _healthy_reward 5.0, _ctrl_cost_weight 0.1, _contact_cost_weight 5e-7, _contact_cost_range
+      (-inf, 10.0)). The adapter reproduces the healthy and control terms exactly and DECLARES TWO
+      APPROXIMATIONS, both with the same cause: a (state, action) reward cannot see the previous
+      state, so where the env differences or post-step-buffers a quantity this adapter re-forwards
+      it from the stored qpos -- which describes the ARRIVED pose, while mj_step left the buffers
+      describing the pose from before the last integration substep (deepmind/mujoco#889, the note
+      gymnasium v5 cites for info["x_position"]).
+        * forward term: the INSTANTANEOUS centre-of-mass velocity (mj_subtreeVel) against the env's
+          finite difference. max |diff| 1.8e-2 m/s on a zero-action episode, 5.8e-2 on a random one
+          (corr 0.9997 / 0.9927).
+        * contact term: cfrc_ext re-derived by mj_forward + mj_rnePostConstraint. max |diff|
+          1.7e-3 on a zero-action episode, 3.0e-3 on a random one, mean 1.9e-4 on both, against a
+          live range reaching 2.62.
+      WHOLE-REWARD AGREEMENT is the figure a consumer wants: max |diff| 2.1e-2 (zero action) and
+      7.6e-2 (random) against a live range of 0.45 to 5.50 -- about 1.4% worst case, dominated by
+      the forward term and not the contact one.
+      THE CONTACT TERM IS NOT EXACT, and two traps hide that. mj_forward reaches cfrc_ext only
+      through the acceleration-stage sensor path and this model declares nsensor == 0, so without
+      mj_rnePostConstraint the array holds whatever the buffer last held and the term is a
+      function of call HISTORY; and comparing the adapter's reading against the env's own
+      info["reward_contact"] is CIRCULAR when both read the one buffer the env's step just filled
+      on the same object -- agreement to 0.0 would be evidence FOR the bug. So the adapter calls
+      mj_rnePostConstraint, and the residual above is measured against a poisoned buffer. Two things this
+      reward is NOT: REvolve's fork pays the healthy bonus unconditionally (the v4 bug, fixed in
+      v5 - see env.library.upstream_divergence item 2), so a return quoted here is not comparable
+      to a v4 one; and it is not the task's fitness, which is Eq. 3 and reads velocity and
+      survival only.
+  contract:
+    signature: |-
+      MAX_REWARD = <float>   # tight upper bound on `reward` below
+
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          """
+          Args:
+            s:      frozen state namespace, fields documented above; no env handle
+            action: (17,) float array, the normalised actuator commands applied this step
+          Returns:
+            reward:     a single float in [0, MAX_REWARD]
+            components: dict mapping term name -> float
+          """
+    framework: numpy
+    batched: false
+    allowed_modules: [numpy]
+    returns: "(scalar, components)"
+    max_reward: "<float>, declared by the candidate"
+    idiom_rule: >-
+      One scalar out, not a batch. Single environment, plain NumPy: return a Python float for
+      `reward` and a float for each entry of `components`.
+    reward_utils: []
+  forbidden_symbols: []
+
+judge:
+  vlm_legible: true
+  legibility_note: >-
+    A running gait is readable from frames - posture, leg phase, and above all whether the robot
+    is still on its feet, which on this task is half the metric. What is NOT readable is speed or
+    distance: the scene has no landmark, no ruler and no goal marker, and the default camera
+    tracks the robot, so a fast run and a slow one look alike. That asymmetry is sharper here
+    than on half_cheetah because the fitness is a VELOCITY rather than a displacement - there is
+    no cumulative quantity for a judge to see at all.
+  camera:
+    # Read off the model: humanoid.xml declares one named camera, `track`, and the
+    # env's fixed camera config tracks the torso. camera_config is None on the _FAMILIES row
+    # because the model's own tracking camera renders pure (its pose is derived from `data` on
+    # every frame), the same reason as cheetah, hopper and swimmer.
+    name: track
+    mode: tracking
+    note: >-
+      The default camera TRACKS the torso, holding the robot at the centre of every frame and
+      hiding absolute progress, with the extra problem noted above. Frames alone cannot show
+      speed or distance here.
+  subtasks_sequential: false
+  telemetry_fields: [torso_height, com_x_velocity, episode_length]
+
+domain_randomization:
+  # The axes bird/envs/gym_mujoco.py::_GYM_AXES can write on THIS model, with the same ranges the
+  # sibling legged rows declare (half_cheetah, hopper). No viscosity axis: opt.viscosity is 0.0 on
+  # this model, as on every model here but the swimmer's. Off in every published config; declared
+  # so a domain-randomization method has a mechanical path.
+  parameters:
+    body_mass_scale: [0.25, 4.0]
+    torso_mass_scale: [0.5, 4.0]
+    contact_friction_scale: [0.1, 4.0]
+    gravity_scale: [0.7, 1.3]
+    motor_strength_scale: [0.5, 2.0]
+    joint_damping_scale: [0.1, 5.0]
+  nominal:
+    body_mass_scale: 1.0
+    torso_mass_scale: 1.0
+    contact_friction_scale: 1.0
+    gravity_scale: 1.0
+    motor_strength_scale: 1.0
+    joint_damping_scale: 1.0
+
+exploits:
+  - name: fall_beats_reverse
+    mechanism: >-
+      A property of Eq. 3 itself, not of this port. The gate returns exactly 0 for a short
+      episode, while a policy that survives all 1000 steps travelling BACKWARDS returns a
+      negative mean velocity - so falling over immediately strictly outranks running backwards,
+      and ties with standing perfectly still for 1000 steps. Since the random anchor is also 0.0,
+      the bottom of this scale is a plateau on which "fell instantly", "stood still" and "never
+      ran" are indistinguishable, and only reverse motion is punished.
+    status: open
+    closed_by: null
+    note: >-
+      NOT closed and deliberately not rebalanced: this is the paper's published fitness and the
+      comparison it exists for is against the paper's own figure. Recorded so a flat early
+      generation is read as the plateau it is rather than as a broken metric. The practical
+      consequence for reading a run: on this scale, progress only becomes visible once a candidate
+      survives the full horizon at all, so generation-over-generation curves can sit at 0.0 for
+      several generations without the search having failed.
+  - name: survive_without_running
+    mechanism: >-
+      The survival gate is necessary but the velocity term is what is maximised, so a reward that
+      over-weights staying upright produces a humanoid that stands still or shuffles for 1000
+      steps. It clears the gate and scores a near-zero mean velocity - which on this scale is
+      indistinguishable from having fallen, so the failure is invisible in the fitness alone.
+    status: open
+    closed_by: null
+    note: >-
+      Visible in the telemetry (episode_length 1000 with com_x_velocity near 0 separates it from a
+      fall, which the fitness cannot) and in frames. Named because it is the predictable
+      overcorrection to the exploit above.
+  - name: component_gauge_rescaling
+    mechanism: >-
+      The reward rescales its own reported component values so its self-report reads as faster
+      progress than occurred. The judge's only numeric channel is the reward's self-reported
+      components, so this inflates the judge's score without moving the robot.
+    status: open
+    closed_by: null
+    note: null
+
+symbol_mapping: null
+
+provenance:
+  authored_from:
+    - { path: refs/tex/revolve/main.tex, lines: "410-425",   what: "Table tab:rl_tasks_summary -- the task, its 376-D observation, 17-D action space and 'Run upright for 1000 steps' objective" }
+    - { path: refs/tex/revolve/main.tex, lines: "1113-1131", what: "App. B.2 Humanoid Locomotion -- the fitness, Eq. 3 (eq:fitness_hl), and T_max = 1000" }
+    - { path: refs/tex/revolve/main.tex, lines: "432-438",   what: "the search and learner budget: N=7, K=16, I=13, p_m=0.5; SAC at 5e6 steps per generation per agent on the MuJoCo envs" }
+    - { path: refs/code/Revolve/rl_agent/evaluate.py, lines: "19-33", what: "calculate_average_around_max -- the released fitness this spec does NOT implement (the dagger on continuous_success.raw)" }
+    - { path: refs/code/Revolve/rl_agent/HumanoidEnv.py, lines: "58, 386-411, 441-450", what: "REvolve's vendored env: mass_center, the v4 unconditional healthy bonus, is_healthy's z band, and the mass-centre finite difference the fitness integrates" }
+    - { path: gymnasium/envs/mujoco/humanoid_v5.py, lines: "271-289", what: "the v5 changelog -- every v4/v5 delta recorded in env.library.upstream_divergence" }
+    - { path: gymnasium/envs/mujoco/humanoid_v5.py, lines: "499-532", what: "_get_rew (the shipped reward) and reset_model (the reset distribution)" }
+  rule: "source, not docstrings"
+  measured:
+    - "Observation width: v5 emits 348-D, not the paper's 376-D. env.observation_structure = {skipped_qpos 2, qpos 22, qvel 23, cinert 130, cvel 78, qfrc_actuator 17, cfrc_ext 78}; every entry v5 dropped was a constant zero (gymnasium's changelog states it, the arithmetic confirms it)."
+    - "The fitness velocity is the MASS CENTRE's, not the torso's: over a zero-action episode qvel[0] correlates -0.39 with the env's own x_velocity (and +0.16 on a random one), so reading it would score the task on a signal of the opposite sign. subtree_linvel[0].x correlates 0.9997 / 0.9927."
+    - "The telescoped mean equals the mean of the env's own logged per-step velocities to 3.2e-07 m/s on 0.141 m/s; the residual is mass_center reading xipos one integration substep behind do_simulation, not float noise."
+    - "is_upright (1.0 < qpos[2] < 2.0) reproduces upstream's `terminated` with 0 mismatches over a 24-step falling episode."
+    - 'cfrc_ext is NOT recomputed by mj_forward on this model (nsensor == 0, so the acceleration-stage sensor
+      path never runs): poisoning the array with nan before mj_forward returns nan, and with 1e6 returns
+      the capped 10.0. mj_rnePostConstraint is what computes it. Without it the contact term reads a stale
+      buffer and is a function of call history, and a comparison against the env''s own info is circular
+      (both sides read the buffer the env''s own step filled, on the same object).'
+    - "With the fix, the contact term's residual against the env's own info['reward_contact'] is max |diff| 1.7e-3 (zero action, 40 steps) and 3.0e-3 (random, 22 steps), mean 1.9e-4 on both, against a live range reaching 2.62. The whole reference reward agrees to max 2.1e-2 / 7.6e-2 against a live range of 0.45-5.50."
+    - "Stateless-step purity: shuffled replay over 60 random transitions, max |state deviation| 0.000e+00 with qacc_warmstart zeroed against 7.520e-07 left alone -- the largest unzeroed error in this family by four orders of magnitude (HalfCheetah 5.4e-14)."
+    - "set_state does NOT renormalise the free-joint quaternion (a norm-2.0 quaternion goes in and comes back out at 2.0), so the env's own non-unit reset state (|q| in [0.9904, 1.0090] over 24 seeds) is restorable bit for bit; mj_step does renormalise, and raw vs normalised differ by 5.6e-17 after one step."
+    - "Random-action episodes last 21 steps (seed 0) and 40 with zero actions, against a 1000-step horizon -- which is why the random anchor is expected to be a hard 0.0."
+    - "Reset distribution: init_qpos + U(-0.01, 0.01) on all 24 qpos and init_qvel + U(-0.01, 0.01) on all 23 qvel, measured over 24 adapter-derived seeds."
+  verified_by: BIRD authors
+  date: "2026-09-18"

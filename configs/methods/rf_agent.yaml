@@ -1,0 +1,187 @@
+# RF-Agent -- Gao, Zhang, Jiang, You, Zhang, Deng, "RF-Agent: Automated Reward
+# Function Design via Language Agent Tree Search", NeurIPS 2025 (spotlight),
+# arXiv 2602.23876. Code: https://github.com/deng-ai-lab/RF-Agent (at 7e99ca9).
+#
+# Reward design as Monte Carlo tree search. Six zero-shot rewards form the first
+# layer under a virtual root; each round descends by a modified UCT to a leaf,
+# asks the LLM for eight children through five prompt "actions" (two mutations,
+# crossover with an elite set, root-to-leaf path reasoning, a "different thought"
+# against other subtrees), trains them, and backs values up the path. Each
+# trained reward also gets a thought-alignment call and a self-verify score.
+#
+# Values follow the paper; † = paper and released code disagree (both given),
+# ‡ = paper silent, code supplies the value. A bare :N is
+# RF_Agent/rf_agent_algo/rfagent_algo.py; tex:N is the arXiv LaTeX source.
+# The matched protocol of the paper's experiments: scripts/paper_cell.py.
+
+extends: zeroshot.yaml
+name: rf_agent
+
+# --- models and loop -------------------------------------------------------
+
+problem:
+  # IsaacGym Ant (RF_Agent/cfg/env/ant.yaml:3; App. A, tex:347); no adapter
+  # here, so problem.env_id is left unset
+  task_description: to make the ant run forward as fast as possible
+
+llm:
+  generator:
+    model: gpt-4o-mini-2024-07-18     # paper 4o-mini and 4o (§4.3, tex:237); code gpt-4o-mini (config_rf_agent.yaml:12)
+    temperature: 1.0                  # ‡ paper silent; config_rf_agent.yaml:13, read at :400
+  evaluator:
+    model: gpt-4o-mini-2024-07-18     # self-verify uses the generator's model (:596)
+    temperature: 1.0                  # ‡ and its temperature (:598)
+
+loop:
+  n_iterations: 11                    # † paper Alg. 1 reads as 12 expansions for N = 80 (tex:1037, tex:1055);
+                                      #   code 1 init round + 10 = 86 trainings (:776, :804)
+  n_restarts: 1                       # one search per task; the 5 seeds are final_retrain's
+  carry: [best_reward, search_tree]   # the tree is the memory (tex:183; :24-47)
+  on_total_failure: continue_after_update  # a failed round still joins the tree (:673, :807)
+  termination: fixed_iterations       # tex:174 names early convergence; the code has no stop
+
+# --- generate --------------------------------------------------------------
+
+generate:
+  n_candidates: 8                     # "we set this parallel number to 8" (tex:829; :123-124); max per round
+  candidate_schedule: explicit
+  candidate_schedule_values: [6, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+                                      # ‡ N_I unvalued in Alg. 1 (tex:1030); initial_size = 6 (:135)
+  sampling_mode: tree_actions         # five prompt "actions" over groups of nodes (tex:195-203)
+  parent_source: uct_leaf             # descend by argmax UCT to a leaf (tex:186; :144-152)
+  n_parents: 1                        # the leaf; group actions add nodes to it (:205, :249)
+  actions:                            # "[2,2,2,1,1] per expansion" (tex:829; :122-123)
+    mutation_mechanism: 2             # a_m1, "modify the structure" (tex:197)
+    mutation_param: 2                 # a_m2, "adjusting the parameter weights"
+    crossover_elite: 2                # a_c3, parent + elite samples (tex:199)
+    path_reasoning: 1                 # a_r4, root-to-leaf trace (tex:201)
+    different_thought: 1              # a_d5, other subtrees (tex:203)
+  tree:
+    horizon_trainings: 80             # N = 80 (tex:237; config_rf_agent.yaml:17); schedule denominator, not a cap
+    uct_lambda0: 0.4                  # tex:829; :116
+    uct_lambda_final: 0.1             # † paper decays lambda to 0 (Alg. 1 line 8, tex:1038);
+                                      #   code to 0.1 (:117, :778)
+    max_depth: 16                     # ‡ no cap in the paper (tex:174, tex:1037); config_rf_agent.yaml:18
+    group_size: [2, 4]                # k from [2, 4] (tex:829); k includes the parent (:203-205)
+    elite_size: 10                    # ‡ size unstated (tex:199); elite_max_length = 10 (:128)
+    path_window: 4                    # † paper a k-length path, k from [2, 4] (tex:201, tex:829);
+                                      #   code a fixed 4 (:131)
+
+  context:
+    env_spec: full_source             # BIRD renders the whole adapter class, not RF-Agent's obs-only trim (tex:176)
+    include_reward_engineering_tips: false  # RF-Agent's own tips (code_output_tip.txt) are in system_prompt
+    # initial_system.txt:1-3 + code_output_tip.txt:1-7; the torch-only sentences
+    # (initial_system.txt:4-7) and tip (4) are dropped for a numpy reward.
+    system_prompt: |-
+      You are a reward engineer trying to write reward functions to solve reinforcement learning tasks as effective as possible.
+      Your goal is to write a reward function for the environment that will help the agent learn the task described in text.
+      Your reward function should use useful variables from the environment as inputs.
+      Some helpful tips for writing the reward function code:
+          (1) You may find it helpful to normalize to a fixed reward range like -1,1 or 0,1 by applying transformations like an exponential to the overall reward or its reward components in order to have reasonable values for the optimization procedure. This does not mean that you should bound the rewards as wrong bounds might hinder the learning algorithm from achieving the optimal policy.
+          (2) If you choose to transform a reward component, then you must also introduce a temperature parameter inside the transformation function; this parameter must be a named variable in the reward function and it must not be an input variable. Each transformed reward component should have its own temperature variable.
+          (3) If the task has a goal state, it might be helpful to add a bonus to the reward function if the agent achieves the goal (up to some tolerance).
+          (4) Make sure you don't give contradictory reward components.
+          (5) Most importantly, the reward code's input variables must contain only the variables the environment interface declares. Under no circumstance can you introduce new input variables.
+    include_parent_code: true         # the parent's code in every action prompt (:271-272)
+    include_parent_thought: true      # its design idea above the code (:271, :284, :298)
+    include_numeric_reflection: true  # per-component curves with Max/Mean/Min (:636-647)
+    # trained_result_analysis_tip.txt:1-3, verbatim (:275); replaces code_feedback
+    reflection_guidance: |-
+      Analysis tips for trained results:
+      (1) 'task_score' reflects the agent's actual task score or success rate after training under the current reward function.
+      (2) If the values for a certain reward component are near identical throughout, then this means RL is not able to optimize this component as it is written.
+      (3) If some reward components' magnitude is significantly larger or smaller, its value may not conducive to policy learning.
+
+  history_mode: none                  # each action is a fresh prompt; the tree carries history
+
+  output:
+    format: component_dict_return     # thought_code_output.txt:3-5; tex:669-673
+    design_thought: inline_brace      # a one-sentence idea in braces, before the code (tex:667, tex:181)
+    two_stage_nl_then_code: false     # idea and code in the same turn
+
+  parse:
+    patterns:                         # the five upstream patterns, in order (:436-442)
+      - '```python(.*?)```'
+      - '```(.*?)```'
+      - '"""(.*?)"""'
+      - '""(.*?)""'
+      - '"(.*?)"'
+    max_retries: 8                    # ‡ max_try_num = 9 (:136) = 1 + 8 retries
+
+# --- verify ----------------------------------------------------------------
+
+verify:
+  enabled: true                       # "we extract the traceback error and prompt the LLM" (tex:205)
+  static_checks: [signature_parse, ast_syntax]
+  dynamic_checks: [execution_smoke, output_shape, finite_values]
+  on_failure: resample_with_trace     # last code + traceback go back (initial_failed_feedback.txt:1-2; :667-668)
+  max_repair_attempts: 8              # ‡ count unstated (tex:205); max_try_num = 9 attempts per node (:136)
+  on_exhaustion: record_and_continue  # the node scores reward_fail_bound and joins the tree (:672-673)
+  repairs_count_against_budget: true  # every attempt is an LLM call in the paper's token tally (tex:849-886)
+
+# --- train -----------------------------------------------------------------
+
+train:
+  on_runtime_error: repair            # training tracebacks go back to the generator too (:561-563; tex:205)
+  algorithm: ppo                      # the benchmark's PPO and default hyperparameters (tex:231)
+  env_steps: 32768000                 # ‡ 500 iters (config_rf_agent.yaml:19) x 4096 envs x 16 steps, Ant;
+                                      #   the paper says only "the fix number of steps" (tex:150)
+  n_parallel_envs: 4096               # Ant's numEnvs (Eureka's copy of AntGPT.yaml:18)
+  seeds_per_candidate: 1              # ‡ train_seed: 0 (config_rf_agent.yaml:30)
+  checkpoint_interval: 10             # BIRD default, kept
+
+final_retrain:
+  enabled: true                       # the best node is rerun num_eval times (rfagent.py:103-144)
+  n_seeds: 5                          # † paper 5 seeds unseen in the search (tex:835, tex:231);
+                                      #   code seeds 0..4, search at seed 0 (rfagent.py:107-110)
+  env_steps: null                     # = search budget: Ant's test_max_iterations is 500 too (tex:835)
+
+# --- evaluate --------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: ground_truth_metric       # the benchmark score F, never the candidate's reward (tex:150, tex:225)
+    metric: consecutive_successes     # task_score = max(consecutive_successes) (:639-640); Ant: tex:348
+    checkpoint_aggregation: max_over_checkpoints
+                                      # "the average maximum evaluation score" (tex:231; :637)
+    seed_aggregation: mean            # mean over the 5 final seeds (rfagent.py:143)
+  feedback:
+    numeric_reflection: true          # l_feedback tracks the reward's components (tex:183)
+    granularity: per_component        # every scalar, with Max/Mean/Min (:634-647)
+    metric_alias: task_score          # renamed before verbalising (:643-646), as Eureka
+    state_selection_scalar: false     # the score appears only as the task_score curve's Max (:642)
+    analyzer: none                    # assembled from scalars, as Eureka
+  thought_alignment:
+    enabled: true                     # rewrite the design idea from the compiled code (tex:205; :566-567, :587)
+  self_verify:
+    enabled: true                     # expert-similarity score (tex:818). † the release scores stale
+                                      #   content (:592 before :655-656); not reproduced
+    range: [-1, 1]                    # stated in the prompt (tex:829), not clamped (:611-614)
+  similarity:
+    metric: none                      # RF-Agent computes no reward correlation
+
+# --- select ----------------------------------------------------------------
+
+select:
+  rule: argmax_fitness                # best reward_cur over every node (:759-761)
+  tie_break: first                    # BIRD default; the release favours the last-inserted node (:750-762)
+  failure_value: 0.0                  # ‡ reward_fail_bound = 0 (:386)
+  final_artifact: global_best         # "the node s* with the best reward function" (tex:1057)
+
+# --- update ----------------------------------------------------------------
+
+update:
+  topology: search_tree               # MCTS with a virtual root node (tex:174; :108)
+  operator: reflect_and_mutate        # the LLM is the mutation operator (tex:197; :267-291)
+  tree:
+    best_child_weight: 0.7            # eta in Eq. 3, "set to 0.7" (tex:211, tex:829; :43)
+    mean_weight: 0.15                 # † paper Eq. 3 has no mean term (tex:211);
+                                      #   code 0.15 x (1 - t/N) x mean of backups (:44, :694)
+  winner:
+    action: become_parent             # BIRD default; UCT, not this key, picks the next leaf
+  loser:
+    action: discard                   # BIRD default; losers stay in the tree
+  prompt:
+    mode: reset                       # each action prompt is built from scratch (:261-338)
+
+post: [final_retrain]

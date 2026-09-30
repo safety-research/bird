@@ -1,0 +1,32 @@
+# Profile `humanoid`: HumanoidBench runs. Extends `dev` and changes only what the 61-DoF
+# robot and its separate environment (scripts/setup_humanoid.sh) need, measured on a
+# 16-vCPU machine: checkpoints for resume, a training timeout above the ~1.9 h of a
+# 2M-step run, no wandb, every candidate's video, the per-step reward trace and the judge's
+# inputs recorded, Opus on both LLM roles, and parallel LLM requests.
+#
+# train.algorithm is method identity (RDA publishes sac, Eureka ppo) and not a profile key,
+# so this profile cannot unify the learner across methods.
+extends: dev.yaml
+
+loop:
+  resume_from: auto                   # write checkpoints; refuse a resume that lost method state
+
+train:
+  timeout_s: 43200                    # 12 h, as in `full`: dev's 1 h would kill every training
+
+output:
+  tracker: none                       # the HumanoidBench venv need not hold a wandb credential
+  video:
+    record: all                       # an exploit is a behavior: record every candidate
+    timeout_s: 2400
+  trajectory_trace:
+    record: components+states         # claimed vs measured reward, per step
+  judge_trace:
+    record: inputs+frames             # what the judge was shown, not only its verdict
+
+llm:
+  generator:
+    model: claude-opus-5              # also the in-loop VLM judge, the fitness on this tier
+  evaluator:
+    model: claude-opus-5
+  max_concurrent_requests: 8          # judge calls in parallel (the repo default, stated)

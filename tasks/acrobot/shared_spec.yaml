@@ -1,0 +1,445 @@
+# AUTHORED FOR BIRD. This environment is implemented in this repo rather than
+# vendored from a benchmark, so this spec has no upstream counterpart
+# -- but the same rules apply as everywhere else in the catalogue: absence is explicit, and every claim came
+# off the adapter or a config rather than a docstring.
+schema_version: 1
+id: acrobot
+env:
+  env_id: acrobot
+  library:
+    name: bird
+    version_verified: in-repo
+    commit: null
+    stack:
+      numpy: '>=1.24'
+      python: '>=3.10'
+  horizon: 300
+  control_hz: null
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null
+    prompt_states: The episode always runs the full 300 steps; reaching the goal does not end
+      it.
+  reset:
+    kind: stochastic
+    mechanism: adapter_draws
+    entry:
+      path: bird/envs/control.py
+      symbol: Acrobot._reset
+      lines: 802-808
+    rng_note: '`reset()` calls `EnvAdapter._sample_dr` (bird/envs/base.py:405) BEFORE `_reset`. With no
+      domain randomisation installed -- `set_dr(None)`, i.e. every run with `train.domain_randomization.mode:
+      none` -- it draws nothing, so `_reset`''s uniform(-0.1, 0.1, size=4) is draws 1-4 of the episode
+      stream. Measured: reset(default_rng(3)) == _obs(default_rng(3).uniform(-0.1, 0.1, size=4)). With
+      a range installed by `set_dr` (bounded by the `domain_randomization` block below) one uniform per
+      randomised axis is drawn FIRST and lands in `_dr_now`, which `_p` (control.py:820-827) reads into
+      the equations of motion -- and only there: `tip_height`, `task_metric`, `success()` and `reference_reward`
+      stay on nominal geometry -- so the start state becomes draws k+1..k+4 for k randomised axes and
+      the dynamics of that episode follow the draw. TWO RECORDED NUMBERS WERE MEASURED UNDER A DIFFERENT
+      RESET STREAM, one that drew four extra uniforms on every reset (so the start state was draws 5-8
+      and no episode was ever randomised): `anchors.expert` 0.0194 (SAC; the policies are not distributed)
+      and the acrobot rows of `tasks/_anchors_2026-08-25_n100.json` (n=100). The dynamics from a given state are bit-identical under both streams (`tests/test_control_dr.py`),
+      but those seeded episodes cannot be reproduced on this adapter. Every other number in this spec
+      -- the two `draws[].note` ranges, the random anchor and `anchors.scripted` -- was measured on the
+      current stream.'
+    draws:
+    - role: agent_pose
+      quantity: joint_angles
+      fields:
+      - cos_theta1
+      - sin_theta1
+      - cos_theta2
+      - sin_theta2
+      distribution:
+        family: uniform
+        text: 'theta1 (shoulder), theta2 (elbow, relative) ~ U(-0.1, 0.1) rad each -- entries 0-1 of `rng.uniform(-0.1,
+          0.1, size=4)`: both links hang almost straight down. The observation carries cos and sin of each
+          angle, so there is no per-field box.'
+        low: null
+        high: null
+      source:
+        path: bird/envs/control.py
+        lines: '807'
+      basis: measured
+      note: '24 seeded resets (reset(default_rng(i)), i in 0..23): cos_theta1, cos_theta2 in [0.995, 1.0];
+        sin_theta1 in [-0.083, 0.091], sin_theta2 in [-0.068, 0.097]. reset(default_rng(3)) twice is bitwise-equal.'
+    - role: agent_velocity
+      quantity: joint_velocities
+      fields:
+      - theta1_dot
+      - theta2_dot
+      distribution:
+        family: uniform
+        text: 'theta1_dot, theta2_dot ~ U(-0.1, 0.1) rad/s each -- entries 2-3 of the same size-4 draw:
+          almost still.'
+        low:
+        - -0.1
+        - -0.1
+        high:
+        - 0.1
+        - 0.1
+      source:
+        path: bird/envs/control.py
+        lines: '807'
+      basis: measured
+      note: '24 seeded resets (same protocol): theta1_dot in [-0.092, 0.095], theta2_dot in [-0.097, 0.090].'
+    constants:
+    - role: goal
+      quantity: bar_height
+      value: '1.0 link-length above the shoulder (`goal_height`): task_metric is the fraction of all states
+        with tip_height(s) > 1.0, gymnasium''s own check `-cos(th1) - cos(th1 + th2) > 1.0`. A constant
+        of the metric, and nothing in the observation announces it (the comment at control.py:760-764 says
+        why).'
+      source:
+        path: bird/envs/control.py
+        lines: '765'
+      basis: read
+      note: 'task_metric at control.py:910-923; tip_height at control.py:877-894 reads the NOMINAL link
+        lengths (the class attributes), never this episode''s `_p` draw, so under any `set_dr` range the
+        bar is still `-cos(th1) - cos(th1 + th2) > 1.0`. It is called inside stage 3''s `set_dr` window
+        on a blob that is LLM-authored under `train.domain_randomization.mode: generated`; read through
+        the draw, `link_length_1: [1.15, 1.15]` would lift a nominal 0.87 over the bar -- a candidate
+        moving the ground truth by choosing its DR. Only `_dsdt` sees the drawn `link_length_1`. `link_length_2`
+        is NOT a randomisation axis: it enters no equation of motion (Sutton-Barto; gymnasium''s l2 is
+        render-only -- measured, next state bit-identical at 0.85 and 1.15 from one (s, a)), so randomising
+        it would move the metric and the reference reward and nothing physical; `tests/test_control_dr.py`
+        holds both facts.'
+    stochastic_transitions: null
+    upstream_divergence: 'The start reproduces gymnasium Acrobot-v1''s `np_random.uniform(low=-0.1, high=0.1,
+      size=(4,))` (gymnasium/envs/classic_control/acrobot.py:194, read in the venv''s gymnasium 1.3.0),
+      drawn from the episode Generator instead of the env''s np_random. What differs is after reset: gymnasium
+      ends the episode the first time the tip rises above the bar (`_terminal`, acrobot.py:239) and BIRD
+      never does -- `done` is always False (control.py:864-867) so the metric can score staying up rather
+      than reaching up. Gymnasium''s optional `torque_noise_max` (default 0.0) is not transcribed; `_step`
+      (control.py:850-867) draws nothing.'
+    prompt_states: A two-link arm hangs from a fixed shoulder.
+    prompt_field: l_task
+    prompt_omits:
+    - agent_pose
+    - agent_velocity
+    note: 'prompt_states is the rest configuration the reset jitters around: "hangs" tells the model where
+      the arm starts (both angles within 0.1 rad of straight down) and never that the start is drawn, so
+      under the "not said to VARY" rule both drawn roles stay in prompt_omits although prompt_states is
+      non-null. The bar in the same sentence is the fixed goal, the constant above.'
+  spaces:
+    obs_dim: 6
+    action_dim: 1
+    action_low:
+    - -1.0
+    action_high:
+    - 1.0
+    action_semantics: 'torque: torque applied at the ELBOW only; the shoulder is unactuated, which
+      is what makes the task underactuated'
+    action_fields:
+    - name: torque
+      description: torque applied at the ELBOW only; the shoulder is unactuated, which is what
+        makes the task underactuated
+      low: -1.0
+      high: 1.0
+description:
+  env_prose: A two-link arm hangs from a fixed shoulder. There is NO motor at the shoulder --
+    torque can only be applied at the elbow, and it is far too weak to lift the arm directly.
+    The only way up is to swing the links back and forth so the shoulder joint is driven indirectly,
+    pumping energy into the system until the tip rises above a bar one link-length above the shoulder,
+    and then to hold it there.
+  l_task: A two-link arm hangs from a fixed shoulder. There is no motor at the shoulder; torque
+    can only be applied at the elbow, and it is far too weak to lift the arm directly. Swing the
+    links back and forth to pump energy into the system until the tip rises above a bar one link-length
+    above the shoulder, then keep it there for as much of the episode as possible.
+  natural_language: A two-link arm hangs from a fixed shoulder. There is NO motor at the shoulder
+    -- torque can only be applied at the elbow, and it is far too weak to lift the arm directly.
+    The only way up is to swing the links back and forth so the shoulder joint is driven indirectly,
+    pumping energy into the system until the tip rises above a bar one link-length above the shoulder,
+    and then to hold it there.
+  scene: A two-link arm hanging from a fixed shoulder. The shoulder is UNACTUATED; torque is applied
+    at the elbow only and is far too weak to lift the arm directly. A bar sits one link-length
+    above the shoulder. The observation is (cos, sin) of each joint angle plus both angular velocities.
+  success_criterion_prose: null
+  full_source:
+    path: bird/envs/control.py
+    lines: null
+state_surface:
+  fields:
+  - name: cos_theta1
+    shape: scalar
+    units: null
+    description: cosine of the shoulder angle; +1 when link 1 hangs straight down
+    source: null
+    slice: 0:1
+  - name: sin_theta1
+    shape: scalar
+    units: null
+    description: sine of the shoulder angle
+    source: null
+    slice: '1:2'
+  - name: cos_theta2
+    shape: scalar
+    units: null
+    description: cosine of the elbow angle RELATIVE to link 1
+    source: null
+    slice: '2:3'
+  - name: sin_theta2
+    shape: scalar
+    units: null
+    description: sine of the relative elbow angle
+    source: null
+    slice: '3:4'
+  - name: theta1_dot
+    shape: scalar
+    units: null
+    description: shoulder angular velocity
+    source: null
+    slice: '4:5'
+  - name: theta2_dot
+    shape: scalar
+    units: null
+    description: elbow angular velocity
+    source: null
+    slice: '5:6'
+  helpers:
+  - name: tip_height
+    signature: tip_height(s)
+    description: = -(cos(theta1) + cos(theta1 + theta2)) in link-lengths, measured up from the
+      shoulder; theta1 = atan2(s[1], s[0]) and theta2 = atan2(s[3], s[2])
+    kind: inline_expression
+    expression: null
+  - name: shoulder_angle
+    signature: shoulder_angle(s)
+    description: = np.arctan2(s[1], s[0])
+    kind: inline_expression
+    expression: null
+  - name: elbow_angle
+    signature: elbow_angle(s)
+    description: = np.arctan2(s[3], s[2]), RELATIVE to link 1
+    kind: inline_expression
+    expression: null
+  helpers_note: 'Advertised as inlineable EXPRESSIONS and deliberately not implemented as methods:
+    verification binds a proxy `self` and training binds `self=None`, so a helper that existed
+    would let a `self.x(s)` candidate pass the gate and then die in training -- a wasted policy
+    run charged to the reward that did not cause it.'
+  flat_fields:
+  - index: 0
+    name: cos_theta1
+    description: cosine of the shoulder angle; +1 when link 1 hangs straight down
+  - index: 1
+    name: sin_theta1
+    description: sine of the shoulder angle
+  - index: 2
+    name: cos_theta2
+    description: cosine of the elbow angle RELATIVE to link 1
+  - index: 3
+    name: sin_theta2
+    description: sine of the relative elbow angle
+  - index: 4
+    name: theta1_dot
+    description: shoulder angular velocity
+  - index: 5
+    name: theta2_dot
+    description: elbow angular velocity
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: This environment ships no benchmark success check, because
+    it is implemented in this repo. `EnvAdapter.success()` here is a threshold WE chose on a metric
+    WE wrote, so recording it as a `shipped` check would claim an independence it does not
+    have. That caveat is the reason the benchmark suites, whose success checks are their own
+    (Meta-World above all), carry the evaluation.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: above_bar_fraction
+    expr: fraction of the episode's arriving states whose tip is above the bar
+    unit: fraction of steps
+    direction: maximize
+    saturates_at: 1.0
+  normalized:
+    method: explicit
+    formula: 'identity -- the raw metric is already a fraction of steps and therefore already
+      in [0, 1]. `method: anchors` would need an expert anchor this environment cannot have.'
+    success_threshold: 0.3
+anchors:
+  scripted:
+    value: 0.1615
+    method: scripted_policy
+    policy_id: simple_suite/acrobot_pump
+    status: negative
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    n_episodes: 25
+    reason: null
+    date: '2026-09-11'
+    source: 'REGISTRY 2026-09-11: policies/simple_suite/policies.yaml entry `simple_suite/acrobot_pump`
+      (status negative), score 0.1615 bird_task_metric under per_step_fraction, n=25, verified through
+      bird_adapter, record policies/simple_suite/records/eval_acrobot_pump_2026-09-11_153954_a43fe20d.json,
+      measured on the current reset stream (env.reset.rng_note). The manifest is the primary record. n_episodes
+      equals n_seeds: one episode per seed, as the registry counts them.'
+  reduction: per_step_fraction
+  by_reduction:
+    per_step_fraction:
+      random:
+        value: 0.0
+        method: random_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 uniform-random episodes, `scripts/measure_anchors.py
+          --env acrobot --n 30`, seed 0. RE-MEASURED 2026-09-11 with the same command and seed on the
+          current reset stream (env.reset.rng_note): 0.0 again, Wilson 95% half-width 0.0568.'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-09-11'
+      expert:
+        value: 0.0194
+        method: trained_policy
+        source: 'MEASURED 2026-08-27: mean `task_metric` over 30 episodes (10 each from 3 independently
+          trained policies) of SAC trained on this environment''s own `reference_reward` for 20,000 env
+          steps -- `scripts/train_expert.py --env acrobot --algo sac --steps 20000 --train-seeds 3`, seed
+          0. NOT a scripted expert: this environment ships none. The budget and learner are MATCHED to the `dev` profile budget (`train.backend: sb3`, `train.algorithm: sac`, `train.env_steps: 20000`), so the gap
+          to it is attributable to the reward rather than to compute; an anchor trained longer would answer
+          a different question. Per-seed per_step: 0.0505, 0.0047, 0.0030. 95% interval [0.0064, 0.0324]
+          (sem). IT IS NOT A CEILING. At this budget it scores barely above random (0.0), and the per-seed spread is 17x.
+          Read it as a matched-budget baseline -- what the hand-written reward achieves with the compute
+          a candidate got -- not as the best the task admits. A ceiling would need a far larger budget
+          and is a different claim. NOT RE-MEASURED: the three trained policies are not distributed, and
+          the training ran under the earlier reset stream described in env.reset.rng_note, so this number
+          is not comparable seed-for-seed with the other measurements in this spec.'
+        n_seeds: 3
+        n_episodes: 30
+        reason: null
+        date: '2026-08-27'
+  random:
+    value: 0.0
+    method: random_policy
+    source: 'MEASURED 2026-08-25 and RE-MEASURED 2026-09-11 on the current reset stream: mean `task_metric`
+      over n=30 uniform-random episodes, seed 0, 0.0 both times. See anchors.by_reduction.'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-09-11'
+  expert:
+    value: 0.0194
+    method: trained_policy
+    source: 'MEASURED 2026-08-27: mean `task_metric` over 30 episodes (10 each from 3 independently trained
+      policies) of SAC trained on this environment''s own `reference_reward` for 20,000 env steps -- `scripts/train_expert.py
+      --env acrobot --algo sac --steps 20000 --train-seeds 3`, seed 0. NOT a scripted expert: this environment
+      ships none. The budget and learner are MATCHED to the `dev` profile budget (`train.backend: sb3`, `train.algorithm:
+      sac`, `train.env_steps: 20000`), so the gap to it is attributable to the reward rather than to compute;
+      an anchor trained longer would answer a different question. Per-seed per_step: 0.0505, 0.0047, 0.0030.
+      95% interval [0.0064, 0.0324] (sem). IT IS NOT A CEILING. At this budget it scores barely above random (0.0), and the per-seed
+      spread is 17x. Read it as a matched-budget baseline -- what the hand-written reward achieves with
+      the compute a candidate got -- not as the best the task admits. A ceiling would need a far larger
+      budget and is a different claim. NOT RE-MEASURED: the three trained policies are not distributed,
+      and the training ran under the earlier reset stream described in env.reset.rng_note, so this number
+      is not comparable seed-for-seed with the other measurements in this spec.'
+    n_seeds: 3
+    n_episodes: 30
+    reason: null
+    date: '2026-08-27'
+budget:
+  train_steps: 100000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: Not established as a floor by a dedicated sweep.
+    date: null
+  saturates_at: null
+reward:
+  human:
+    kind: tuned_dense
+    scope: value_determining
+    reference:
+      path: bird/envs/control.py
+      lines: null
+      symbol: Acrobot.reference_reward
+      commit: null
+      sha256: null
+    depends_on: []
+    import_path: bird.envs.control:Acrobot.reference_reward
+    verified_against: This repo at the commit that ran. The environment is implemented here, so there
+      is no external library to pin -- what pins it is the repository version (tag or commit) a sweep
+      is launched from.
+    notes: 'Deliberately NOT Gymnasium''s -1-per-step sparse signal: that is unlearnable at this
+      tier''s budget and would make the reference arm meaningless. This is a shaped reward written
+      for this repo, which is why `kind` is `tuned_dense` and not `published_dense`.'
+  contract:
+    signature: 'def compute_reward(state, action=None, next_state=None):'
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    - math
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, over the FLAT observation array. There is no `self` and no env
+      handle: the compiler binds arguments by name and maps `self`/`env` to None deliberately.'
+    reward_utils: []
+  forbidden_symbols:
+  - task_metric
+  - success
+  - reference_reward
+  - tip_height
+  - goal_height
+judge:
+  vlm_legible: false
+  legibility_note: Two thin links on a plain field. Better than `pendulum` -- the configuration
+    is at least two-dimensional -- but still far from a frame carrying object-relative posture.
+  camera:
+    name: none
+    mode: fixed
+    note: 'No camera: frames are rasterised in pure numpy where a renderer exists at all.'
+  subtasks_sequential: false
+  telemetry_fields:
+  - tip_height
+  - shoulder_angle
+  - elbow_angle
+domain_randomization:
+  parameters:
+    link_mass_1:
+    - 0.7
+    - 1.3
+    link_mass_2:
+    - 0.7
+    - 1.3
+    link_length_1:
+    - 0.85
+    - 1.15
+  nominal:
+    link_mass_1: 1.0
+    link_mass_2: 1.0
+    link_length_1: 1.0
+exploits:
+- name: pump_without_holding
+  status: open
+  closed_by: null
+  mechanism: The metric counts steps above the bar with no stability term, so an arm swung hard
+    enough to cross the bar repeatedly banks credit without ever coming to rest there.
+  note: Same shape as `pendulum`'s spin-through, and the reason `verify.forbidden_symbols` on this tier
+    also names `tip_height` and `goal_height`. Measured instance -- `simple_suite/acrobot_pump` seed 11
+    banks 0.3189 of the episode this way (registry record) and is the only one of its 25 seeds over the
+    0.3 bar; the registry keeps its status negative for that reason.
+symbol_mapping:
+  tip_height: (-(np.cos(np.arctan2(s[1], s[0])) + np.cos(np.arctan2(s[1], s[0]) + np.arctan2(s[3],
+    s[2]))))
+  shoulder_angle: np.arctan2(s[1], s[0])
+  elbow_angle: np.arctan2(s[3], s[2])
+  shoulder_velocity: s[4]
+  elbow_velocity: s[5]
+  torque: a[0]
+provenance:
+  authored_from:
+  - path: bird/envs/control.py
+    lines: null
+    what: '`Acrobot` -- the observation and action tables, the helper vocabulary, the symbol map,
+      the randomisation axes, the horizon and the success threshold, all read off the class; the l_task, the forbidden-symbol list and the step
+      budget were authored for BIRD alongside the class'
+  rule: source, not docstrings
+  measured:
+  - 'Random anchor: n=30 uniform-random episodes through the adapter, 2026-08-25.'
+  - 'Measured on the current reset stream, each with the repo tool that first measured it: the random
+    anchor (0.0), the two env.reset.draws notes (24 seeded resets) and anchors.scripted via the registry
+    record policies/simple_suite/records/eval_acrobot_pump_2026-09-11_153954_a43fe20d.json. env.reset.rng_note
+    lists the numbers measured under the earlier stream.'
+  verified_by: BIRD authors
+  date: '2026-08-25'

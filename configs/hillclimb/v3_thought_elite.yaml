@@ -1,0 +1,18 @@
+# Hill-climb configuration 21 (v3_thought_elite): v3_elite plus v3_thought's design thought,
+# the two RF-Agent choices with a positive signal at n = 5 seeds, together. v3_all also had
+# both, but alongside self-verify (harmful) and action diversity, so it could not show
+# whether these two stack.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v3_elite.yaml
+name: v3_thought_elite
+
+generate:
+  output:
+    design_thought: inline_brace
+  context:
+    include_parent_thought: true
+
+evaluate:
+  thought_alignment:
+    enabled: true

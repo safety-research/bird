@@ -1,0 +1,12 @@
+# Hill-climb configuration 2 (v2_verify): base of the verifier line. v2_verify_noes plus
+# early stopping on the candidate's own reward (train.pruning: plateau; the default
+# pruning_metric is own_reward): a training stops once that reward has plateaued (no gain
+# > 2% of the curve's range over the last 4 of 20 checkpoints). GT-free, since it reads
+# only the number being optimized.
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=6.
+
+extends: v2_verify_noes.yaml
+name: v2_verify
+
+train:
+  pruning: plateau

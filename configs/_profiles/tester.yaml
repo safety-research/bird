@@ -1,0 +1,35 @@
+# Profile `tester`: a whole search offline in about a second. A deterministic mock LLM
+# (no API key), a mock learner, a tiny budget and no tracker; with the default environment
+# (toy_reacher) nothing real runs underneath. The test suite runs every config under it.
+#
+# A profile says how expensively a method runs, never which method it is. It is merged last
+# (_default.yaml <- the method's extends chain <- profile), so on the keys a profile may set
+# (PROFILE_KEY_PREFIXES in bird/config.py) it overrides the method config, and any other key
+# in a profile is refused. Method choices such as generate.n_candidates, final_retrain.n_seeds
+# and train.algorithm therefore stay with the method.
+
+llm:
+  generator:
+    provider: mock                    # deterministic, offline, no API key
+    model: mock-generator
+  evaluator:
+    provider: mock
+    model: mock-evaluator
+
+loop:
+  n_iterations: 2
+  n_restarts: 1
+
+rapp:
+  rollouts_per_value: 2               # DrEureka's RAPP sweep: paper 100; 2 still hits every branch
+
+final_retrain:
+  max_env_steps: same_as_train        # cap the method's retrain budget at train.env_steps
+
+train:
+  backend: mock                       # surrogate learner; train.algorithm stays the method's
+  env_steps: 400                      # smallest budget at which evaluate.similarity still computes
+  n_parallel_envs: 1
+
+output:
+  tracker: none                       # no wandb: runs offline

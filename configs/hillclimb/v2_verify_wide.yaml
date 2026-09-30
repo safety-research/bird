@@ -1,0 +1,14 @@
+# Hill-climb configuration 3 (v2_verify_wide): v2_verify's 24 trainings shaped [12,6,4,2]
+# over 4 rounds, the widest opening the budget allows, then refinement: the wide end of
+# the candidate-allocation question (see the paper's candidate-allocation appendix).
+# loop.n_iterations is a profile key: run with -s loop.n_iterations=4.
+
+extends: v2_verify.yaml
+name: v2_verify_wide
+
+loop:
+  n_iterations: 4
+
+generate:
+  n_candidates: 12
+  candidate_schedule_values: [12, 6, 4, 2]

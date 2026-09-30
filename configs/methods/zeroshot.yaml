@@ -1,0 +1,40 @@
+# zeroshot -- the root of the method configs. Not a published method.
+#
+# Ask an LLM once for a reward, train one policy on it, return it: no verification,
+# no population, no second iteration, no feedback. The null hypothesis the published
+# methods are measured against; every other method config extends it, directly or
+# through another method. The keys restated below (nearly all BIRD defaults) are the
+# ones that define "zero shot", so a descendant that changes one shows in --diff.
+
+name: zeroshot
+
+# --- problem -----------------------------------------------------------------
+
+problem:
+  task_description: >-
+    Swing the pendulum up to the upright position and keep it balanced there
+    with as little torque as possible.
+
+# --- generate ----------------------------------------------------------------
+
+generate:
+  n_candidates: 1                     # BIRD default, kept: one sample
+  parent_source: none                 # BIRD default, kept: nothing to condition on
+  history_mode: none                  # BIRD default, kept: there is no second turn
+
+# --- loop --------------------------------------------------------------------
+
+loop:
+  n_iterations: 1                     # BIRD default, kept: one iteration is the whole search
+  carry: []                           # BIRD default, kept: nothing survives the iteration
+
+# --- update ------------------------------------------------------------------
+
+update:
+  operator: none                      # BIRD default, kept: no revision
+
+# --- evaluate ----------------------------------------------------------------
+
+evaluate:
+  fitness:
+    source: ground_truth_metric       # pinned so the hash does not depend on the default (native)

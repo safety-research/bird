@@ -1,0 +1,893 @@
+# WORKED EXAMPLE of tasks/shared_spec.schema.json: Meta-World door-open-v3, one of the ten
+# MT10 tasks BIRD registers.
+#
+# Unfilled values below are null WITH a reason. They are not gaps in the draft - they are
+# the real state of the work, and the point of the schema is that it makes them visible
+# instead of letting a zero stand in for a measurement nobody took.
+
+schema_version: 1
+id: door_open
+
+env:
+  env_id: door-open-v3
+  library:
+    name: metaworld
+    version_verified: "3.1.1"
+    commit: 2da74b23c2928e92db3a9daa586ea6fef4dda930
+    stack: { mujoco: "3.3.0", gymnasium: "1.3.0" }
+  horizon: 500
+  control_hz: null            # mocap-driven; no wall-clock rate is defined by the env
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null       # single env on this arm; not a vector-env run
+    prompt_states: "The episode always runs the full 500 steps; reaching the criterion does not end it."
+  reset:
+    kind: stochastic
+    mechanism: pinned_instances
+    n_instances: 50
+    instance_seed: 0
+    instances_source: '`metaworld.MT1("door-open-v3", seed=0).train_tasks`
+      (bird/envs/metaworld.py:1135-1136; `benchmark_seed = 0` is a class attribute at :951). `_make_tasks`
+      (metaworld/__init__.py:114-179) seeds the GLOBAL `np.random` to 0, constructs the env with
+      `_freeze_rand_vec = False`, calls `reset()` 50 times keeping each `_last_rand_vec` -- one
+      `np.random.uniform` over `_random_reset_space` per call (sawyer_xyz_env.py:711-719), and no
+      rejection loop: this task''s `reset_model` (sawyer_door_v3.py:116) takes the vector as drawn --
+      asserts the 50 are distinct, then restores the global RNG state. Every run, cfg.seed and candidate
+      shares the same 50 vectors.'
+    entry:
+      path: bird/envs/metaworld.py
+      symbol: MetaWorld._reset
+      lines: 1747-1765
+    rng_note: 'One draw per reset: `rng.integers(50)` picks the instance (metaworld.py:1761). `env.reset()`
+      is then called UNSEEDED (:1762) and `reset_model` reads the frozen `_last_rand_vec` that `set_task`
+      installed (sawyer_xyz_env.py:308-309, :699-701) -- twice per reset (SawyerXYZEnv.reset:677, then
+      gymnasium MujocoEnv.reset:178), idempotently. A seed is a choice over 50 points: two seeds collide
+      with probability 1/50, and `default_rng(0..23)` lands on 21 distinct instances (measured). `_sample_dr`
+      reads the same Generator BEFORE `_reset` (base.py:401-406) but consumes nothing at nominal (`_dr_ranges`
+      is empty, base.py:685-686); with DR ranges installed the same seed lands on a different instance.'
+    draws:
+      - role: object_pose
+        quantity: door_pos
+        fields:
+          - object_x
+          - object_y
+          - prev_object_x
+          - prev_object_y
+        distribution:
+          family: uniform
+          text: 'door body x ~ U(0.0, 0.1), y ~ U(0.85, 0.95) m, z = 0.15 fixed (obj_low/obj_high, :28-29;
+            the 3-D `_random_reset_space` is the object box alone, :58-60), written to `model.body("door").pos`
+            (:119). The observed object is the `handle` geom (:97-98), a rigid offset of (+0.1907, -0.2071,
+            0) m from the body (measured), so no literal box on these fields: object_x in [0.1912, 0.2869],
+            object_y in [0.644, 0.7417] over the 50 instances. The door joint is set to 0 (closed) after
+            the move (:121).'
+          low: null
+          high: null
+        source:
+          path: metaworld/envs/sawyer_door_v3.py
+          lines: 116-121
+        basis: measured
+        note: 'measured through the registry adapter (`registry.get("env", "mt10_door-open-v3")(None)`):
+          24 resets with `np.random.default_rng(0..23)` move exactly the `fields` listed across this block''s
+          draws and nothing else; resetting on each of the 50 pinned instances gives the ranges quoted in `text`. `prev_*`
+          equal the current entries at reset (SawyerXYZEnv.reset:679-680), so they move with their source.'
+      - role: goal
+        quantity: target_xy
+        fields:
+          - goal_x
+          - goal_y
+        distribution:
+          family: derived
+          text: '`_target_pos = obj_init_pos + (-0.3, -0.45, 0.0)` (:117): a fixed offset from the door
+            body draw, not a sample -- x in [-0.3, -0.2], y in [0.4, 0.5], z = 0.15 (constant below). The
+            class''s goal_low/goal_high (:30-31) only define `goal_space` and are never read at reset.'
+        derived_from: door_pos
+        source:
+          path: metaworld/envs/sawyer_door_v3.py
+          lines: 117-120
+        basis: measured
+        note: The only rendering that tells the model this varies is flat_fields[goal_x].description ("goal
+          position x for this episode; re-randomised every reset"), which reaches it under the state-API
+          stub alone; l_task and env_prose describe a fixed scene.
+    constants:
+      - role: agent_pose
+        quantity: hand start
+        value: hand_init_pos = (0, 0.6, 0.2) m (sawyer_door_v3.py:47); `_reset_hand` drives the mocap weld
+          there for 50 frames with the fingers commanded open (sawyer_xyz_env.py:684-695), no draw. Settles
+          to (0.00458, 0.60139, 0.19514) with gripper_opening 1.0 on every one of the 50 instances (measured,
+          identical to 1e-6).
+        fields:
+          - hand_x
+          - hand_y
+          - hand_z
+          - gripper_opening
+          - prev_hand_x
+          - prev_hand_y
+          - prev_hand_z
+          - prev_gripper_opening
+        source:
+          path: metaworld/envs/sawyer_door_v3.py
+          lines: '47'
+        basis: measured
+      - role: agent_velocity
+        quantity: arm and gripper velocity
+        value: none -- velocity is not in the 39-D observation; `SawyerXYZEnv.reset` copies the current
+          frame into obs[18:36] (sawyer_xyz_env.py:679-680), so the finite-difference velocity `(s[0:18]
+          - s[18:36]) / dt` is exactly zero at step 0 on every instance.
+        source:
+          path: metaworld/sawyer_xyz_env.py
+          lines: 664-682
+        basis: read
+      - role: goal
+        quantity: goal z
+        value: 0.15 m -- obj_low[2] == obj_high[2] == 0.15 plus a zero z offset (:117).
+        fields:
+          - goal_z
+        source:
+          path: metaworld/envs/sawyer_door_v3.py
+          lines: '117'
+        basis: measured
+      - role: object_pose
+        quantity: door hinge angle and handle height/orientation
+        value: door joint qpos = 0 rad (closed), set by the door-specific `_set_obj_xyz(np.array(0))` (:105-110,
+          :121); handle geom z = 0.15004 m and orientation (qx, qy, qz, qw) = (0.69076, -0.15062, 0.69088,
+          0.15117) from its xmat (:100-103), identical on every instance.
+        fields:
+          - object_z
+          - object_qx
+          - object_qy
+          - object_qz
+          - object_qw
+          - prev_object_z
+          - prev_object_qx
+          - prev_object_qy
+          - prev_object_qz
+          - prev_object_qw
+        source:
+          path: metaworld/envs/sawyer_door_v3.py
+          lines: 105-110
+        basis: measured
+      - role: object_velocity
+        quantity: door joint velocity
+        value: zero -- `_set_obj_xyz` writes `qvel[door_qvel_adr] = 0` (:105-110).
+        source:
+          path: metaworld/envs/sawyer_door_v3.py
+          lines: 105-110
+        basis: read
+      - role: object_pose
+        quantity: second object slot
+        value: none -- `_obs_obj_max_len = 14` zero padding for a second object this task does not have;
+          all 14 entries (7 current, 7 previous) are exactly 0.0 on every instance.
+        fields:
+          - object2_x
+          - object2_y
+          - object2_z
+          - object2_qx
+          - object2_qy
+          - object2_qz
+          - object2_qw
+          - prev_object2_x
+          - prev_object2_y
+          - prev_object2_z
+          - prev_object2_qx
+          - prev_object2_qy
+          - prev_object2_qz
+          - prev_object2_qw
+        source:
+          path: metaworld/sawyer_xyz_env.py
+          lines: 475-511
+        basis: measured
+    stochastic_transitions: null
+    upstream_divergence: 'Same 50 instances and the same uniform choice over them as Meta-World''s own MT1
+      route (`RandomTaskSelectWrapper._set_random_task`: `np_random.choice(len(self.tasks))`, metaworld/wrappers.py:98-100),
+      drawn from BIRD''s episode Generator instead of the wrapper''s `np_random`; `env.reset()` is never
+      handed a seed (metaworld.py:1762). Against the env class''s own continuous `_random_reset_space` this
+      is a 50-point discretisation -- a run never sees a 51st initial condition -- which is the benchmark''s
+      protocol, not the adapter''s. Nothing else is added or removed.'
+    prompt_states: A Sawyer robot arm stands at a table with a closed door in front of it.
+    prompt_field: l_task
+    prompt_omits:
+      - object_pose
+      - goal
+  spaces:
+    action_fields:
+      - name: delta_x
+        description: commanded gripper displacement along x, in [-1, 1]; scaled and integrated into
+          the mocap target by `set_xyz_action`, so this is a velocity command, not a position
+        low: -1.0
+        high: 1.0
+      - name: delta_y
+        description: commanded gripper displacement along y, in [-1, 1]
+        low: -1.0
+        high: 1.0
+      - name: delta_z
+        description: commanded gripper displacement along z, in [-1, 1]
+        low: -1.0
+        high: 1.0
+      - name: gripper
+        description: gripper command in [-1, 1]; -1 opens, +1 closes
+        low: -1.0
+        high: 1.0
+    obs_dim: 39
+    action_dim: 4
+    action_low: [-1.0, -1.0, -1.0, -1.0]
+    action_high: [1.0, 1.0, 1.0, 1.0]
+    action_semantics: >-
+      [dx, dy, dz, grip]. The first three are a commanded change in the gripper's world xyz
+      at action_scale = 0.01 m/step (sawyer_xyz_env.py:182, 320-336); the fourth is gripper
+      effort, which the published reward reads as (clip(action[3], -1, 1) + 1) / 2.
+
+description:
+  env_prose: A Sawyer arm must hook a door handle and swing the door open. The door is hinged, so
+    the handle travels on an arc and the useful motion is sideways, not straight-line towards the
+    goal.
+  l_task: A Sawyer robot arm stands at a table with a closed door in front of it. Hook the door
+    handle and swing the door open, and keep it open for the rest of the episode. The door is
+    hinged, so the handle travels on an arc and the useful motion is sideways rather than straight
+    towards the goal. The arm is commanded by a small Cartesian displacement of the gripper each
+    step plus an open/close command for the fingers; there is no direct control of the door, which
+    moves when something pushes or pulls it -- the handle is the graspable feature, but the panel
+    also swings if the gripper shoves it.
+  natural_language: |-
+    A cabinet stands on the table in front of the robot with a single door, hinged on its
+    inboard edge, shut flush against the frame. A short bar handle stands proud of the
+    door's outer edge, at the height of the gripper. Take hold of that handle with the
+    gripper and swing the door open toward the robot's left, bringing it round to roughly a
+    right angle to the frame and holding it there. Released, the door does not stay: past
+    about 75 degrees the panel is in contact with the frame's hinge-side wall, which pushes
+    it back to about 75 degrees (-1.30 rad, outside the target band) within a fraction of a
+    second. The task is done when the door has been carried round that far by the gripper on
+    its handle. Batting the door open with the gripper's body or fingers somewhere along the
+    panel instead of taking the handle is not doing the task -- though the shipped check
+    cannot tell: it reads only the handle's x, so a panel shove that carries the handle into
+    the band scores; the hardened oracle's `gripper_on_handle` conjunct is what excludes it,
+    as a distance rather than a contact (the arm's links and wrist carry no collision
+    geometry that can touch the door; only the gripper base, claws and finger pads can).
+    Neither letting the door fall back shut nor driving it round so hard that it slams into
+    its far stop counts.
+  scene: |-
+    Robot: a Sawyer arm with a parallel-jaw gripper, facing +y, driven by a mocap weld, so
+    each action commands a small change in the gripper's world xyz rather than joint
+    torques. Object: a fixed cabinet whose door turns on a single hinge (`doorjoint`) about
+    +z with range [-2, 0] rad. The bar handle is the only graspable feature. A goal marker
+    sits 0.30 m to the left of and 0.45 m toward the robot from the cabinet's centre (the
+    `door` body origin) -- equivalently 0.115 m to the left of the hinge axis and 0.35 m
+    toward the robot from it, the hinge being 0.185 m to the left of and 0.10 m in front of
+    the centre.
+  success_criterion_prose: |-
+    The task registers as complete on any step where the handle's coordinate along the
+    left-right axis (world x) is within 0.08 m of the goal marker's coordinate along that
+    same axis. Only that one axis enters the comparison: the handle's depth, its height, its
+    orientation, the hinge angle and the state of the robot are all ignored. Because the
+    goal marker sits 0.115 m to the left of the hinge axis and 0.35 m toward the robot from
+    it (0.30 m left of and 0.45 m in front of the cabinet's centre), this is a band the
+    handle passes through as the door swings - a door carried round well past that band, as
+    far as the hinge will go, is outside it again. The criterion is checked afresh at every
+    step and has no memory of earlier steps.
+  full_source:
+    path: metaworld/envs/sawyer_door_v3.py
+    lines: "16-237"
+
+state_surface:
+  fields:
+    - { name: s.hand_pos,      shape: "(3,)",  units: m,     description: "world xyz of the `hand` body = obs[:3]. The whole door reward is written in terms of this, not tcp_pos.", source: "sawyer_xyz_env.py:475-527" , slice: "0:3" }
+    - { name: s.tcp_pos,       shape: "(3,)",  units: m,     description: "midpoint of the two fingertip sites = env.tcp_center. Sits ~4.5 cm below hand_pos.", source: "sawyer_xyz_env.py:475-527" }
+    - { name: s.tcp_init_pos,  shape: "(3,)",  units: m,     description: "s.tcp_pos at the end of _reset_hand(). A genuine snapshot.", source: "sawyer_xyz_env.py:684-695" }
+    - { name: s.gripper_openness, shape: scalar, units: null, description: "obs[3], normalised finger separation in [0, 1].", source: "sawyer_xyz_env.py:475-527" , slice: "3:4" }
+    - { name: s.left_pad_pos,  shape: "(3,)",  units: m,     description: "world xyz of the `leftpad` body right now.", source: null }
+    - { name: s.right_pad_pos, shape: "(3,)",  units: m,     description: "world xyz of the `rightpad` body right now.", source: null }
+    - { name: s.handle_pos,    shape: "(3,)",  units: m,     description: "obs[4:7] = data.geom('handle').xpos.", source: "sawyer_door_v3.py:97-98" , slice: "4:7" }
+    - { name: s.handle_quat,   shape: "(4,)",  units: null,  description: "obs[7:11], (x, y, z, w) - the OPPOSITE order from hammer's mujoco xquat.", source: "sawyer_door_v3.py:100-104" , slice: "7:11" }
+    - { name: s.door_qpos,     shape: scalar,  units: rad,   description: "data.joint('doorjoint').qpos. Zero when shut and NEGATIVE as the door opens; the human reward uses door_angle = -door_qpos.", source: "sawyer_door_v3.py:187, 168" }
+    - { name: s.door_qvel,     shape: scalar,  units: rad/s, description: "Not used by the human reward; exposed because a reward that wants to penalise slamming has no other route to it.", source: null }
+    - { name: s.target_pos,    shape: "(3,)",  units: m,     description: "env._target_pos = obj_init_pos + [-0.3, -0.45, 0].", source: "sawyer_door_v3.py:117, 120" }
+    - { name: s.obj_init_pos,  shape: "(3,)",  units: m,     description: "the door body's position at reset. This is what is randomised across the 50 MT1 goals.", source: "sawyer_door_v3.py:112-128" }
+    - { name: action,          shape: "(4,)",  units: null,  description: "the action applied this step: [dx, dy, dz, grip]", source: null }
+  helpers:
+    - name: hand_pos
+      signature: hand_pos(s)
+      description: = s[0:3]
+      kind: inline_expression
+      expression: s[0:3]
+    - name: object_pos
+      signature: object_pos(s)
+      description: = s[4:7]
+      kind: inline_expression
+      expression: s[4:7]
+    - name: object_quat
+      signature: object_quat(s)
+      description: '= s[7:11]; component order is task-specific (see object_qx): scipy x,y,z,w on reach/push/pick_place/door_open/peg_insert_side, MuJoCo w,x,y,z on drawer_open/button_press_topdown, zeros on drawer_close/window_open/window_close'
+      kind: inline_expression
+      expression: s[7:11]
+    - name: goal_pos
+      signature: goal_pos(s)
+      description: = s[36:39]
+      kind: inline_expression
+      expression: s[36:39]
+    - name: gripper_opening
+      signature: gripper_opening(s)
+      description: = s[3], 1.0 open
+      kind: inline_expression
+      expression: s[3]
+    - name: hand_velocity
+      signature: hand_velocity(s)
+      description: = (s[0:3] - s[18:21]) / 0.0125
+      kind: inline_expression
+      expression: (s[0:3] - s[18:21]) / 0.0125
+    - name: tolerance
+      signature: tolerance(x, bounds, margin, sigmoid='long_tail')
+      description: 'Meta-World''s shaping kernel: 1.0 inside `bounds`, decaying over `margin`'
+      kind: inline_expression
+      expression: null
+    - name: hamacher_product
+      signature: hamacher_product(a, b)
+      description: = a*b / (a + b - a*b); Meta-World's soft AND
+      kind: inline_expression
+      expression: null
+  flat_fields:
+    - index: 0
+      name: hand_x
+      description: 'gripper body x, `data.body(''hand'').xpos`. NOTE this is NOT tcp_center: the tool centre
+        point used by the built-in rewards sits 4.5 cm below this in z'
+    - index: 1
+      name: hand_y
+      description: gripper body y
+    - index: 2
+      name: hand_z
+      description: gripper body z; the table surface is near z = 0
+    - index: 3
+      name: gripper_opening
+      description: distance between the two claws, normalised to [0, 1]; 1.0 = fully open, 0.0 = fully closed
+    - index: 4
+      name: object_x
+      description: manipulated object x (the handle/button/peg position for the fixture tasks)
+    - index: 5
+      name: object_y
+      description: manipulated object y
+    - index: 6
+      name: object_z
+      description: manipulated object z
+    - index: 7
+      name: object_qx
+      description: 'object orientation quaternion, slot 1 of 4 (the name is a slot label, not a component).
+        The component ORDER is per task and is stated in the task''s spec: scipy (x, y, z, w) where the task
+        converts a rotation matrix, MuJoCo (w, x, y, z) where it reads the body''s xquat; all four zero on
+        the fixture tasks that report none. On the MT10 ten: scipy on reach, push, pick_place, door_open and
+        peg_insert_side; MuJoCo on drawer_open and button_press_topdown -- where it is also CONSTANT, (1,
+        0, 0, 0) and (0.7074, -0.7068, 0, 0), because those bodies translate on slide joints and never rotate;
+        all four components constant zeros on drawer_close, window_open and window_close'
+    - index: 8
+      name: object_qy
+      description: object orientation quaternion, slot 2 of 4 (order per task, see object_qx)
+    - index: 9
+      name: object_qz
+      description: object orientation quaternion, slot 3 of 4 (order per task, see object_qx)
+    - index: 10
+      name: object_qw
+      description: 'object orientation quaternion, slot 4 of 4: the scalar w on the scipy-order tasks, z on
+        the MuJoCo-order tasks, 0 where the task reports no orientation'
+    - index: 11
+      name: object2_x
+      description: second object x -- exactly zero (padding) on every MT10 task and on every other task with
+        one object; hammer carries the nail here, stick-push and stick-pull the container's insertion point
+    - index: 12
+      name: object2_y
+      description: second object y -- zero padding (always on MT10) except on hammer, stick-push, stick-pull
+    - index: 13
+      name: object2_z
+      description: second object z -- zero padding (always on MT10) except on hammer, stick-push, stick-pull
+    - index: 14
+      name: object2_qx
+      description: second object quaternion, slot 1 of 4 -- zero (always on MT10) except on hammer (the nail
+        body's xquat, w, x, y, z)
+    - index: 15
+      name: object2_qy
+      description: second object quaternion, slot 2 of 4 -- zero except on hammer
+    - index: 16
+      name: object2_qz
+      description: second object quaternion, slot 3 of 4 -- zero except on hammer
+    - index: 17
+      name: object2_qw
+      description: second object quaternion, slot 4 of 4 -- zero except on hammer
+    - index: 18
+      name: prev_hand_x
+      description: 'the PREVIOUS step''s hand_x, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 19
+      name: prev_hand_y
+      description: 'the PREVIOUS step''s hand_y, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 20
+      name: prev_hand_z
+      description: 'the PREVIOUS step''s hand_z, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 21
+      name: prev_gripper_opening
+      description: 'the PREVIOUS step''s gripper_opening, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 22
+      name: prev_object_x
+      description: 'the PREVIOUS step''s object_x, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 23
+      name: prev_object_y
+      description: 'the PREVIOUS step''s object_y, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 24
+      name: prev_object_z
+      description: 'the PREVIOUS step''s object_z, verbatim. Velocity is not observed: finite-difference s[0:18]
+        - s[18:36] and divide by dt = 0.0125'
+    - index: 25
+      name: prev_object_qx
+      description: 'the PREVIOUS step''s object_qx, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 26
+      name: prev_object_qy
+      description: 'the PREVIOUS step''s object_qy, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 27
+      name: prev_object_qz
+      description: 'the PREVIOUS step''s object_qz, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 28
+      name: prev_object_qw
+      description: 'the PREVIOUS step''s object_qw, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 29
+      name: prev_object2_x
+      description: 'the PREVIOUS step''s object2_x, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 30
+      name: prev_object2_y
+      description: 'the PREVIOUS step''s object2_y, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 31
+      name: prev_object2_z
+      description: 'the PREVIOUS step''s object2_z, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 32
+      name: prev_object2_qx
+      description: 'the PREVIOUS step''s object2_qx, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 33
+      name: prev_object2_qy
+      description: 'the PREVIOUS step''s object2_qy, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 34
+      name: prev_object2_qz
+      description: 'the PREVIOUS step''s object2_qz, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 35
+      name: prev_object2_qw
+      description: 'the PREVIOUS step''s object2_qw, verbatim. Velocity is not observed: finite-difference
+        s[0:18] - s[18:36] and divide by dt = 0.0125'
+    - index: 36
+      name: goal_x
+      description: goal position x for this episode; re-randomised every reset
+    - index: 37
+      name: goal_y
+      description: goal position y
+    - index: 38
+      name: goal_z
+      description: goal position z
+  helpers_note: |-
+    There are none, and that is a finding rather than an omission. Meta-World's
+    `touching_main_object` raises KeyError: Invalid name 'objGeom' on this env
+    (sawyer_xyz_env.py:442-443 looks up a geom this asset does not have), so no contact
+    helper can be precomputed without new simulator code - and none is precomputed for
+    the reference reward either. Separately, the named `handle` geom is VISUAL ONLY
+    (contype = conaffinity = 0); its collision proxies are four unnamed `dl_col` cylinders,
+    so any contact test written against `data.geom("handle").id` silently returns False
+    forever. The reference implementation needs neither: its grasp term is the commanded
+    gripper effort, computable from `action` directly.
+
+discrete_success:
+  kind: discrete
+  no_discrete_success_because: null
+  shipped:
+    reimplementation:
+      repo: bird
+      module: bird.envs.metaworld
+      symbol: _success_door_open
+      verified_against: 'info["success"] from the untouched evaluate_state, over 600 steps on each of
+        the ten MT10 tasks: 0 mismatches on nine, `reach` the exception (its tcp_center is not recoverable
+        from the 39-D observation, so the transcription approximates it). Resolved through the closed
+        _SUCCESS_CHECKS allow-list in that module, never by importlib on this string.'
+      sha256: null
+    expr: "abs(obs[4] - self._target_pos[0]) <= 0.08"
+    provenance: { path: metaworld/envs/sawyer_door_v3.py, lines: "79", symbol: evaluate_state, commit: 2da74b23c2928e92db3a9daa586ea6fef4dda930, sha256: null }
+    sound: false
+    unsoundness: >-
+      A two-sided band on one axis with no memory. Measured on a 1e-5 rad grid over 12
+      (seed, goal) pairs, it is exactly theta in [-1.81558, -1.38272] rad and does not move
+      with the randomization. The hinge's own limit is -2 rad, so a door driven all the way
+      to its stop is OUTSIDE the band and does not register. Nothing requires the gripper to
+      have done the opening.
+  hardened:
+    status: pending
+    module: null
+    symbol: hardened_success
+    tightened: null
+    added_conjuncts: null
+    pending_plan: >-
+      PLAN, not an implemented oracle. Three conjuncts on top of the shipped check:
+      `in_band_restated` (restates the shipped 0.08 m comparison from `s`; closes nothing on its
+      own); `hinge_opening` (closes a door flung past the band, then counted again on the way
+      back shut); `gripper_on_handle` (closes a door batted open with the gripper's body or
+      fingers on the panel -- the arm links and wrist cannot touch it -- or knocked and abandoned
+      while it coasts through the band).
+    not_tightened_because: null
+    conservatism: >-
+      Stated before any number is taken. `gripper_on_handle` is an instantaneous proxy for a
+      property of the whole episode ("the gripper did the opening"), and it is a distance rather
+      than a contact, so it can be satisfied by a gripper hovering beside the handle while
+      something else does the work - a real gap. A contact version would be the better check and
+      cannot be written from `s` (not for want of geometry -- the handle's four unnamed `dl_col`
+      collision cylinders on `door_link` exist and are addressable by geom or body id; the frozen
+      state namespace `s` exposes no contact quantity). `hinge_opening` reads an instantaneous
+      velocity, so a policy that pulls the door round and then holds it dead still inside the
+      band scores door_qvel == 0 and passes. Report hardened_once alongside hardened_at_end.
+    invariant: "hardened <= shipped"
+
+continuous_success:
+  raw:
+    name: shipped_success_once
+    expr: "fraction of eval episodes in which the shipped success check holds on at least one step. Named against the SHIPPED success check: no hardened oracle exists yet; rename when it lands."
+    unit: fraction of episodes
+    direction: maximize
+    # A mean over episodes of float(any(shipped success)), so [0, 1]
+    # by construction whatever any policy scores.
+    saturates_at: 1.0
+  normalized:
+    method: anchors
+    formula: null
+    success_threshold: 0.9   # policy value, not a measurement: 90% of the way
+                             # from random to expert. Not 1.0 — the expert IS the
+                             # clip's upper bound, so 1.0 sits on a degenerate
+                             # point.
+
+anchors:
+  scripted:
+    value: 0.7196
+    method: scripted_policy
+    policy_id: mt10_suite/door_open
+    status: solved
+    unit: bird_task_metric
+    reduction: per_step_fraction
+    n_seeds: 25
+    n_episodes: 25
+    reason: null
+    date: '2026-09-01'
+    source: 'REGISTRY 2026-09-03: policies/mt10_suite/policies.yaml entry `mt10_suite/door_open` (status
+      solved), score 0.7196 bird_task_metric under per_step_fraction, n=25, verified through bird_adapter.
+      The manifest is the primary record. What THIS repo''s scripted policy scores on the task''s own
+      metric, beside `expert` (here Meta-World''s bundled scripted policy) and `published`, so ''is the
+      scripted policy good compared to a trained specialist'' is answerable from the spec. NOTE the reduction:
+      this is the per-step fraction, while the flat expert/random pair above is the any-step one -- compare
+      it with by_reduction.per_step_fraction.'
+  reduction: any_step_episode_fraction
+  by_reduction:
+    any_step_episode_fraction:
+      random:
+        value: 0.0
+        method: random_policy
+        source: 'MEASURED 2026-08-25: fraction of n=30 uniform-random episodes in which the shipped success
+          check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other
+          reduction, which is the only way the pair can be guaranteed consistent (per-step <= any-step,
+          always). The scripted policy is handed a COPY of the observation: Meta-World''s policies mutate
+          it in place, which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+          Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+      expert:
+        value: 0.9667
+        method: scripted_policy
+        source: 'MEASURED 2026-08-25: fraction of n=30 scripted-expert episodes in which the shipped success
+          check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other
+          reduction, which is the only way the pair can be guaranteed consistent (per-step <= any-step,
+          always). The scripted policy is handed a COPY of the observation: Meta-World''s policies mutate
+          it in place, which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+          Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+    per_step_fraction:
+      random:
+        value: 0.0
+        method: random_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` -- the fraction of an episode''s arriving states
+          inside the goal region -- over n=30 uniform-random episodes through bird/envs/metaworld.py,
+          seed 0. Taken from the SAME rollouts as this task''s other reduction, which is the only way
+          the pair can be guaranteed consistent (per-step <= any-step, always). The scripted policy is
+          handed a COPY of the observation: Meta-World''s policies mutate it in place, which would corrupt
+          the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json. Supersedes
+          smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+      expert:
+        value: 0.0598
+        method: scripted_policy
+        source: 'MEASURED 2026-08-25: mean `task_metric` over n=30 episodes of metaworld.policies.ENV_POLICY_MAP[task],
+          the benchmark''s own scripted solution and the honest ceiling here, seed 0. Taken from the SAME
+          rollouts as this task''s other reduction, which is the only way the pair can be guaranteed consistent
+          (per-step <= any-step, always). The scripted policy is handed a COPY of the observation: Meta-World''s
+          policies mutate it in place, which would corrupt the success read on the following step. Raw
+          record: tasks/_anchors_2026-08-25.json. Supersedes smaller-sample figures measured under a different
+          goal draw (see tasks/SOURCE.md).'
+        n_seeds: 30
+        n_episodes: 30
+        reason: null
+        date: '2026-08-25'
+  random:
+    value: 0.0
+    method: random_policy
+    source: 'MEASURED 2026-08-25: fraction of n=30 uniform-random episodes in which the shipped success
+      check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other reduction,
+      which is the only way the pair can be guaranteed consistent (per-step <= any-step, always). The
+      scripted policy is handed a COPY of the observation: Meta-World''s policies mutate it in place,
+      which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+      Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-08-25'
+  expert:
+    value: 0.9667
+    method: scripted_policy
+    source: 'MEASURED 2026-08-25: fraction of n=30 scripted-expert episodes in which the shipped success
+      check held on at least one step, seed 0. Taken from the SAME rollouts as this task''s other reduction,
+      which is the only way the pair can be guaranteed consistent (per-step <= any-step, always). The
+      scripted policy is handed a COPY of the observation: Meta-World''s policies mutate it in place,
+      which would corrupt the success read on the following step. Raw record: tasks/_anchors_2026-08-25.json.
+      Supersedes smaller-sample figures measured under a different goal draw (see tasks/SOURCE.md).'
+    n_seeds: 30
+    n_episodes: 30
+    reason: null
+    date: '2026-08-25'
+budget:
+  train_steps: 1000000
+  learning_verified:
+    verified: false
+    reward_used: none
+    algo: null
+    seeds: null
+    result: >-
+      Not established. There is no published MT1 single-task result for door-open-v3 at any step
+      budget from any algorithm - the published v2 figures are MT10/MT50 multi-task curves, and v3
+      changed the physics and the mocap. The budget above is a placeholder until a calibration run
+      establishes this floor.
+    date: null
+  saturates_at: null
+
+reward:
+  human:
+    kind: published_dense
+    # value_determining, not text_only: this reward is built almost entirely out of
+    # metaworld.utils.reward_utils primitives, which can change while the compute_reward
+    # text does not. A digest over the body alone would assert provenance it does not have.
+    # Not with_success_branch either: the reward re-derives the shipped check INLINE at
+    # :199-201 and hard-overrides itself to 10.0, so that code is already inside `reference`.
+    # The shipped success check's own definition (:67-91) is pinned on discrete_success.shipped.provenance,
+    # where it belongs.
+    scope: value_determining
+    reference:
+      path: metaworld/envs/sawyer_door_v3.py
+      # 180-205 is the `v2` branch specifically, not the whole method: the version
+      # check sits at :186 and that branch returns at :205 (the v1 branch runs to
+      # :237). Verified against source — v2 is the branch that executes.
+      lines: "180-205"
+      symbol: SawyerDoorEnvV3.compute_reward
+      commit: 2da74b23c2928e92db3a9daa586ea6fef4dda930
+      sha256: "8169e20d95a476d789c2fab312dc1cf403c27fe5d97fb4350f3d62c483d628c9"
+    depends_on:
+      - path: metaworld/utils/reward_utils.py
+        lines: "97-244"
+        symbol: "tolerance, inverse_tolerance, hamacher_product"
+        commit: 2da74b23c2928e92db3a9daa586ea6fef4dda930
+        sha256: "46478c0139f923f0d090c8e2324b45375cac02ee74a258ca35de597d8ad1f3bb"
+    import_path: "metaworld.envs.sawyer_door_v3:SawyerDoorEnvV3.compute_reward"
+    verified_against: "metaworld 3.1.1 (PyPI wheel, digests taken 2026-08-24)"
+    notes: >-
+      The v2 branch of the reward. It re-derives the shipped check and hard-overrides itself
+      to 10.0 when it fires (sawyer_door_v3.py:199-201) - which is why s.door_qpos /
+      s.handle_pos / s.target_pos are exposed to the model: withholding an input the human
+      baseline has would invalidate the headline comparison. The hardened oracle is what is
+      actually withheld, and it is not derivable from these fields.
+  contract:
+    signature: |-
+      MAX_REWARD = <float>   # tight upper bound on `reward` below
+
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          """
+          Args:
+            s:      frozen state namespace, fields documented above; no env handle
+            action: (4,) float array, the action applied this step
+          Returns:
+            reward:     a single float in [0, MAX_REWARD]
+            components: dict mapping term name -> float
+          """
+    framework: numpy
+    batched: false
+    allowed_modules: [numpy]
+    returns: "(scalar, components)"
+    max_reward: "<float>, declared by the candidate"
+    idiom_rule: >-
+      One scalar out, not a batch. Return a single Python float for `reward` and a float for
+      each entry of `components`. A NumPy scalar or size-1 array is unwrapped for you; an
+      array with more than one element is refused and the run stops.
+    reward_utils:
+      - { name: tolerance,         signature: "tolerance(x, bounds, margin, sigmoid='long_tail')", provenance: { path: metaworld/utils/reward_utils.py, lines: "97-244" } }
+      - { name: inverse_tolerance, signature: null, provenance: { path: metaworld/utils/reward_utils.py, lines: "97-244" } }
+      - { name: hamacher_product,  signature: "hamacher_product(a, b)",                            provenance: { path: metaworld/utils/reward_utils.py, lines: "97-244" } }
+  forbidden_symbols_by_consumer:
+    bird:
+    - task_metric
+    - reference_reward
+    - gt_reward
+    - evaluate_state
+    - reward_source
+    - _env
+  forbidden_symbols_note: 'BIRD''s gate, and it is a different SET from the flat list above rather than
+    a superset. Four of these six name ADAPTER INTERNALS -- `task_metric`, `reference_reward`, `reward_source`,
+    `_env` -- which are not properties of the task at all; they are the routes by which a candidate could
+    reach the metric it is scored on IN THIS REPO. Upstream''s list names benchmark symbols, which is
+    right for a consumer that calls the benchmark directly.
+    
+    `success` is DELIBERATELY ABSENT, and the omission is measured rather than an oversight. Meta-World''s
+    `info["success"]` is a threshold on the distance between obj (obs[4:7]) and goal (obs[36:39]), both
+    of which are IN the observation a generated reward receives -- so an identifier gate is both too strict
+    and too weak. Measured: listing it rejected 15 of 15 candidates and no policy was trained, and
+    every rejected program''s offence was naming its OWN proxy `success`. A candidate that spells the
+    same quantity `hit` passes either way. The defence that does hold is structural: a generated reward
+    can influence the POLICY and nothing else, so a candidate that re-derives the check has written a
+    SPARSE reward -- a legitimate design point that trains poorly at this tier''s budget and loses on
+    its merits.'
+  forbidden_symbols:
+    - hardened_success
+    - evaluate_state
+    - touching_main_object
+
+judge:
+  vlm_legible: true
+  legibility_note: >-
+    A door is either visibly swung open or it is not, and the gripper is either on the handle
+    or elsewhere on the panel - both are readable from a frame. Contrast pendulum-style tasks,
+    where every frame differs from every other only by an angle.
+  camera:
+    name: corner
+    mode: fixed
+    note: >-
+      Fixed deliberately. A tracking camera hides absolute progress, which was a diagnosed
+      cause of judge score inflation.
+  extra_views:
+  - name: topview
+    mode: fixed
+    note: >-
+      Fixed camera looking straight down at the table. Shows the arm and the objects in the
+      table plane: where the gripper is relative to the goal marker and how far the door has
+      travelled. Height above the table is not visible from here, and an object directly under
+      the gripper is hidden by the arm. The door's opening angle is a rotation in this plane, so
+      how far it has swung reads directly here.
+  - name: behindGripper
+    mode: tracking
+    note: >-
+      Tracking camera mounted behind and above the gripper, moving with it. A close view of the
+      fingers and whatever they touch, for grasp and contact; the scene shifts as the arm moves,
+      so it shows no absolute position, and early in an episode it can be filled by the arm's
+      own link. Shows whether the handle is between the fingers.
+  subtasks_sequential: true
+  telemetry_fields: [door_qpos, door_qvel, handle_to_target_x, gripper_handle_distance]
+
+domain_randomization:
+  parameters:
+    object_mass_scale:
+    - 0.2
+    - 4.0
+    arm_damping_scale:
+    - 0.5
+    - 4.0
+    friction_scale:
+    - 0.05
+    - 4.0
+    gravity_scale:
+    - 0.7
+    - 1.3
+    actuator_gain_scale:
+    - 0.5
+    - 1.75
+    weld_softness_scale:
+    - 0.75
+    - 3.0
+    contact_friction_scale:
+    - 0.1
+    - 4.0
+    fixture_damping_scale:
+    - 0.1
+    - 10.0
+  nominal:
+    object_mass_scale: 1.0
+    arm_damping_scale: 1.0
+    friction_scale: 1.0
+    gravity_scale: 1.0
+    actuator_gain_scale: 1.0
+    weld_softness_scale: 1.0
+    contact_friction_scale: 1.0
+    fixture_damping_scale: 1.0
+
+exploits:
+  - name: overshoot_past_the_band
+    mechanism: >-
+      Drive the door past the far edge of the 0.08 m band to the hinge stop. The shipped
+      check reads False at the horizon even though the door is fully open.
+    status: open
+    closed_by: null
+    note: "Affects the shipped success check's at-end reading, not the once reading."
+  - name: bat_open_without_the_handle
+    mechanism: >-
+      Open the door with the gripper's body or fingers on the panel rather than grasping the
+      handle (the arm links and wrist have no collision geometry that can touch the door), or
+      knock it and abandon it while it coasts through the band.
+    status: open
+    closed_by: null
+    note: >-
+      The planned `gripper_on_handle` conjunct (`discrete_success.hardened.pending_plan`) would
+      close it, and only as a distance, not a contact: a gripper hovering beside the handle while
+      something else does the work would still pass. A contact version is not writable from `s`:
+      the frozen state namespace exposes no contact quantity, and Meta-World's
+      `touching_main_object` KeyErrors on this env. (The named `handle` geom is visual-only,
+      but the handle's four unnamed `dl_col` collision cylinders on `door_link` exist and are
+      addressable by geom or body id -- the gap is the state surface, not the asset.)
+  - name: flung_past_then_counted_on_the_way_back
+    mechanism: "Fling the door past the band, then let it swing back shut and be counted again as it re-crosses."
+    status: open
+    closed_by: null
+    note: "The planned `hinge_opening` conjunct would close it with an instantaneous velocity test, so holding the door still inside the band would still pass."
+  - name: once_vs_at_end_gap
+    mechanism: >-
+      The gap between complete-at-least-once and complete-on-the-last-step is sometimes
+      proposed as a hack detector.
+    status: undetectable_here
+    closed_by: null
+    note: >-
+      On THIS task that gap is 29/30 vs 0/30 for Meta-World's own scripted expert, i.e. ~100%
+      for a reference-competent policy, so it detects nothing. Recorded so the detector is not
+      applied here in good faith.
+
+symbol_mapping:
+  distance_to_goal: np.linalg.norm(s[4:7] - s[36:39])
+  object_to_goal: np.linalg.norm(s[4:7] - s[36:39])
+  gripper_to_object: np.linalg.norm(s[0:3] - s[4:7])
+  gripper_to_goal: np.linalg.norm(s[0:3] - s[36:39])
+  hand_position: s[0:3]
+  object_position: s[4:7]
+  object_orientation: s[7:11]
+  object_height: s[6]
+  goal_position: s[36:39]
+  gripper_open: s[3]
+  hand_velocity: ((s[0:3] - s[18:21]) / 0.0125)
+  object_velocity: ((s[4:7] - s[22:25]) / 0.0125)
+  action_magnitude: np.linalg.norm(a[0:3])
+  gripper_action: a[3]
+
+provenance:
+  authored_from:
+    - { path: metaworld/envs/sawyer_door_v3.py,                lines: "16-237",  what: "env class, shipped check (:67-91), reset and _target_pos (:112-128), published dense reward (:180-205)" }
+    - { path: metaworld/sawyer_xyz_env.py,                     lines: "146-156", what: "hand box, max_path_length = 500, TARGET_RADIUS" }
+    - { path: metaworld/sawyer_xyz_env.py,                     lines: "475-527", what: "the 39-D observation layout" }
+    - { path: metaworld/sawyer_xyz_env.py,                     lines: "684-695", what: "_reset_hand: gripper commanded OPEN, hand driven to hand_init_pos" }
+    - { path: metaworld/assets/objects/assets/doorlockB.xml,   lines: null,      what: "door_link, `doorjoint` hinge about +z with range [-2, 0] rad, handle geoms" }
+    - { path: metaworld/utils/reward_utils.py,                 lines: "97-244",  what: "the shaping primitives the published reward is built from" }
+  rule: "source, not docstrings"
+  measured:
+    - "The shipped band is theta in [-1.81558, -1.38272] rad on every one of 12 (seed, goal) pairs, swept on a 1e-5 rad grid; it does not move with the randomization because the door body's x cancels between obs[4] and _target_pos[0]."
+    - "Meta-World's scripted expert over 30 (seed, goal) pairs: complete-at-least-once 29/30, complete-on-the-last-step 0/30, final theta -1.84 to -1.99."
+    - "The named `handle` geom has contype = conaffinity = 0; collision proxies are four unnamed `dl_col` cylinders on door_link."
+    - "env.touching_main_object raises KeyError: Invalid name 'objGeom' on this env."
+  verified_by: BIRD authors
+  date: "2026-08-24"

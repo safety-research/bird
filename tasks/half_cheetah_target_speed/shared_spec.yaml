@@ -1,0 +1,370 @@
+schema_version: 1
+id: half_cheetah_target_speed
+env:
+  env_id: HalfCheetah-v5
+  library:
+    name: mujoco
+    version_verified: 3.3.0
+    commit: null
+    stack:
+      gymnasium: 1.3.0
+      python: '3.11'
+  horizon: 1000
+  control_hz: 20
+  termination:
+    early_terminate: false
+    autoreset: false
+    partial_reset: null
+    prompt_states: The episode always runs its full length; the cheetah cannot fall over in a
+      way that ends it early.
+  reset:
+    kind: stochastic
+    mechanism: library_reseeded
+    n_instances: null
+    instance_seed: null
+    entry:
+      path: bird/envs/gym_mujoco.py
+      symbol: GymMujoco._reset
+      lines: '1368-1381'
+    rng_note: 'One draw from the episode Generator -- int(rng.integers(2 ** 31 - 1)) in GymMujoco._reset, the entry above -- is
+      passed to gymnasium Env.reset(seed=), which reseeds the wheel np_random before MujocoEnv.reset
+      calls mj_resetData and reset_model (gymnasium/envs/mujoco/mujoco_env.py:174-178); every draw
+      below is then made by that reseeded np_random in reset_model order: qpos, qvel. The row _reset
+      returns is the raw concat(qpos, qvel) (18 entries), NOT the 17-entry gymnasium observation the
+      prose and state_surface describe, so fields are a:b slices of that row. This adapter has no DR
+      axes (dr_parameters is empty), so no draw precedes _reset at any DR setting.'
+    draws:
+      - role: agent_pose
+        quantity: qpos
+        fields: ['0:1', '1:2', '2:3', '3:4', '4:5', '5:6', '6:7', '7:8', '8:9']
+        distribution:
+          family: uniform
+          text: 'init_qpos (the model qpos0, all zeros) + U(-0.1, 0.1) independently on each of the 9
+            generalised coordinates -- root x (m), root z (m), root pitch (rad), then bthigh, bshin,
+            bfoot, fthigh, fshin, ffoot (rad). The scale is the v5 default reset_noise_scale 0.1
+            (half_cheetah_v5.py:160); the adapter passes no override (the gym.make call in GymMujoco.__init__). Root x
+            itself is jittered, so the episode does not start at x = 0.'
+          low: [-0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1]
+          high: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+        source:
+          path: gymnasium/envs/mujoco/half_cheetah_v5.py
+          lines: '265-267'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_half_cheetah_target_speed built
+          with ctx {}, reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked;
+          columns 0-8 all move and span [-0.099, 0.100]; reset(default_rng(0)) is bitwise repeatable and
+          differs from default_rng(7). gymnasium 1.3.0 wheel from the project venv (uv.lock).'
+      - role: agent_velocity
+        quantity: qvel
+        fields: ['9:18']
+        distribution:
+          family: normal
+          text: 'init_qvel (zeros) + 0.1 * N(0, 1) independently on each of the 9 generalised velocities
+            (x m/s, z m/s, pitch rad/s, then six joint rad/s) -- Gaussian and unbounded, where
+            Hopper, Swimmer and InvertedPendulum draw uniform velocity noise. No box, so no
+            low/high.'
+        source:
+          path: gymnasium/envs/mujoco/half_cheetah_v5.py
+          lines: '268-271'
+        basis: measured
+        note: 'Measured by hand (no committed test): the registry env gym_half_cheetah_target_speed built
+          with ctx {}, reset 24 times with np.random.default_rng(i) for i in 0..23, observations stacked;
+          columns 9-17 all move; observed span [-0.26, 0.27], consistent with sigma 0.1.'
+    constants:
+      - role: goal
+        quantity: target_speed
+        value: '2.0 m/s -- TARGET_SPEED_MPS, the cruise speed neg_speed_error compares the mean forward
+          speed (x_T - x_0) / (n_steps * dt) against (gym_mujoco.py:272-279); a constant of the
+          metric, not carried in the observation and not sampled'
+        source:
+          path: bird/envs/gym_mujoco.py
+          lines: '226-228'
+        basis: read
+    stochastic_transitions: null
+    upstream_divergence: null
+    prompt_states: 'stands on flat ground. Make it run forward at a steady 2 m/s'
+    prompt_field: natural_language
+    prompt_omits: [agent_pose, agent_velocity]
+  spaces:
+    obs_dim: 17
+    action_dim: 6
+    action_low: -1.0
+    action_high: 1.0
+    action_semantics: Torques on the six leg joints (back and front thigh/shin/foot), each in
+      [-1, 1].
+description:
+  natural_language: |-
+    A planar "half cheetah" — a two-dimensional cat-like robot with a torso and two legs,
+    one at the back and one at the front, each leg having three torque-controlled joints —
+    stands on flat ground. Make it run forward at a steady 2 m/s — no faster: bring the
+    robot up to a forward velocity of 2 m/s and hold that cruise for the whole episode.
+    Running slower than 2 m/s is failing to keep pace, and running faster is just as
+    wrong — sprinting flat out, surging past the target speed and coasting, or
+    oscillating between fast and slow all miss the objective. The closer the robot's
+    forward velocity stays to a constant 2 m/s across the episode, the better.
+  scene: |-
+    - Body: a planar robot constrained to the x-z plane. Its root has three unactuated
+      degrees of freedom — x position, z position and pitch — and each leg has three
+      actuated hinge joints: back thigh, back shin, back foot (bthigh, bshin, bfoot),
+      then front thigh, front shin, front foot (fthigh, fshin, ffoot).
+    - Observation: a (17,) float array — 8 position entries followed by 9 velocity
+      entries. obs[0] is the height of the front tip, obs[1] its pitch angle, and
+      obs[2:8] the six leg joint angles in the order above. obs[8:17] are the joint
+      velocities: obs[8] forward (x) velocity, obs[9] vertical (z) velocity, obs[10]
+      pitch angular velocity, obs[11:17] the six leg joint angular velocities. The
+      root's absolute x position is deliberately excluded from the observation; it is
+      provided on `s` instead.
+    - Control: 6 torques, one per leg joint in the order above, each clipped to [-1, 1].
+    - Timing: one control step holds the torques for 5 simulator substeps of 0.01 s, so
+      dt = 0.05 s per control step and the 1000-step episode lasts 50 s. The episode
+      never ends early.
+    - Convention: +x is forward (the direction the robot faces), +z is up. Forward
+      progress means increasing x.
+  success_criterion_prose: null
+  full_source:
+    path: gymnasium/envs/mujoco/half_cheetah_v5.py
+    lines: null
+state_surface:
+  fields:
+  - name: s.x_position
+    shape: scalar
+    units: null
+    description: world x of the robot, metres; grows as it runs forward (from the simulator —
+      deliberately NOT in the observation)
+    source: null
+  - name: s.x_velocity
+    shape: scalar
+    units: null
+    description: forward velocity averaged over the last control step, m/s; positive means moving
+      along +x
+    source: null
+  - name: s.z_position
+    shape: scalar
+    units: null
+    description: height of the front tip, metres (obs[0])
+    source: null
+  - name: s.pitch
+    shape: scalar
+    units: null
+    description: pitch angle of the front tip, radians (obs[1])
+    source: null
+  - name: s.joint_angles
+    shape: (6,)
+    units: null
+    description: angles of [bthigh, bshin, bfoot, fthigh, fshin, ffoot], radians (obs[2:8])
+    source: null
+  - name: s.z_velocity
+    shape: scalar
+    units: null
+    description: vertical velocity of the front tip, m/s (obs[9])
+    source: null
+  - name: s.pitch_velocity
+    shape: scalar
+    units: null
+    description: pitch angular velocity of the front tip, rad/s (obs[10])
+    source: null
+  - name: s.joint_velocities
+    shape: (6,)
+    units: null
+    description: angular velocities of the six leg joints, same order, rad/s (obs[11:17])
+    source: null
+  - name: s.obs
+    shape: (17,)
+    units: null
+    description: 'the raw observation: 8 position entries then 9 velocity entries (obs[8] is the
+      forward velocity as the simulator integrates it)'
+    source: null
+  - name: action
+    shape: (6,)
+    units: null
+    description: the torques applied this step, order [bthigh, bshin, bfoot, fthigh, fshin, ffoot],
+      each in [-1, 1]
+    source: null
+  helpers: []
+  helpers_note: |-
+    This task has no precomputed boolean helpers. Locomotion needs none: forward position,
+    forward speed, posture and joint state are already named fields of `s` above, and
+    every quantity the reward plausibly wants is a direct function of those.
+discrete_success:
+  kind: continuous_only
+  no_discrete_success_because: Gymnasium's control envs ship no discrete success check and no
+    info['success']; there is no shipped success check to game and nothing for a hardened oracle to
+    tighten. Ground truth is the continuous success metric in continuous_success.raw.
+  shipped: null
+  hardened: null
+continuous_success:
+  raw:
+    name: neg_speed_error
+    expr: -|episode-mean forward velocity - TARGET_SPEED_MPS| with the target pinned at 2.0 m/s (`bird/envs/gym_mujoco.py::_fit_target_speed`)
+    unit: m/s, negated (0 = perfect cruise)
+    direction: maximize
+    saturates_at: 0.0
+  normalized:
+    method: anchors
+    formula: null
+    success_threshold: 0.9
+anchors:
+  # null: no `policies/` entry has been run on this task. Absence is explicit.
+  scripted: null
+  random:
+    value: -2.089
+    method: random_policy
+    source: 'Random baseline over n=12
+      episodes of action_space.sample() on seeds 0-11, same fitness function as training. sigma 0.078.'
+    n_seeds: 12
+    n_episodes: 12
+    reason: null
+    date: '2026-08-20'
+  expert:
+    value: -0.169
+    method: trained_policy
+    source: >-
+      NOT A SPECIALIST AT THIS TASK -- read before using. MEASURED 2026-08-28 by
+      `scripts/train_expert.py`: PPO (sb3) trained for 1,001,472 env steps per seed on the BASE
+      HalfCheetah-v5 reward `+x_velocity - 0.1|a|^2` -- the built-in reward `reward.human` below
+      disowns ("monotone in velocity and cannot express a cap"). These are max-forward-speed
+      policies, not policies trained to hold 2 m/s: the same recipe, seeds and reward as
+      `tasks/half_cheetah`'s expert, whose seed means 91.5499 / 85.3487 / 74.3441 m convert to
+      exactly these values under this task's metric (`neg_speed_error` = -|d / 50 s - 2|: seeds
+      0/1/2 -0.169 / -0.293 / -0.5131). Rolled out with deterministic actions for 30 episodes per
+      seed under mujoco 3.3.0 / gymnasium 1.3.0 / stable-baselines3 2.9.0 and scored by
+      `task_metric`. The value is the MAX (seed 0). Kept because it is a genuine, reproducible
+      measurement of a real policy on this metric and sits above `random` (-2.089), but it is NOT a
+      ceiling on the task and must never be read as "what a trained specialist reaches" -- a value
+      near 0 here is the forward expert's cruise speed (~1.83 m/s) happening to land near the 2 m/s
+      target.
+      `any_step_episode_fraction` was 0.0 on all three seeds. This pair stays FLAT and unlabelled,
+      so `bird/envs/spec.py::baselines_of` refuses it and fitness stays RAW.
+      The adapter exposes no
+      `reference_reward` on this task and `train_expert.py` refuses it, so this recipe cannot be
+      re-run; a real expert needs a BIRD-owned target-speed reward recorded as ours. The
+      measurement's own confidence interval is deliberately NOT reproduced:
+      `measure_anchors.interval` clamps to [0, 1] as though the metric were a fraction. The trained
+      policies are not distributed with this repository.
+    n_seeds: 3
+    n_episodes: 30
+    date: '2026-08-28'
+budget:
+  train_steps: 200000
+  learning_verified:
+    verified: true
+    reward_used: simple_correct
+    algo: sb3 PPO
+    seeds: 1
+    result: -0.205 vs random -2.089 +/- 0.078, pass bars >= -1.0 and >= -1.86; PASS first attempt,
+      345 s wall-clock.
+    date: '2026-08-20'
+  saturates_at: null
+reward:
+  human:
+    kind: none
+    scope: null
+    reference: null
+    depends_on: null
+    import_path: null
+    verified_against: null
+    notes: >-
+      No published reward exists for holding a target speed on this env; the built-in reward is
+      monotone in velocity and cannot express a cap. Any hand-written -|v - 2| shaping would be
+      ours, not a baseline. BIRD's adapter (bird/envs/gym_mujoco.py) exposes NO `reference_reward`
+      on this task -- `has_reference_reward` is False, `gt_return`/`gt_reward_curve` are recorded as
+      None, `pearson_curve` is undefined here and `scripts/train_expert.py` refuses to train on it.
+      The `expert` anchor was trained on the built-in reward described above; see that anchor's
+      text.
+  contract:
+    signature: |-
+      MAX_REWARD = <float>   # tight upper bound on `reward` below
+
+      def compute_dense_reward(s, action) -> tuple[float, dict[str, float]]:
+          """
+          Args:
+            s:      frozen state namespace, fields documented above; no env handle
+            action: (6,) float array, the action applied this step
+          Returns:
+            reward:     a single float in [0, MAX_REWARD]
+            components: dict mapping term name -> float
+          """
+    framework: numpy
+    batched: false
+    allowed_modules:
+    - numpy
+    returns: (scalar, components)
+    max_reward: <float>, declared by the candidate
+    idiom_rule: 'One scalar out, not a batch: a single Python float for reward and for each component.
+      Single environment, plain NumPy.'
+    reward_utils: []
+  forbidden_symbols: []
+judge:
+  vlm_legible: true
+  legibility_note: 'Judge-hostile by design: the judge must read a speed (~2 m/s), not apply
+    more-is-better.'
+  camera:
+    name: track
+    mode: tracking
+    note: 'Verified in the env asset 2026-08-24: <camera name="track" mode="trackcom" pos="0 -3
+      0.3" xyaxes="1 0 0 0 0 1"/> — a follow camera. A tracking camera hides absolute progress,
+      so frames alone cannot show distance travelled.'
+  subtasks_sequential: false
+  telemetry_fields:
+  - x_position
+  - x_velocity
+domain_randomization:
+  # Multiplicative scales
+  # on the arrays bird/envs/gym_mujoco.py captures at construction, nominal 1.0; the
+  # adapter's _GYM_AXES table says what each writes. Only axes with a mechanical path on
+  # THIS model are declared (no fluid on a legged model, no collider on Reacher).
+  parameters:
+    body_mass_scale:
+    - 0.25
+    - 4.0
+    torso_mass_scale:
+    - 0.5
+    - 4.0
+    contact_friction_scale:
+    - 0.1
+    - 4.0
+    gravity_scale:
+    - 0.7
+    - 1.3
+    motor_strength_scale:
+    - 0.5
+    - 2.0
+    joint_damping_scale:
+    - 0.1
+    - 5.0
+  nominal:
+    body_mass_scale: 1.0
+    torso_mass_scale: 1.0
+    contact_friction_scale: 1.0
+    gravity_scale: 1.0
+    motor_strength_scale: 1.0
+    joint_damping_scale: 1.0
+exploits:
+- name: sprint_and_coast
+  mechanism: Alternate sprinting and coasting so the episode MEAN lands near 2 m/s while instantaneous
+    speed never holds it.
+  status: open
+  closed_by: null
+  note: Satisfies the episode-mean fitness while violating the steady-cruise instruction — a metric/intent
+    gap.
+- name: oscillate_around_target
+  mechanism: Oscillate speed around the target so the mean is right while the gait is anything
+    but steady.
+  status: open
+  closed_by: null
+  note: null
+symbol_mapping: null
+provenance:
+  authored_from:
+  - path: bird/envs/gym_mujoco.py
+    lines: null
+    what: '`_fit_target_speed`, the ground-truth fitness (`_FITNESSES["neg_speed_error"]`, selected by
+      `continuous_success.raw.name`)'
+  - path: gymnasium/envs/mujoco/half_cheetah_v5.py
+    lines: null
+    what: 'gymnasium 1.3.0 env source: spaces, cameras, built-in reward'
+  rule: source, not docstrings
+  measured:
+  - Random baseline -2.089 +/- 0.078 (n=12); trained -0.205 at 200k.
+  verified_by: BIRD authors
+  date: '2026-08-24'

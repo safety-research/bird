@@ -1,0 +1,18 @@
+# Example, not a published method: Eureka writing its reward in JAX, on `jax_toy`.
+#
+# `generate.reward_language: jax` is refused on numpy environments, so the JAX reward path
+# (the prompt's tracing clause, the jnp exec namespace, the traced probe) runs end to end
+# only on a `jax_*` environment. `jax_toy` (bird/envs/jax_toy.py) is toy_reacher in
+# jax.numpy; with `--profile tester` this file runs that path offline on CPU in seconds
+# (tests/test_jax_toy.py, `-m jax`). Loading or validating it needs no jax; running it
+# needs the `jax` extra.
+
+extends: ../methods/eureka.yaml
+name: jax_reward
+
+problem:
+  env_id: jax_toy                     # tasks/jax_toy: ToyReacher in jax.numpy
+  task_description: null              # null = use the task spec's description
+
+generate:
+  reward_language: jax                # the point of the file

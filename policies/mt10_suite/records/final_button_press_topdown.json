@@ -1,0 +1,248 @@
+{
+ "summary": {
+  "task": "button_press_topdown",
+  "n": 25,
+  "mean_metric": 0.8767,
+  "min_metric": 0.86,
+  "any_step": 1.0,
+  "params": {
+   "d_tol": 0.016,
+   "hold_d": 0.05,
+   "k": 20.0,
+   "n_close": 8,
+   "press_z": 0.05,
+   "pull_tol": 0.022,
+   "standoff": 0.06,
+   "xy_tol": 0.01,
+   "z_grasp": 0.02,
+   "z_hover": 0.035
+  }
+ },
+ "rows": [
+  {
+   "task": "button_press_topdown",
+   "seed": 0,
+   "steps": 500,
+   "metric": 0.876,
+   "success_any": true,
+   "inside_frac": 0.876,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 1,
+   "steps": 500,
+   "metric": 0.878,
+   "success_any": true,
+   "inside_frac": 0.878,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 2,
+   "steps": 500,
+   "metric": 0.882,
+   "success_any": true,
+   "inside_frac": 0.882,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 3,
+   "steps": 500,
+   "metric": 0.868,
+   "success_any": true,
+   "inside_frac": 0.868,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 4,
+   "steps": 500,
+   "metric": 0.872,
+   "success_any": true,
+   "inside_frac": 0.872,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 5,
+   "steps": 500,
+   "metric": 0.88,
+   "success_any": true,
+   "inside_frac": 0.88,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 6,
+   "steps": 500,
+   "metric": 0.876,
+   "success_any": true,
+   "inside_frac": 0.876,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 7,
+   "steps": 500,
+   "metric": 0.86,
+   "success_any": true,
+   "inside_frac": 0.86,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 8,
+   "steps": 500,
+   "metric": 0.892,
+   "success_any": true,
+   "inside_frac": 0.892,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 9,
+   "steps": 500,
+   "metric": 0.874,
+   "success_any": true,
+   "inside_frac": 0.874,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 10,
+   "steps": 500,
+   "metric": 0.876,
+   "success_any": true,
+   "inside_frac": 0.876,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 11,
+   "steps": 500,
+   "metric": 0.882,
+   "success_any": true,
+   "inside_frac": 0.882,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 12,
+   "steps": 500,
+   "metric": 0.862,
+   "success_any": true,
+   "inside_frac": 0.862,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 13,
+   "steps": 500,
+   "metric": 0.89,
+   "success_any": true,
+   "inside_frac": 0.89,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 14,
+   "steps": 500,
+   "metric": 0.886,
+   "success_any": true,
+   "inside_frac": 0.886,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 15,
+   "steps": 500,
+   "metric": 0.882,
+   "success_any": true,
+   "inside_frac": 0.882,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 16,
+   "steps": 500,
+   "metric": 0.87,
+   "success_any": true,
+   "inside_frac": 0.87,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 17,
+   "steps": 500,
+   "metric": 0.87,
+   "success_any": true,
+   "inside_frac": 0.87,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 18,
+   "steps": 500,
+   "metric": 0.89,
+   "success_any": true,
+   "inside_frac": 0.89,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 19,
+   "steps": 500,
+   "metric": 0.87,
+   "success_any": true,
+   "inside_frac": 0.87,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 20,
+   "steps": 500,
+   "metric": 0.89,
+   "success_any": true,
+   "inside_frac": 0.89,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 21,
+   "steps": 500,
+   "metric": 0.884,
+   "success_any": true,
+   "inside_frac": 0.884,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 22,
+   "steps": 500,
+   "metric": 0.876,
+   "success_any": true,
+   "inside_frac": 0.876,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 23,
+   "steps": 500,
+   "metric": 0.868,
+   "success_any": true,
+   "inside_frac": 0.868,
+   "last_phase": "press"
+  },
+  {
+   "task": "button_press_topdown",
+   "seed": 24,
+   "steps": 500,
+   "metric": 0.864,
+   "success_any": true,
+   "inside_frac": 0.864,
+   "last_phase": "press"
+  }
+ ]
+}
