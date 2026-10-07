@@ -1,8 +1,10 @@
 # BIRD: A Benchmark for Iterative Reward Design
 
-Code for **A Bird's-Eye View of Iterative Reward Design**
+[![arXiv](https://img.shields.io/badge/arXiv-2610.04364-b31b1b.svg)](https://arxiv.org/abs/2610.04364)
 
-[Paper (arXiv, coming soon)](#citation) · [Quickstart](#quickstart) · [Methods](#methods) ·
+Code for [**A Bird's-Eye View of Iterative Reward Design**](https://arxiv.org/abs/2610.04364)
+
+[Paper](https://arxiv.org/abs/2610.04364) · [Quickstart](#quickstart) · [Methods](#methods) ·
 [Reproducing the paper](#reproducing-the-paper) · [Citation](#citation)
 
 ## Installation
@@ -214,9 +216,9 @@ up (`scripts/setup_gl.sh`, see [Installation](#installation)) or deselect them w
 ```bibtex
 @article{bhamidipaty2026bird,
   title   = {A Bird's-Eye View of Iterative Reward Design},
-  author  = {Bhamidipaty, Logan M. and Robson, Lauren and Petrini, Linda and
+  author  = {Bhamidipaty, Logan Mondal and Robson, Lauren and Petrini, Linda and
              Lyu, Shengrui and Ndousse, Kamal},
-  journal = {arXiv preprint arXiv:XXXX.XXXXX},
+  journal = {arXiv preprint arXiv:2610.04364},
   year    = {2026}
 }
 ```
